@@ -1,0 +1,21 @@
+@startuml BotSettlingProd
+title Gate Daemon Sweet Spot Referencing
+
+participant "Executor" as E
+participant "GateDaemon" as GD
+database "DEXs" as DEX
+
+== Entry ==
+E -> GD: check sweet spot called
+GD -> GD: sweet spot checked\nfor validity against cache
+group "If No"
+GD <-> DEX: return datas
+GD -> GD: recalculate
+GD -> GD: recache
+GD -> E: return sweet spot
+end group
+group "If Yes"
+GD -> E: return sweet spot
+end group
+
+@enduml
