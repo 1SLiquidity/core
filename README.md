@@ -6,7 +6,7 @@ Currently the project is in the _Specification_ sprint, where docs and diagrams 
 
 ## Boilerplate
 
-Ever gone through the laborious process of checking each DEX to get the best trade? What if you don't care and just send it on whichever DEX you happen to be used to? This immense exposure to front running, pool manipulation and unpredictable slippage rates will be a thing of the past.
+Ever gone through the laborious process of checking each DEX to get the best trade? What if you don't care and just send it on whichever DEX you happen to be used to? This exposure to front running, pool manipulation and unpredictable slippage rates will be a thing of the past.
 
 One click and the **1SLiquidity Protocol** will route your trade across the DEX with the optimum trade conditions and '**Stream**' it out chunk by chunk, block by block. As market conditions change, we adapt, finding the best performing DEX on this stream by stream basis. When your trade is fully settled, you receive your tokens in precisely the threshold you defined. Taking too long? **Cancel** the trade at any time and return tokens exchanged to that point.
 
