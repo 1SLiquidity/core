@@ -7,11 +7,9 @@ database "DEXs" as DEX
 
 == Entry ==
 E -> GD: check sweet spot called
-GD -> GD: sweet spot checked\nfor validity against cache
 group "If No"
-GD <-> DEX: return datas
-GD -> GD: recalculate
-GD -> GD: recache
+GD <-> DEX: calls proposed DEX\nfor `amountOut`
+GD -> GD: utilise 1SL algo to return\n`streamCount` sweet spot
 GD -> E: return sweet spot
 end group
 group "If Yes"
