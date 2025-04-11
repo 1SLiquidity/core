@@ -1,0 +1,19 @@
+@startuml BotSettlingProd
+title Gate Daemon Sweet Spot Referencing
+
+participant "Executor" as E
+participant "GateDaemon" as GD
+database "DEXs" as DEX
+
+== Entry ==
+E -> GD: check sweet spot called
+group "If No"
+GD <-> DEX: calls proposed DEX\nfor `amountOut`
+GD -> GD: utilise 1SL algo to return\n`streamCount` sweet spot
+GD -> E: return sweet spot
+end group
+group "If Yes"
+GD -> E: return sweet spot
+end group
+
+@enduml

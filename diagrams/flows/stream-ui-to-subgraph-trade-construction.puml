@@ -1,0 +1,18 @@
+@startuml Trade Entry
+title Trade Entry Flow
+
+actor User
+database "UI" as UI
+database "DB" as DB
+participant "Router" as R
+participant "Core" as C
+participant "Executor" as E
+participant "GateDaemon" as GD
+database "DEXs" as DEX
+
+' == Authentication ==
+UI <-> DB: Retrieve cached DEX data
+UI -> UI: Display
+User -> UI: Enters trade
+
+@enduml

@@ -11,6 +11,7 @@ The client:
 - utilise websockets to monitor DEX dynamics and trigger updates to the subgraoh **asynchronously**
 - utilise websockets to monitor DEX dynamics and trigger calls in the smart contracts appropriately
 - represent (hold encrypted keys to) an EOA's wallet
+- cache the `feeTiers()` for tokens in the server side keeper client, or default return `3000` for effectively unlisted/unrevognised tokens
 
 **NOTES**
 

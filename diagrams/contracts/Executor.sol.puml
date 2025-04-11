@@ -1,0 +1,10 @@
+- trade metadata must include:
+
+```
+botFee // formed of approximated gas cost + BPS for trade settlement
+tokenIn
+tokenOut
+pairId
+targetAmountOut
+
+```
