@@ -50,64 +50,37 @@ So, we firstly look at gas cost. Then we look at slippage losses on a per trade 
 
 **Gas cost**
 
-https://latex.codecogs.com/svg.image?\text{Gas%20Cost}%20=%20N%20\cdot%20G
+![Gas Cost](https://latex.codecogs.com/svg.image?\text{Gas%20Cost}%20=%20N%20\cdot%20G)
 
-**Slippage per trade**  
-\[
-\text{Slippage per trade} = \frac{v}{R} \cdot v = \frac{v^2}{R}
-\]
+**Slippage per trade**
 
-https://latex.codecogs.com/svg.image?\text{Slippage%20per%20trade}%20=%20\frac{v}{R}%20\cdot%20v%20=%20\frac{v^2}{R}
+![Slippage per trade](https://latex.codecogs.com/svg.image?\text{Slippage%20per%20trade}%20=%20\frac{v}{R}%20\cdot%20v%20=%20\frac{v^2}{R})
 
-So total slippage loss across \( N \) splits:
+So total slippage loss across `N` splits:
 
-\[
-\text{Total Slippage} = N \cdot \frac{v^2}{R} = N \cdot \frac{(V/N)^2}{R} = \frac{V^2}{N \cdot R}
-\]
-
-https://latex.codecogs.com/svg.image?\text{Total%20Slippage}%20=%20N%20\cdot%20\frac{v^2}{R}%20=%20N%20\cdot%20\frac{(V/N)^2}{R}%20=%20\frac{V^2}{N%20\cdot%20R}
+![Total Slippage](<https://latex.codecogs.com/svg.image?\text{Total%20Slippage}%20=%20N%20\cdot%20\frac{v^2}{R}%20=%20N%20\cdot%20\frac{(V/N)^2}{R}%20=%20\frac{V^2}{N%20\cdot%20R}>)
 
 **Combined expression**
 
-\[
-T(N) = N \cdot G + \frac{V^2}{N \cdot R}
-\]
+![Combined T(N)](<https://latex.codecogs.com/svg.image?T(N)%20=%20N%20\cdot%20G%20+%20\frac{V^2}{N%20\cdot%20R}>)
 
-https://latex.codecogs.com/svg.image?T(N)%20=%20N%20\cdot%20G%20+%20\frac{V^2}{N%20\cdot%20R}
-
-## 🔍 Let’s Find the Minimum
+## Let’s Find the Minimum
 
 To find the optimal `N` we minimize:
 
-\[
-T(N) = G \cdot N + \frac{V^2}{R \cdot N}
-\]
-
-https://latex.codecogs.com/svg.image?T(N)%20=%20G%20\cdot%20N%20+%20\frac{V^2}{R%20\cdot%20N}
+![Minimize T(N)](<https://latex.codecogs.com/svg.image?T(N)%20=%20G%20\cdot%20N%20+%20\frac{V^2}{R%20\cdot%20N}>)
 
 **Derivation**
 
 We can find the minimum analytically by taking the derivative and solving:
 
-\[
-\frac{dT}{dN} = G - \frac{V^2}{R \cdot N^2}
-\]
-
-https://latex.codecogs.com/svg.image?\frac{dT}{dN}%20=%20G%20-%20\frac{V^2}{R%20\cdot%20N^2}
+![dT/dN](https://latex.codecogs.com/svg.image?\frac{dT}{dN}%20=%20G%20-%20\frac{V^2}{R%20\cdot%20N^2})
 
 Set `dT/dN` to zero:
 
-\[
-G = \frac{V^2}{R \cdot N^2} \quad \Rightarrow \quad N^2 = \frac{V^2}{G \cdot R}
-\]
+![Solve for N squared](https://latex.codecogs.com/svg.image?G%20=%20\frac{V^2}{R%20\cdot%20N^2}%20\quad%20\Rightarrow%20\quad%20N^2%20=%20\frac{V^2}{G%20\cdot%20R})
 
-https://latex.codecogs.com/svg.image?G%20=%20\frac{V^2}{R%20\cdot%20N^2}%20\quad%20\Rightarrow%20\quad%20N^2%20=%20\frac{V^2}{G%20\cdot%20R}
-
-\[
-\Rightarrow \quad N = \frac{V}{\sqrt{G \cdot R}}
-\]
-
-https://latex.codecogs.com/svg.image?\Rightarrow%20\quad%20N%20=%20\frac{V}{\sqrt{G%20\cdot%20R}}
+![Final N](https://latex.codecogs.com/svg.image?\Rightarrow%20\quad%20N%20=%20\frac{V}{\sqrt{G%20\cdot%20R}})
 
 ```
 
