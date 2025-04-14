@@ -1,0 +1,116 @@
+# GateDaemon.sol Contract
+
+**Preface**
+
+The following text is comprosied of running notes made during the design and architecting of the entire protocol. It is a WIP and may feature breaking changes to the final product.
+
+## Intro
+
+It's important to wrap your head around how a stream works before reading further here.
+
+Essentially a stream is some dynamic fraction of a trade volume. We split it up to balance slippage achieved vs gas cost entailed.
+
+Ultimately, we find that the slippage entailed is restricted primarily by the reserves of any token pair within the DEX (along with, of course, some consideration towards +/- x% liyields an optimum number of streams considering gas cost impacts as slippage impact decreases exponentially.
+
+**Notes**
+
+- DEXs and tokens must be listed in the `GateDaemon` contract // **DEPRACATED** no longer needs to be 'listed' rather is populated on any bot maintenance call
+- there should exist a function to add a new DEX to the daemon, as well as populate it with pair routes. Use a mapping like `mapping(address => mapping(bytes32[] => address[])) public dexTokenInTokenOutSweetSpot` to store the routes, and relevant parameters passed to the fucntion call in listing a new DEX // [tick]
+- The `dexTokenInTokenOutSweetSpot` mapping should obey a schema for sweet spots, moving in 10% shifts when iterating // **DEPRACATED** this is needless now since we have our sweet spot equation
+- `pairIdUpdateTime` should be cached and called in checks when referencing the DEXs // [tick]
+- DEXs should be able to be updated [tick]
+- ...as well as removed // **DEPRACATED**
+- N.B. We can use ERC167 _supports interface_ to check that newly populate routes satisfy the interface required to interact wiyh a DEX's basic function calls (e.g. `getReserves`)
+- DEX token routes should similarly be able to be updated and removed // [tick]
+- Whilst this may initially be set by the owner, eventually it may be offloaded to a DAO [tick]
+- Tokens would require whitelisting and votes cast on them // **DEPRACATED** sers are at their own volition to utilise the off-chain store of token/pairIds. They may choose to pass a new token pair, which has no endpoint, directly into the contract. [tick]
+
+## Algorithm & Mechanics
+
+**Sweet Spot Algorithm**
+
+We can derive some equations which describe the dynamics of the `amountIn` to `streamCount`.
+
+The following are variables involved in the process:
+
+- `amountIn` // = `tradeVolume / sweetSpot` where `tradeVolume` is the amount of tokens to be spent on a trade and `sweetSpot` is the number of streams proportional to this trade volume
+- `slippage` // = `slippage` is the amount of slippage to be used on a trade, entered when a trade is constructed
+- `gas cost` // = `gas cost` is the amount of gas to be used multiplied by the `gasPrice`. This should be cached upon the call of `Bot`'s `executeTrades` function and read from trade metadata in the formulation of `botFee`
+- `feeTier` // = `feeTier` returned from the `KeeperClient` which will cache fee tiers for common tokens and default to 3000 for unlisted tokens. Passing the wrong value in will just revert a tx thus doesn't provide a vector for attacks
+
+We define the algorithm to work in terms of slippage attained which we can calculate from reserves. These can be pinged async in a single function call (should include 1% depth check).
+
+What we are looking to ascertain is that the total trade volume is strictly less than <1% (or some user determined value) of a pool's liquidity. If yes, we look at 2% depth to cross compare. Whichever we find, we then split the trade proportionally to the reserve in that pool for the following trade chunk, ensuring a ratio of >=100:1.
+
+To take gas into consideration, a known gas volume will be used in trade executions, or a limit for this can be set. From there, we can utilise cached gas prices, cached on timelocked Bot calls, with the known gas usage to determine our gas cost per call. Now, we need to compare this to ensure it is less than the stream size. Note that we will rely on off chain calculations to determine this value. Vulnerabilities herer are mitigated since it is only a 'best work' approach in evaluating this number, and if a user spams or attempts to set low values, the calls will either simply be front run or rejected, thus showing no incentive for attackers in the first place.
+
+_**Calculus for Ascertaining Core Equation**_
+
+So, we firstly look at gas cost. Then we look at slippage losses on a per trade basis. Then we combine the two and find the minima via derivation.
+
+**Gas cost**  
+\[
+\text{Gas Cost} = N \cdot G
+\]
+
+**Slippage per trade**  
+\[
+\text{Slippage per trade} = \frac{v}{R} \cdot v = \frac{v^2}{R}
+\]
+
+So total slippage loss across \( N \) splits:
+
+\[
+\text{Total Slippage} = N \cdot \frac{v^2}{R} = N \cdot \frac{(V/N)^2}{R} = \frac{V^2}{N \cdot R}
+\]
+
+**Combined expression**
+
+\[
+T(N) = N \cdot G + \frac{V^2}{N \cdot R}
+\]
+
+## 🔍 Let’s Find the Minimum
+
+To find the optimal \( N \), we minimize:
+
+\[
+T(N) = G \cdot N + \frac{V^2}{R \cdot N}
+\]
+
+**Derivation**
+
+We can find the minimum analytically by taking the derivative and solving:
+
+\[
+\frac{dT}{dN} = G - \frac{V^2}{R \cdot N^2}
+\]
+
+Set \frac{dT}{dN}\ to zero:
+
+\[
+G = \frac{V^2}{R \cdot N^2} \quad \Rightarrow \quad N^2 = \frac{V^2}{G \cdot R}
+\]
+
+\[
+\Rightarrow \quad N = \frac{V}{\sqrt{G \cdot R}}
+\]
+
+```
+
+...which gives us an equation to use for a given trade volume, gas cost, and reserve size. This can effectively be calculated on chain and removes the need for loops.
+
+
+## Assumptions
+
+- the pool liquidity rebalance happens on a block by block basis
+
+
+```
+
+**Scaling**
+
+- need to consider the pool fee tier
+- need to consider the +/-2% liquidity depth in contract
+
+## Contract Specification
