@@ -1,4 +1,4 @@
-# GateDaemon.sol Contract
+# StreamDaemon.sol Contract
 
 **Preface**
 
@@ -48,15 +48,16 @@ _**Calculus for Ascertaining Core Equation**_
 
 So, we firstly look at gas cost. Then we look at slippage losses on a per trade basis. Then we combine the two and find the minima via derivation.
 
-**Gas cost**  
-\[
-\text{Gas Cost} = N \cdot G
-\]
+**Gas cost**
+
+https://latex.codecogs.com/svg.image?\text{Gas%20Cost}%20=%20N%20\cdot%20G
 
 **Slippage per trade**  
 \[
 \text{Slippage per trade} = \frac{v}{R} \cdot v = \frac{v^2}{R}
 \]
+
+https://latex.codecogs.com/svg.image?\text{Slippage%20per%20trade}%20=%20\frac{v}{R}%20\cdot%20v%20=%20\frac{v^2}{R}
 
 So total slippage loss across \( N \) splits:
 
@@ -64,19 +65,25 @@ So total slippage loss across \( N \) splits:
 \text{Total Slippage} = N \cdot \frac{v^2}{R} = N \cdot \frac{(V/N)^2}{R} = \frac{V^2}{N \cdot R}
 \]
 
+https://latex.codecogs.com/svg.image?\text{Total%20Slippage}%20=%20N%20\cdot%20\frac{v^2}{R}%20=%20N%20\cdot%20\frac{(V/N)^2}{R}%20=%20\frac{V^2}{N%20\cdot%20R}
+
 **Combined expression**
 
 \[
 T(N) = N \cdot G + \frac{V^2}{N \cdot R}
 \]
 
+https://latex.codecogs.com/svg.image?T(N)%20=%20N%20\cdot%20G%20+%20\frac{V^2}{N%20\cdot%20R}
+
 ## 🔍 Let’s Find the Minimum
 
-To find the optimal \( N \), we minimize:
+To find the optimal `N` we minimize:
 
 \[
 T(N) = G \cdot N + \frac{V^2}{R \cdot N}
 \]
+
+https://latex.codecogs.com/svg.image?T(N)%20=%20G%20\cdot%20N%20+%20\frac{V^2}{R%20\cdot%20N}
 
 **Derivation**
 
@@ -86,15 +93,21 @@ We can find the minimum analytically by taking the derivative and solving:
 \frac{dT}{dN} = G - \frac{V^2}{R \cdot N^2}
 \]
 
-Set \frac{dT}{dN}\ to zero:
+https://latex.codecogs.com/svg.image?\frac{dT}{dN}%20=%20G%20-%20\frac{V^2}{R%20\cdot%20N^2}
+
+Set `dT/dN` to zero:
 
 \[
 G = \frac{V^2}{R \cdot N^2} \quad \Rightarrow \quad N^2 = \frac{V^2}{G \cdot R}
 \]
 
+https://latex.codecogs.com/svg.image?G%20=%20\frac{V^2}{R%20\cdot%20N^2}%20\quad%20\Rightarrow%20\quad%20N^2%20=%20\frac{V^2}{G%20\cdot%20R}
+
 \[
 \Rightarrow \quad N = \frac{V}{\sqrt{G \cdot R}}
 \]
+
+https://latex.codecogs.com/svg.image?\Rightarrow%20\quad%20N%20=%20\frac{V}{\sqrt{G%20\cdot%20R}}
 
 ```
 
