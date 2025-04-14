@@ -48,11 +48,7 @@ _**Calculus for Ascertaining Core Equation**_
 
 So, we firstly look at gas cost. Then we look at slippage losses on a per trade basis. Then we combine the two and find the minima via derivation.
 
-**Gas cost**
-
 ![Gas Cost](https://latex.codecogs.com/svg.image?\text{Gas%20Cost}%20=%20N%20\cdot%20G)
-
-**Slippage per trade**
 
 ![Slippage per trade](https://latex.codecogs.com/svg.image?\text{Slippage%20per%20trade}%20=%20\frac{v}{R}%20\cdot%20v%20=%20\frac{v^2}{R})
 
@@ -82,17 +78,11 @@ Set `dT/dN` to zero:
 
 ![Final N](https://latex.codecogs.com/svg.image?\Rightarrow%20\quad%20N%20=%20\frac{V}{\sqrt{G%20\cdot%20R}})
 
-```
-
 ...which gives us an equation to use for a given trade volume, gas cost, and reserve size. This can effectively be calculated on chain and removes the need for loops.
-
 
 ## Assumptions
 
 - the pool liquidity rebalance happens on a block by block basis
-
-
-```
 
 **Scaling**
 
