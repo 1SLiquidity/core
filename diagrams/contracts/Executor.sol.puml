@@ -1,10 +1,75 @@
-- trade metadata must include:
+@startuml Executor
+title Executor Contract Flow
 
-```
-botFee // formed of approximated gas cost + BPS for trade settlement
-tokenIn
-tokenOut
-pairId
-targetAmountOut
+actor User as U
+participant "Core" as C
+participant "Executor" as E
+participant "StreamDaemon" as SD
+participant "Bot" as B
+database "DEXs" as DEX
 
-```
+group "Trade Execution"
+U -> C: User places trade\n which is stored in the \nqueue. Funds are held\nin the contract.\n\na single stream is executed
+B -> C: Bot prods to settle pending trade streams
+  C -> E: executeTrade(TradeParams)
+  activate E
+  E -> GD: checkSweetSpot(token, amount)
+  GD <--> DEX: Validate parameters against\nmarket conditions
+  GD -> E: Return sweet spot
+  E -> E: Run trade parameter checks
+  
+  alt Checks Passed
+    E -> E: validateTradeParams(params)
+    E -> DEX: swapOnDEX(tokenIn, tokenOut, amount)
+    DEX -> E: Return swap result
+    E -> E: Emit TradeExecuted event
+    E -> C: Return tradeId and metadata
+    C -> C: update trade
+  else Checks Failed
+    E -> C: Emit event and return fail || 0
+  end
+  deactivate E
+end
+
+group "Trade SettleMent (Final Stream)"
+  B -> C: Bot prods to settle pending trade streams
+  C -> E: executeTrade(tradeParams)
+  activate E
+  E -> E: check trade status (is settled)
+  E -> GD: checkSweetSpot(token, amount)
+  GD <--> DEX: Validate parameters against\nmarket conditions
+  GD -> E: Return sweet spot
+  E -> E: Run trade parameter checks
+  
+  alt Checks Passed
+    E -> E: validateTradeParams(params)
+    E -> DEX: swapOnDEX(tokenIn, tokenOut, amount)
+    DEX -> E: return swap result
+    E -> E: emit TradeSettled event
+    E -> C: return tradeId and metadata
+    C -> C: mark trade as settled
+    E -> B: transfer bot fees
+    E -> U: transfer user tokens
+  else Checks Failed
+    E -> C: emit event and return fail || 0
+  end
+  deactivate E
+end
+
+group "Trade Cancellation"
+  C -> E: cancelTrade(tradeId)
+  activate E
+  E -> E: Retrieve trade params
+  E -> E: Validate cancellation conditions
+  
+  alt Can Cancel
+    E -> E: Update trade status to CANCELLED
+    E -> E: Emit TradeCancelled event
+    E -> C: Return success
+  else Cannot Cancel
+    E -> C: Return error
+  end
+  deactivate E
+end
+
+@enduml
