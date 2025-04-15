@@ -8,7 +8,7 @@ database "DEXs" as DEX
 == Entry ==
 E -> GD: check sweet spot called
 group "If No"
-GD <-> DEX: calls proposed DEX\nfor `amountOut`
+GD <-> DEX: calls proposed DEX\nfor `reserves(...)`
 GD -> GD: utilise 1SL algo to return\n`streamCount` sweet spot
 GD -> E: return sweet spot
 end group
