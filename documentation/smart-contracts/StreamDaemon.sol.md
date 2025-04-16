@@ -29,6 +29,8 @@ Ultimately, we find that the slippage entailed is restricted primarily by the re
 
 **Sweet Spot Algorithm**
 
+The aim of the sweet spot algorithm is to (a) determine the optimal number of streams for a given trade, and (b) to determine the DEX to route a stream to in the settling of the trade.
+
 We can derive some equations which describe the dynamics of the `amountIn` to `streamCount`.
 
 The following are variables involved in the process:
@@ -44,7 +46,7 @@ What we are looking to ascertain is that the total trade volume is strictly less
 
 To take gas into consideration, a known gas volume will be used in trade executions, or a limit for this can be set. From there, we can utilise cached gas prices, cached on timelocked Bot calls, with the known gas usage to determine our gas cost per call. Now, we need to compare this to ensure it is less than the stream size. Note that we will rely on off chain calculations to determine this value. Vulnerabilities herer are mitigated since it is only a 'best work' approach in evaluating this number, and if a user spams or attempts to set low values, the calls will either simply be front run or rejected, thus showing no incentive for attackers in the first place.
 
-_**Calculus for Ascertaining Core Equation**_
+## Calculus for Ascertaining Core Equation\*\*
 
 So, we firstly look at gas cost. Then we look at slippage losses on a per trade basis. Then we combine the two and find the minima via derivation.
 
@@ -60,7 +62,7 @@ So total slippage loss across `N` splits:
 
 ![Combined T(N)](<https://latex.codecogs.com/svg.image?T(N)%20=%20N%20\cdot%20G%20+%20\frac{V^2}{N%20\cdot%20R}>)
 
-## Let’s Find the Minimum
+**Let’s Find the Minimum**
 
 To find the optimal `N` we minimize:
 
@@ -82,11 +84,19 @@ Set `dT/dN` to zero:
 
 ## Assumptions
 
+Some notes on assumptions made in the algorithm:
+
 - the pool liquidity rebalance happens on a block by block basis
+- trades are a relatively small percentage of pool liquidity (due to the slippage being judged without a delta of volume added to the reserve in the denominator of the initial slippage equation).The actual impact of this is that the slippage is overestimated, and so the number of streams is overestimated. This is a 'best work' approach. It therefore will not accurately consider real slippage and relative gas costs in larger trades.
+
+**@audit** this should be tested to find the break points, which may be restricted in contract, e.g. max% of pool liquidity, etc.
 
 **Scaling**
 
-- need to consider the pool fee tier
-- need to consider the +/-2% liquidity depth in contract
+Taking this deterministic approach to the fundamental equation does not consider constants which may be added to the equation (since their effect on derivatives is non existent) or external factors which may iteratively change the resulting DEX returned.
 
-## Contract Specification
+- the pool fee tier // in determining total cost
+- the +/-2% liquidity depth in contract
+- a cache for pairId => DEX => volume may yet be implemented which caches values on a bot run. The affectiveness of this
+
+@audit needs research
