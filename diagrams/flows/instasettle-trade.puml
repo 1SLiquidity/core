@@ -1,0 +1,28 @@
+@startuml InstaSettleTrade
+title Insta-Settle Trade Flow
+
+actor "EOA" as EOA
+participant "Router" as R
+participant "Core" as C
+participant "Executor" as E
+actor "User" as U
+actor "Bot" as B
+
+' == Insta-Settlement Flow ==
+EOA -> R: call instaSettle(tradeId)
+activate R
+R -> C: forward call
+deactivate R
+activate C
+
+C -> C: verify caller has pending trade
+C -> C: verify trade is instasettlable
+C -> C: calculate in/out/fee amounts 
+C -> C: Update trade status to settled
+C -> U: Transfer tokenOut settlement\namount
+C -> B: Transfer bot fee
+C -> EOA: Transfer remaining tokens
+C -> C: Emit InstaSettleEvent
+deactivate C
+
+@enduml
