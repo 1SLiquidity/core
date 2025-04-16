@@ -7,8 +7,6 @@ database "Keeper" as K
 database "DEXs" as DEX
 participant "Router" as R
 
-' == Authentication ==
-
 User -> UI: Opens app and\nchooses token pair
 UI -> K: Calls Keeper back\end passing\ndesired trade parameters
 K <-> DEX: async calls to DEXs to return\n`amountOut` for varying\n`streamCount`

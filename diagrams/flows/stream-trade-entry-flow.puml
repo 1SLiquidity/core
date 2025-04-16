@@ -10,8 +10,6 @@ participant "Executor" as E
 participant "StreamDaemon" as SD
 database "DEXs" as DEX
 
-' == Authentication ==
-
 User -> UI: Enters trade
 UI -> R: Trade signed &\nsubmitted to router
 activate R

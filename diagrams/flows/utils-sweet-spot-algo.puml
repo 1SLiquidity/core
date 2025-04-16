@@ -6,10 +6,9 @@ database "UI" as UI
 participant "Router" as R
 participant "Core" as C
 participant "Executor" as E
-participant "StreamDaemon" as SD
+participant "StreamDaemon" as GD
 database "DEXs" as DEX
 
-' == Trade Input & Sweet Spot Calculation ==
 User -> UI: Enter trade amount
 UI -> UI: Initial client-side\nsweet spot estimation
 User -> UI: Confirm trade
@@ -25,7 +24,7 @@ group "Sweet Spot Calculation"
   DEX -> GD: Return current reserves
   GD -> GD: Calculate gas cost (G)
   GD -> GD: Extract reserve size (R)
-  GD -> GD: Apply Sweet Spot Formula: N = V/sqrt(G·R)
+  GD -> GD: Apply Sweet Spot Formula:\nN = V/sqrt(G·R)
   GD -> GD: Check 2% depth cross comparison
   GD -> GD: Apply fee tier considerations
   GD -> GD: Determine final stream count
@@ -35,7 +34,6 @@ group "Sweet Spot Calculation"
   deactivate GD
 end
 
-' == Apply Sweet Spot to Trade ==
 E -> E: Apply sweet spot to\ntrade parameters
 E <-> DEX: Execute trade
 C -> UI: Return trade confirmation

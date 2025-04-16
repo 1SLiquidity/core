@@ -8,8 +8,6 @@ participant "Router" as R
 participant "Core" as C
 participant "Executor" as E
 
-' == Cancellation Flow ==
-
 User -> UI: Initiates trade cancellation
 UI -> R: Cancellation request\nsigned & submitted
 activate R

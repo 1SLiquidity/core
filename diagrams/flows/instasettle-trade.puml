@@ -8,7 +8,6 @@ participant "Executor" as E
 actor "User" as U
 actor "Bot" as B
 
-' == Insta-Settlement Flow ==
 EOA -> R: call instaSettle(tradeId)
 activate R
 R -> C: forward call
