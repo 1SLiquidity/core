@@ -2,7 +2,7 @@
 title Gate Daemon Sweet Spot Referencing
 
 participant "Executor" as E
-participant "GateDaemon" as GD
+participant "StreamDaemon" as SD
 database "DEXs" as DEX
 
 == Entry ==

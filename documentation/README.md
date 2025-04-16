@@ -19,6 +19,6 @@ _Smart Contracts_
 - Router
 - Core
 - Executor
-- GateDaemon
+- StreamDaemon
 - Fees
 - Utils

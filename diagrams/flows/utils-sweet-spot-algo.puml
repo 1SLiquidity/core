@@ -6,7 +6,7 @@ database "UI" as UI
 participant "Router" as R
 participant "Core" as C
 participant "Executor" as E
-participant "GateDaemon" as GD
+participant "StreamDaemon" as SD
 database "DEXs" as DEX
 
 ' == Trade Input & Sweet Spot Calculation ==
@@ -31,7 +31,7 @@ group "Sweet Spot Calculation"
   GD -> GD: Determine final stream count
   GD -> GD: Calculate per-stream amount
   
-  GD -> E: Return optimal stream count\nand per-stream amount
+  GD -> E: Return optimal stream count\ndestination DEX and per-stream amount
   deactivate GD
 end
 

@@ -7,7 +7,7 @@ database "SubGraph" as S
 participant "Router" as R
 participant "Core" as C
 participant "Executor" as E
-participant "GateDaemon" as GD
+participant "StreamDaemon" as SD
 database "DEXs" as DEX
 
 ' == Authentication ==
@@ -21,13 +21,12 @@ deactivate R
 C -> C: Create & cache\n`tradeId`
 C -> E: Core calls executor
 activate E
-E -> GD: call GateDaemon\n to check trade metadata
-GD <-> DEX: calles recache \nsweet spot func\nfor specified token
-GD -> GD: Gate daemon\nexecutes checks
-GD -> E: Returns result
+E -> SD: call StreamDaemon\n to check trade metadata
+SD <-> DEX: calculates sweet spot \nfor specified token
+SD -> E: Return result
 E -> E: Execute checks
-E -> E: Formulates trade params\ninc.\n`sweet spot`\n`tradeId`
-E -> DEX: Settles trade against DEX
+E -> E: Formulates trade params
+E -> DEX: Settles stream against DEX
 E -> C: Returns metadata
 deactivate E
 activate C
