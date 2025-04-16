@@ -14,7 +14,7 @@ Ultimately, we find that the slippage entailed is restricted primarily by the re
 
 **Notes**
 
-- DEXs and tokens must be listed in the `GateDaemon` contract // **DEPRACATED** no longer needs to be 'listed' rather is populated on any bot maintenance call
+- DEXs and tokens must be listed in the `StreamDaemon` contract // **DEPRACATED** no longer needs to be 'listed' rather is populated on any bot maintenance call
 - there should exist a function to add a new DEX to the daemon, as well as populate it with pair routes. Use a mapping like `mapping(address => mapping(bytes32[] => address[])) public dexTokenInTokenOutSweetSpot` to store the routes, and relevant parameters passed to the fucntion call in listing a new DEX // [tick]
 - The `dexTokenInTokenOutSweetSpot` mapping should obey a schema for sweet spots, moving in 10% shifts when iterating // **DEPRACATED** this is needless now since we have our sweet spot equation
 - `pairIdUpdateTime` should be cached and called in checks when referencing the DEXs // [tick]
