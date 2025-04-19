@@ -6,21 +6,23 @@ actor "Bot" as B
 participant "Core" as C
 box Executor
 participant "executeTIDStream" as ETS 
+participant "validateTradeParams" as VTP
+participant interfaceQueryFees as IQF
 end box
 participant "StreamDaemon" as SD
+participant Fees as F
 database "DEXs" as DEX
 
-group "Trade Execution"
+group "Trade Placement & Single StreamExecution"
 U -> C: User places trade which is stored in the \nqueue. Funds are held in the contract.\n\nA single stream is executed
   C -> ETS: executeTrade(TradeParams)
   activate ETS
   ETS -> SD: checkSweetSpot(token, amount)
-  SD <--> DEX: Validate parameters against\nmarket conditions
+  SD <--> DEX: Return parameters against\nmarket conditions
   SD -> ETS: Return sweet spot
-  ETS -> ETS: Run trade parameter checks
+  ETS <-> VTP: validateTradeParams(params)
   
   alt Checks Passed
-    ETS -> ETS: validateTradeParams(params)
     ETS -> DEX: swapOnDEX(tokenIn, tokenOut, amount)
     DEX -> ETS: Return swap result
     ETS -> ETS: Emit TradeExecuted event
@@ -49,7 +51,8 @@ group "Trade SettleMent (Final Stream)"
     ETS -> ETS: emit TradeSettled event
     ETS -> C: return tradeId and metadata
     C -> C: mark trade as settled
-    ETS -> B: transfer bot fees
+    IQF -> F: `queryFees()` 
+    C -> B: transfer bot fees
     ETS -> U: transfer user tokens
   else Checks Failed
     ETS -> C: emit event and return fail || 0
