@@ -35,7 +35,7 @@ group "Fee Claiming"
   ClF -> ClF: Calculate claimable amount
   alt Has Fees to Claim
     ClF -> ClF: Update bot fee balance
-    ClF -> B: Transfer accumulated fees
+    ClF -> B: Transfer all accumulated fees
     ClF -> ClF: Emit FeesClaimed event
   else No Fees to Claim
     ClF -> B: Return error
@@ -44,31 +44,18 @@ group "Fee Claiming"
 end
 
 group "Query Fees Claimable"
-  B -> ClF: Request to claim fees
+  B -> ClF: Query request to claim fees
   activate ClF
   ClF -> ClF: Verify bot has\nfees to claim
   ClF -> ClF: Calculate claimable amount
   
   alt Has Fees to Claim
-    ClF -> ClF: Update bot fee balance
-    ClF -> B: Transfer accumulated fees
-    ClF -> ClF: Emit FeesClaimed event
+    ClF -> ClF: calculate fees to claim in function
+    ClF -> B: return `accumulatedFee` and `token` (address)
   else No Fees to Claim
-    ClF -> B: Return error
+    ClF -> B: Return no fees
   end
   deactivate ClF
-end
-
-group "Fee Transfer on Insta-Settle"
-  EOA -> R: call instaSettle(tradeId)
-  R -> C: forward call
-  C -> C: load pending trade
-  C -> C: calculate fee amounts
-  C -> TF: Transfer bot fee
-  activate TF
-  TF -> TF: Update bot fee balance
-  TF -> C: Confirm fee transfer
-  deactivate TF
 end
 
 @enduml
