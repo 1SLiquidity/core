@@ -5,15 +5,15 @@ participant "Executor" as E
 participant "StreamDaemon" as SD
 database "DEXs" as DEX
 
-== Entry ==
-E -> GD: check sweet spot called
-group "If No"
-GD <-> DEX: calls proposed DEX\nfor `reserves(...)`
-GD -> GD: utilise 1SL algo to return\n`streamCount` sweet spot
-GD -> E: return sweet spot
+E -> SD: check sweet spot called
+SD -> SD: uses pairId to check for last\ntimestamped cache of sweet spot
+group "If > X seconds @audit verify"
+SD <-> DEX: calls proposed DEX\nfor `reserves(...)`
+SD -> SD: utilise 1SL algo to return\n`streamCount` sweet spot
+SD -> E: return sweet spot
 end group
-group "If Yes"
-GD -> E: return sweet spot
+group "If < X"
+SD -> E: return sweet spot
 end group
 
 @enduml

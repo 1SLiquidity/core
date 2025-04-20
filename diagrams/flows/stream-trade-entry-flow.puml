@@ -16,7 +16,7 @@ activate R
 R -> R: Router executes\nchecks on bounds
 R -> C: Call for trade\nentry function
 deactivate R
-C -> C: Create & cache\n`tradeId`
+C -> C: Create & cache trade\nin queue, storing params\n(defined in specificaiton)
 C -> E: Core calls executor
 activate E
 E -> SD: call StreamDaemon\n to check trade metadata

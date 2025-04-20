@@ -6,7 +6,7 @@ database "UI" as UI
 participant "Router" as R
 participant "Core" as C
 participant "Executor" as E
-participant "StreamDaemon" as GD
+participant "StreamDaemon" as SD
 database "DEXs" as DEX
 
 User -> UI: Enter trade amount
@@ -17,21 +17,21 @@ UI -> R: Submit trade request
 group "Sweet Spot Calculation"
   R -> C: Forward trade datas
   C -> E: 
-  E -> GD: checkSweetSpot(pairId, V)
+  E -> SD: checkSweetSpot(pairId, V)
   activate GD
   
-  GD -> DEX: getReserves(tokenA, tokenB)
-  DEX -> GD: Return current reserves
-  GD -> GD: Calculate gas cost (G)
-  GD -> GD: Extract reserve size (R)
-  GD -> GD: Apply Sweet Spot Formula:\nN = V/sqrt(G·R)
-  GD -> GD: Check 2% depth cross comparison
-  GD -> GD: Apply fee tier considerations
-  GD -> GD: Determine final stream count
-  GD -> GD: Calculate per-stream amount
+  SD -> DEX: getReserves(tokenA, tokenB)
+  DEX -> SD: Return current reserves
+  SD -> SD: Calculate gas cost (G)
+  SD -> SD: Extract reserve size (R)
+  SD -> SD: Apply Sweet Spot Formula:\nN = V/sqrt(G·R)
+  SD -> SD: Check 2% depth cross comparison
+  SD -> SD: Apply fee tier considerations
+  SD -> SD: Determine final stream count
+  SD -> SD: Calculate per-stream amount
   
-  GD -> E: Return optimal stream count\ndestination DEX and per-stream amount
-  deactivate GD
+  SD -> E: Return optimal stream count\ndestination DEX and per-stream amount
+  deactivate SD
 end
 
 E -> E: Apply sweet spot to\ntrade parameters
