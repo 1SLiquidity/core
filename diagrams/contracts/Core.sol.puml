@@ -63,11 +63,16 @@ group "Trade Queue Execution"
 end
 
 group "Trade Cancellation"
+alt User Executes Call
   U -> R: request trade cancellation
+  end
+  alt SC Triggers Call on Validation
+  CT -> CaT: trigger trade cancellation
+  end
   R -> CaT: forward with tradeId
   activate CaT
   CaT -> CaT: verify trade exists and status
-  CaT -> CaT: verify caller is trade owner
+  CaT -> CaT: verify caller is trade owner\n or the call originates from address(this)
   
   alt Can Be Cancelled
     CaT -> CaT: call `cancelTrade(tradeId)`
@@ -87,7 +92,7 @@ group "Insta-Settle"
   IS -> IS: load pending trade
   IS -> IS: verify metadata and ownership
   IS -> IS: calculate in/out/fee amounts
-  IS -> UTQ: Remove tradeId from queue
+  IS -> UTQ: remove tradeId from queue
   IS -> U: transfer tokenOut settlement\namounts (tokenIn + tokenOut)
   IS -> F: transfer bot fee
   IS -> EOA: Transfer remaining tokens
