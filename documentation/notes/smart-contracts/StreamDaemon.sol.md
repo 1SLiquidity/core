@@ -15,13 +15,12 @@ Ultimately, we find that the slippage entailed is restricted primarily by the re
 **Notes**
 
 - DEXs and tokens must be listed in the `StreamDaemon` contract // **DEPRACATED** no longer needs to be 'listed' rather is populated on any bot maintenance call
-- there should exist a function to add a new DEX to the daemon, as well as populate it with pair routes. Use a mapping like `mapping(address => mapping(bytes32[] => address[])) public dexTokenInTokenOutSweetSpot` to store the routes, and relevant parameters passed to the fucntion call in listing a new DEX // [tick]
+- there should exist a function to add a new DEX to the daemon, as well as populate it with pair routes. Use a mapping like `mapping(address => mapping(bytes32[] => address[])) public dexTokenInTokenOutSweetSpot` to store the routes, and relevant parameters passed to the fucntion call in listing a new DEX **DEPRACATED**
 - The `dexTokenInTokenOutSweetSpot` mapping should obey a schema for sweet spots, moving in 10% shifts when iterating // **DEPRACATED** this is needless now since we have our sweet spot equation
 - `pairIdUpdateTime` should be cached and called in checks when referencing the DEXs // [tick]
-- DEXs should be able to be updated [tick]
+- pairId routes should be able to be updated [tick]
 - ...as well as removed // **DEPRACATED**
-- N.B. We can use ERC167 _supports interface_ to check that newly populate routes satisfy the interface required to interact wiyh a DEX's basic function calls (e.g. `getReserves`)
-- DEX token routes should similarly be able to be updated and removed // [tick]
+- N.B. We can use ERC165 _supports interface_ to check that newly populate routes satisfy the interface required to interact with a DEX's basic function calls (e.g. `getReserves`)
 - Whilst this may initially be set by the owner, eventually it may be offloaded to a DAO [tick]
 - Tokens would require whitelisting and votes cast on them // **DEPRACATED** sers are at their own volition to utilise the off-chain store of token/pairIds. They may choose to pass a new token pair, which has no endpoint, directly into the contract. [tick]
 
@@ -54,8 +53,6 @@ So, we firstly look at gas cost. Then we look at slippage losses on a per trade 
 
 ![Slippage per trade](https://latex.codecogs.com/svg.image?\text{Slippage%20per%20trade}%20=%20\frac{v}{R}%20\cdot%20v%20=%20\frac{v^2}{R})
 
-So total slippage loss across `N` splits:
-
 ![Total Slippage](<https://latex.codecogs.com/svg.image?\text{Total%20Slippage}%20=%20N%20\cdot%20\frac{v^2}{R}%20=%20N%20\cdot%20\frac{(V/N)^2}{R}%20=%20\frac{V^2}{N%20\cdot%20R}>)
 
 **Combined expression**
@@ -66,19 +63,19 @@ So total slippage loss across `N` splits:
 
 To find the optimal `N` we minimize:
 
-![Minimize T(N)](<https://latex.codecogs.com/svg.image?T(N)%20=%20G%20\cdot%20N%20+%20\frac{V^2}{R%20\cdot%20N}>)
+![V(N)](<https://latex.codecogs.com/svg.image?T(N)%20=%20G%20\cdot%20N%20+%20\frac{V^2}{R%20\cdot%20N}>)
 
 **Derivation**
 
 We can find the minimum analytically by taking the derivative and solving:
 
-![dT/dN](https://latex.codecogs.com/svg.image?\frac{dT}{dN}%20=%20G%20-%20\frac{V^2}{R%20\cdot%20N^2})
+![dV/dN](https://latex.codecogs.com/svg.image?\frac{dT}{dN}%20=%20G%20-%20\frac{V^2}{R%20\cdot%20N^2})
 
-Set `dT/dN` to zero:
+Set `dV/dN` to zero:
 
 ![Solve for N squared](https://latex.codecogs.com/svg.image?G%20=%20\frac{V^2}{R%20\cdot%20N^2}%20\quad%20\Rightarrow%20\quad%20N^2%20=%20\frac{V^2}{G%20\cdot%20R})
 
-![Final N](https://latex.codecogs.com/svg.image?\Rightarrow%20\quad%20N%20=%20\frac{V}{\sqrt{G%20\cdot%20R}})
+![N](https://latex.codecogs.com/svg.image?\Rightarrow%20\quad%20N%20=%20\frac{V}{\sqrt{G%20\cdot%20R}})
 
 ...which gives us an equation to use for a given trade volume, gas cost, and reserve size. This can effectively be calculated on chain and removes the need for loops.
 
