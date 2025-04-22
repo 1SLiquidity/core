@@ -10,7 +10,7 @@ It's important to wrap your head around how a stream works before reading furthe
 
 Essentially a stream is some dynamic fraction of a trade volume. We split it up to balance slippage achieved vs gas cost entailed.
 
-Ultimately, we find that the slippage entailed is restricted primarily by the reserves of any token pair within the DEX (along with, of course, some consideration towards +/- x% liyields an optimum number of streams considering gas cost impacts as slippage impact decreases exponentially.
+Ultimately, we find that the slippage entailed is restricted primarily by the reserves of any token pair within the DEX (along with, of course, some consideration towards +/- x%) liquidity depth. This yields an optimum number of streams considering gas cost impacts as slippage impact decreases exponentially.
 
 **Notes**
 
