@@ -8,6 +8,7 @@ box Executor
 participant "executeTIDStream" as ETS 
 participant "executeBatchStream" as EBS
 participant "validateTradeParams" as VTP
+participant cacheEthereumPrice as CEP
 participant interfaceQueryFees as IQF
 end box
 participant "StreamDaemon" as SD
@@ -65,6 +66,7 @@ end
 group "Batch Trade Settlements"
    B -> C: bot passes either\n`indicies` or `tradeIds`\nalong with `pairdId
    C -> EBS: executeBatchStream\n(indicies, pairId)
+   EBS -> CEP: call dex to return ethereum price
    EBS -> EBS: takes trades and applies\nalgo to produce Batch\nfor stream execution
    EBS -> ETS: execute new (batched) trade
    ETS -> DEX: execute new (batched) stream
