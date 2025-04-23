@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {IReserveFetcher} from "./interfaces/IReserveFetcher.sol";
+import {IUniversalDexInterface} from "./interfaces/IUniversalDexInterface.sol";
 import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 
 contract StreamDaemon is Ownable {
     
-    IReserveFetcher public reserveFetcher;
-    address[] public dexs;
+    IUniversalDexInterface public universalDexInterface;
+    address[] public dexs; // goes to Core.sol
 
-    constructor(address _reserveFetcher, address[] memory _dexs) Ownable(msg.sender) {
-        reserveFetcher = IReserveFetcher(_reserveFetcher);
+    constructor(address _reserveFetcherContract, address[] memory _dexs) Ownable(msg.sender) {
+        universalDexInterface = IUniversalDexInterface(_reserveFetcherContract);
         for (uint256 i = 0; i < _dexs.length; i++) {
             dexs.push(_dexs[i]);
         }
@@ -20,7 +20,7 @@ contract StreamDaemon is Ownable {
         dexs.push(_fetcher);
     }
 
-    function returnSweetSpotAndDex(address tokenId, address tokenOut, uint256 volume, uint256 effectiveGas) public view returns (uint256 sweetSpot, address bestFetcher) {
+    function evaluateSweetSpotAndDex(address tokenId, address tokenOut, uint256 volume, uint256 effectiveGas) public view returns (uint256 sweetSpot, address bestFetcher) {
         (address identifiedFetcher, uint256 maxReserve) = findHighestReservesForTokenPair(tokenId, tokenOut);
         bestFetcher = identifiedFetcher;
         sweetSpot = _sweetSpotAlgo(volume, maxReserve, effectiveGas);
@@ -37,7 +37,7 @@ contract StreamDaemon is Ownable {
     ) public view returns (address bestFetcher, uint256 maxReserve) {
 
         for (uint256 i = 0; i < dexs.length; i++) {
-            IReserveFetcher fetcher = IReserveFetcher(dexs[i]);
+            IUniversalDexInterface fetcher = IUniversalDexInterface(dexs[i]);
             (uint256 reserve,) = fetcher.getReserves(tokenIn, tokenOut);
 
             if (reserve > maxReserve && reserve > 0) {

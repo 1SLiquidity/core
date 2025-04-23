@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../interfaces/IReserveFetcher.sol";
+import "../interfaces/IUniversalDexInterface.sol";
 
 interface IUniswapV3Pool {
     function token0() external view returns (address);
@@ -12,7 +12,7 @@ interface IERC20 {
     function balanceOf(address account) external view returns (uint256);
 }
 
-contract UniswapV3Fetcher is IReserveFetcher {
+contract UniswapV3Fetcher is IUniversalDexInterface {
     address public pool;
 
     constructor(address _pool) {

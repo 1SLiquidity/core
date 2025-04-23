@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../interfaces/IReserveFetcher.sol";
+import "../interfaces/IUniversalDexInterface.sol";
 
 interface IBalancerVault {
     function getPoolTokens(bytes32 poolId) external view returns (address[] memory, uint256[] memory, uint256);
@@ -11,7 +11,7 @@ interface IBalancerPool {
     function getPoolId() external view returns (bytes32);
 }
 
-contract BalancerFetcher is IReserveFetcher {
+contract BalancerFetcher is IUniversalDexInterface {
     address public pool;
     address public vault;
 

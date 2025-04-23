@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../interfaces/IReserveFetcher.sol";
+import "../interfaces/IUniversalDexInterface.sol";
 
 interface ICurvePool {
     function coins(uint256 i) external view returns (address);
     function balances(uint256 i) external view returns (uint256);
 }
 
-contract CurveFetcher is IReserveFetcher {
+contract CurveFetcher is IUniversalDexInterface {
     address public pool;
 
     constructor(address _pool) {
