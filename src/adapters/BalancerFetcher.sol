@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../interfaces/IReserveFeatcher.sol";
+import "../interfaces/IReserveFetcher.sol";
 
 interface IBalancerVault {
     function getPoolTokens(bytes32 poolId) external view returns (address[] memory, uint256[] memory, uint256);

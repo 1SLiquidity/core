@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../interfaces/IReserveFeatcher.sol";
+import "../interfaces/IReserveFetcher.sol";
 
 interface IUniswapV3Pool {
     function token0() external view returns (address);
