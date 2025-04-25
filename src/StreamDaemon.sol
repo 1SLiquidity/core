@@ -20,8 +20,8 @@ contract StreamDaemon is Ownable {
         dexs.push(_fetcher);
     }
 
-    function evaluateSweetSpotAndDex(address tokenId, address tokenOut, uint256 volume, uint256 effectiveGas) public view returns (uint256 sweetSpot, address bestFetcher) {
-        (address identifiedFetcher, uint256 maxReserve) = findHighestReservesForTokenPair(tokenId, tokenOut);
+    function evaluateSweetSpotAndDex(address tokenIn, address tokenOut, uint256 volume, uint256 effectiveGas) public view returns (uint256 sweetSpot, address bestFetcher) {
+        (address identifiedFetcher, uint256 maxReserve) = findHighestReservesForTokenPair(tokenIn, tokenOut);
         bestFetcher = identifiedFetcher;
         sweetSpot = _sweetSpotAlgo(volume, maxReserve, effectiveGas);
     }
