@@ -1,0 +1,42 @@
+service: 1sliquidity-keeper
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: ${opt:stage, 'dev'}
+  region: us-east-1
+  timeout: 30 # Default timeout for all functions
+  environment:
+    NODE_ENV: ${self:provider.stage}
+    RPC_URL: ${env:RPC_URL, 'fallback-rpc-url'}
+
+functions:
+  reserves:
+    handler: src/functions/reserves/handler.main
+    timeout: 30 # Override default timeout for this function
+    events:
+      - http:
+          path: reserves
+          method: get
+          cors: true
+      - http:
+          path: reserves
+          method: post
+          cors: true
+
+plugins:
+  - serverless-offline
+  - serverless-plugin-typescript
+  - serverless-dotenv-plugin
+
+custom:
+  serverless-offline:
+    httpPort: 3000
+    lambdaPort: 3002
+    noTimeout: true # This prevents the local server from timing out
+  dotenv:
+    path: .env
+    include:
+      - RPC_URL 
