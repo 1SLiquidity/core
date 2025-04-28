@@ -30,6 +30,7 @@ contract Executor {
     }
 
     function compileTrade(bytes calldata trade) internal returns (uint256) {
+        // here, we compile a trade for the given DEX
     }
 
 }
