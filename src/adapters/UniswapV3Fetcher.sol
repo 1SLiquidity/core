@@ -73,17 +73,30 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
         (uint160 sqrtPriceX96,,,,,,) = IUniswapV3Pool(bestPool).slot0();
         uint256 liquidity = highestLiquidity;
         
+        // Check for zero price to avoid division by zero
+        if (sqrtPriceX96 == 0) {
+            return (0, 0);
+        }
+        
         // convert liquidity to approximated reserves
         // @audit his is a simplified calculation. doesn't account for concentrated liquidity
         if (tokensInOrder) {
             // For a more accurate calculation, we'd need to use the proper math from the V3 whitepaper @audit
             uint256 priceX96 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96) / (1 << 96);
-            reserveA = liquidity / (priceX96 / (1 << 96));
+            // Add safety check for division by zero
+            if (priceX96 == 0) {
+                return (0, 0);
+            }
+            reserveA = liquidity / (priceX96 > (1 << 96) ? priceX96 / (1 << 96) : 1);
             reserveB = liquidity;
         } else {
             uint256 priceX96 = uint256(sqrtPriceX96) * uint256(sqrtPriceX96) / (1 << 96);
+            // Add safety check for division by zero
+            if (priceX96 == 0) {
+                return (0, 0);
+            }
             reserveA = liquidity;
-            reserveB = liquidity / (priceX96 / (1 << 96));
+            reserveB = liquidity / (priceX96 > (1 << 96) ? priceX96 / (1 << 96) : 1);
         }
         
         return (reserveA, reserveB);
