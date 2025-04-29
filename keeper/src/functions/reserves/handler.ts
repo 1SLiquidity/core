@@ -1,9 +1,9 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { DEXService } from '../../services/dex';
+import { ReservesAggregator } from '../../services/reserves-aggregator';
 import { ethers } from 'ethers';
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const dexService = new DEXService(provider);
+const reservesService = new ReservesAggregator(provider);
 
 interface ReserveRequest {
   tokenA: string;
@@ -67,7 +67,7 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       };
     }
 
-    const reservesData = await dexService.getReserves(tokenA, tokenB);
+    const reservesData = await reservesService.getAllReserves(tokenA, tokenB);
 
     return {
       statusCode: 200,
