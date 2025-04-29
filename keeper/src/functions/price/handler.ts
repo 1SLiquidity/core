@@ -1,11 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { DEXService } from '../../services/dex';
 import { ethers } from 'ethers';
+import { PriceAggregator } from '../../services/price-aggregator';
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const dexService = new DEXService(provider);
+const priceAggregator = new PriceAggregator(provider);
 
-interface ReserveRequest {
+interface PriceRequest {
   tokenA: string;
   tokenB: string;
   dexes?: string[]; // Optional: specify which DEXes to query
@@ -15,7 +15,7 @@ function validateTokenAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-function parseRequestBody(event: APIGatewayProxyEvent): ReserveRequest | null {
+function parseRequestBody(event: APIGatewayProxyEvent): PriceRequest | null {
   if (!event.body) return null;
   try {
     return JSON.parse(event.body);
@@ -38,6 +38,10 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       if (!body) {
         return {
           statusCode: 400,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
           body: JSON.stringify({ error: 'Invalid request body' })
         };
       }
@@ -67,7 +71,7 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       };
     }
 
-    const reservesData = await dexService.getReserves(tokenA, tokenB);
+    const prices = await priceAggregator.getBestPrice(tokenA, tokenB);
 
     return {
       statusCode: 200,
@@ -75,10 +79,10 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify(reservesData)
+      body: JSON.stringify(prices)
     };
   } catch (error) {
-    console.error('Error in reserves handler:', error);
+    console.error('Error in price handler:', error);
     
     return {
       statusCode: 500,

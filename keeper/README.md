@@ -12,7 +12,8 @@ npm install
 2. Configure environment variables:
 Create a `.env` file with:
 ```
-INFURA_KEY=your_infura_key
+RPC_URL=your_rpc_url
+CHAIN_ID=chain_id
 ```
 
 ## Development

@@ -11,6 +11,7 @@ provider:
   environment:
     NODE_ENV: ${self:provider.stage}
     RPC_URL: ${env:RPC_URL, 'fallback-rpc-url'}
+    CHAIN_ID: ${env:CHAIN_ID, 1}
 
 functions:
   reserves:
@@ -24,6 +25,14 @@ functions:
       - http:
           path: reserves
           method: post
+          cors: true
+  price:
+    handler: src/functions/price/handler.main
+    timeout: 30 # Override default timeout for this function
+    events:
+      - http:
+          path: /price
+          method: get
           cors: true
 
 plugins:
@@ -39,4 +48,5 @@ custom:
   dotenv:
     path: .env
     include:
-      - RPC_URL 
+      - RPC_URL
+      - CHAIN_ID
