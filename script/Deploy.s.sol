@@ -34,7 +34,6 @@ contract DeployScript is Script {
         feeTiers[2] = 10000; // 1%
         UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers);
         
-        // Comment out Curve and Balancer fetchers
         // CurveFetcher curveFetcher = new CurveFetcher(CURVE_REGISTRY);
         // BalancerFetcher balancerFetcher = new BalancerFetcher(address(0), BALANCER_VAULT); // Placeholder for pool
         
@@ -53,7 +52,6 @@ contract DeployScript is Script {
         // Deploy Executor
         Executor executor = new Executor(address(streamDaemon));
         
-        // Log the addresses for easy reference
         console.log("UniswapV2Fetcher deployed at:", address(uniswapV2Fetcher));
         console.log("SushiswapFetcher deployed at:", address(sushiswapFetcher));
         console.log("UniswapV3Fetcher deployed at:", address(uniswapV3Fetcher));
@@ -62,23 +60,63 @@ contract DeployScript is Script {
         console.log("StreamDaemon deployed at:", address(streamDaemon));
         console.log("Executor deployed at:", address(executor));
         
-        // Test using the newly refactored system for a few token pairs
         console.log("\n=== Testing Reserve Fetching ===");
-        
-        // Test WETH-USDC pair
         (address bestDex, uint256 maxReserve) = streamDaemon.findHighestReservesForTokenPair(WETH, USDC);
         console.log("Best DEX for WETH-USDC:", bestDex);
         console.log("Highest reserve:", maxReserve);
-        
-        // Test WETH-WBTC pair
         (bestDex, maxReserve) = streamDaemon.findHighestReservesForTokenPair(WETH, WBTC);
         console.log("Best DEX for WETH-WBTC:", bestDex);
         console.log("Highest reserve:", maxReserve);
-        
-        // Test WETH-DAI pair
         (bestDex, maxReserve) = streamDaemon.findHighestReservesForTokenPair(WETH, DAI);
         console.log("Best DEX for WETH-DAI:", bestDex);
         console.log("Highest reserve:", maxReserve);
+        
+        // test for sweet spot calculation
+        console.log("\n=== Testing Sweet Spot Calculation ===");
+        // Volume in tokens (e.g., 10,000 tokens)
+        uint256 testVolume = 10000 * 1e18;
+        
+        // Gas price in dollar terms (approximate)
+        // Assuming ETH at $3000 and gas price of 50 gwei
+        // 50 gwei * 200000 gas = 0.01 ETH = $30 at current prices
+        // We'll use a simplified dollar value directly
+        uint256 gasPriceInDollars = 30; // $30 gas cost
+        
+        // Ensure minimum of $0.1 as mentioned
+        uint256 effectiveGasInDollars = gasPriceInDollars > 0.1 ether ? gasPriceInDollars : 0.1 ether;
+        
+        // Test sweet spot for WETH-USDC
+        (uint256 sweetSpot, address sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(
+            WETH, 
+            USDC, 
+            testVolume, 
+            effectiveGasInDollars
+        );
+        console.log("WETH-USDC Sweet Spot:");
+        console.log("Best DEX:", sweetSpotDex);
+        console.log("Sweet Spot Value:", sweetSpot);
+        
+        // Test sweet spot for WETH-WBTC
+        (sweetSpot, sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(
+            WETH, 
+            WBTC, 
+            testVolume, 
+            effectiveGasInDollars
+        );
+        console.log("WETH-WBTC Sweet Spot:");
+        console.log("Best DEX:", sweetSpotDex);
+        console.log("Sweet Spot Value:", sweetSpot);
+        
+        // Test sweet spot for WETH-DAI
+        (sweetSpot, sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(
+            WETH, 
+            DAI, 
+            testVolume, 
+            effectiveGasInDollars
+        );
+        console.log("WETH-DAI Sweet Spot:");
+        console.log("Best DEX:", sweetSpotDex);
+        console.log("Sweet Spot Value:", sweetSpot);
         
         vm.stopBroadcast();
     }

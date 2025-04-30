@@ -110,10 +110,46 @@ contract TestReservesScript is Script {
         uint256 gasUsed = executor.gasConsumption();
         console.log("Initial gas consumption:", gasUsed);
         
-        console.log("Note: To properly test execution, implement execute methods in the Executor contract");
-        console.log("Suggested methods to add to Executor:");
+        // Add test for sweet spot calculation
+        console.log("\n=== Testing Sweet Spot Calculation ===");
+        
+        // Convert to more reasonable values
+        // Volume in tokens (e.g., 10,000 tokens)
+        uint256 testVolume = 10000 * 1e18;
+        
+        // Gas price in dollar terms (approximate)
+        // Assuming ETH at $3000 and gas price of 50 gwei
+        // 50 gwei * 200000 gas = 0.01 ETH = $30 at current prices
+        // We'll use a simplified dollar value directly
+        uint256 gasPriceInDollars = 30; // $30 gas cost
+        
+        // Ensure minimum of $1 as mentioned (updated from $0.1)
+        uint256 effectiveGasInDollars = gasPriceInDollars > 1 ? gasPriceInDollars : 1;
+        
+        for (uint i = 0; i < tokenPairs.length; i++) {
+            address token0 = tokenPairs[i][0];
+            address token1 = tokenPairs[i][1];
+            
+            // Scale down reserves for sweet spot calculation to get values in 1-100 range
+            (uint256 sweetSpot, address bestFetcher) = streamDaemon.evaluateSweetSpotAndDex(
+                token0, 
+                token1, 
+                testVolume, 
+                effectiveGasInDollars
+            );
+            
+            console.log(
+                string(abi.encodePacked(
+                    "Token Pair: ", getTokenSymbol(token0), "-", getTokenSymbol(token1)
+                ))
+            );
+            console.log("Best DEX:", bestFetcher);
+            console.log("Sweet Spot:", sweetSpot);
+        }
+        
+        console.log("methods to add to Executor: ");
         console.log("- executeOnDEX(address token0, address token1)");
-        console.log("- executeTrade(address token0, address token1, uint256 amount)");
+        console.log("- executeTrade(address token0, address token1, uint256 amount, address dex)");
         
         vm.stopBroadcast();
     }
