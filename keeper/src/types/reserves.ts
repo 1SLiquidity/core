@@ -5,4 +5,5 @@ export interface ReserveResult {
     token0: string;
     token1: string;
   };
+  timestamp: number;
 } 

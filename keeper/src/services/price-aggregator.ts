@@ -13,7 +13,7 @@ export class PriceAggregator {
     this.sushiswap = new SushiSwapService(provider);
   }
 
-  async getBestPrice(tokenA: string, tokenB: string): Promise<PriceResult[]> {
+  async getAllPrices(tokenA: string, tokenB: string): Promise<PriceResult[]> {
     const results: PriceResult[] = [];
 
     // Query all DEXes in parallel
@@ -31,14 +31,18 @@ export class PriceAggregator {
     return results;
   }
 
-  async getAllPrices(tokenA: string, tokenB: string): Promise<PriceResult[]> {
-    const prices = await Promise.all([
-      this.uniswapV2.getPrice(tokenA, tokenB),
-      this.uniswapV3.getPrice(tokenA, tokenB),
-      this.sushiswap.getPrice(tokenA, tokenB)
+  async getBidirectionalPrices(tokenA: string, tokenB: string): Promise<{
+    forward: PriceResult[];
+    reverse: PriceResult[];
+  }> {
+    const [forwardPrices, reversePrices] = await Promise.all([
+      this.getAllPrices(tokenA, tokenB),
+      this.getAllPrices(tokenB, tokenA)
     ]);
 
-    // Filter out null results
-    return prices.filter((p: PriceResult | null): p is PriceResult => p !== null);
+    return {
+      forward: forwardPrices,
+      reverse: reversePrices
+    };
   }
 } 

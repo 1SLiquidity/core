@@ -2,14 +2,19 @@ import { ethers } from 'ethers';
 import { PriceResult } from '../types/price';
 import { ReserveResult } from '../types/reserves';
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS, COMMON } from '../config/dex';
+import { DepthData, DepthConfig, DepthPoint } from '../types/depth';
+import { TokenInfo } from '../types/token';
+import { DecimalUtils } from '../utils/decimals';
 
 export class SushiSwapService {
   private router: ethers.Contract;
   private factory: ethers.Contract;
   private provider: ethers.Provider;
+  private tokenCache: Map<string, TokenInfo>;
 
   constructor(provider: ethers.Provider) {
     this.provider = provider;
+    this.tokenCache = new Map();
     this.router = new ethers.Contract(
       CONTRACT_ADDRESSES.SUSHISWAP.ROUTER,
       CONTRACT_ABIS.SUSHISWAP.ROUTER,
@@ -22,6 +27,31 @@ export class SushiSwapService {
     );
   }
 
+  private async getTokenInfo(address: string): Promise<TokenInfo> {
+    if (this.tokenCache.has(address)) {
+      return this.tokenCache.get(address)!;
+    }
+
+    const token = new ethers.Contract(
+      address,
+      CONTRACT_ABIS.UNISWAP_V2.ERC20,
+      this.provider
+    );
+    const [decimals, symbol] = await Promise.all([
+      token.decimals(),
+      token.symbol()
+    ]);
+
+    const tokenInfo: TokenInfo = {
+      address,
+      decimals,
+      symbol
+    };
+
+    this.tokenCache.set(address, tokenInfo);
+    return tokenInfo;
+  }
+
   async getReserves(tokenA: string, tokenB: string): Promise<ReserveResult | null> {
     try {
       const pairAddress = await this.factory.getPair(tokenA, tokenB);
@@ -29,17 +59,27 @@ export class SushiSwapService {
         return null;
       }
 
+      const [token0Info, token1Info] = await Promise.all([
+        this.getTokenInfo(tokenA),
+        this.getTokenInfo(tokenB)
+      ]);
+
       const pair = new ethers.Contract(pairAddress, CONTRACT_ABIS.SUSHISWAP.PAIR, this.provider);
       const [reserve0, reserve1] = await pair.getReserves();
       const token0 = await pair.token0();
+
+      const isToken0First = tokenA.toLowerCase() === token0.toLowerCase();
+      const token0Reserve = isToken0First ? reserve0 : reserve1;
+      const token1Reserve = isToken0First ? reserve1 : reserve0;
 
       return {
         dex: 'sushiswap',
         pairAddress,
         reserves: {
-          token0: reserve0.toString(),
-          token1: reserve1.toString()
-        }
+          token0: DecimalUtils.formatAmount(token0Reserve, token0Info.decimals),
+          token1: DecimalUtils.formatAmount(token1Reserve, token1Info.decimals)
+        },
+        timestamp: Date.now()
       };
     } catch (error) {
       console.error('Error fetching SushiSwap reserves:', error);
@@ -49,35 +89,120 @@ export class SushiSwapService {
 
   async getPrice(tokenA: string, tokenB: string): Promise<PriceResult | null> {
     try {
-      // Check if pair exists
       const pairAddress = await this.factory.getPair(tokenA, tokenB);
       if (pairAddress === COMMON.ZERO_ADDRESS) {
         return null;
       }
 
-      // Get pair data
-      const pair = new ethers.Contract(pairAddress, CONTRACT_ABIS.SUSHISWAP.PAIR, this.provider);
-      const [reserve0, reserve1] = await pair.getReserves();
-      const token0 = await pair.token0();
-      const token1 = await pair.token1();
+      const [token0Info, token1Info] = await Promise.all([
+        this.getTokenInfo(tokenA),
+        this.getTokenInfo(tokenB)
+      ]);
 
-      // Calculate price using router
-      const amountIn = COMMON.parseEther('1'); // 1 token
+      const amountIn = DecimalUtils.normalizeAmount('1', token0Info.decimals);
       const amounts = await this.router.getAmountsOut(amountIn, [tokenA, tokenB]);
-      const price = COMMON.formatEther(amounts[1]);
-
-      // Calculate liquidity
-      const liquidity = token0 === tokenA ? reserve0 : reserve1;
+      const price = DecimalUtils.calculatePrice(
+        amounts[0],
+        amounts[1],
+        token0Info.decimals,
+        token1Info.decimals
+      );
 
       return {
         dex: 'sushiswap',
         price,
-        liquidity: COMMON.formatEther(liquidity),
         timestamp: Date.now()
       };
     } catch (error) {
       console.error('SushiSwap price fetch failed:', error);
       return null;
     }
+  }
+
+  async getDepth(token0: string, token1: string, config: DepthConfig): Promise<DepthData | null> {
+    try {
+      const pairAddress = await this.factory.getPair(token0, token1);
+      if (pairAddress === COMMON.ZERO_ADDRESS) {
+        return null;
+      }
+
+      const [token0Info, token1Info] = await Promise.all([
+        this.getTokenInfo(token0),
+        this.getTokenInfo(token1)
+      ]);
+
+      const pair = new ethers.Contract(pairAddress, CONTRACT_ABIS.SUSHISWAP.PAIR, this.provider);
+      const [reserves, token0Address] = await Promise.all([
+        pair.getReserves(),
+        pair.token0()
+      ]);
+
+      const isToken0First = token0.toLowerCase() === token0Address.toLowerCase();
+      const reserve0 = isToken0First ? reserves.reserve0 : reserves.reserve1;
+      const reserve1 = isToken0First ? reserves.reserve1 : reserves.reserve0;
+
+      const currentPrice = Number(DecimalUtils.calculatePrice(
+        reserve0,
+        reserve1,
+        token0Info.decimals,
+        token1Info.decimals
+      ));
+
+      const depthPoints: DepthPoint[] = [];
+
+      for (const interval of config.priceIntervals) {
+        const priceUp = currentPrice * (1 + interval);
+        const priceDown = currentPrice * (1 - interval);
+
+        const amountUp = this.calculateAmountAtPrice(
+          reserve0,
+          reserve1,
+          priceUp,
+          token0Info.decimals,
+          token1Info.decimals
+        );
+        const amountDown = this.calculateAmountAtPrice(
+          reserve0,
+          reserve1,
+          priceDown,
+          token0Info.decimals,
+          token1Info.decimals
+        );
+
+        depthPoints.push(
+          { price: priceUp.toString(), amount: amountUp },
+          { price: priceDown.toString(), amount: amountDown }
+        );
+      }
+
+      return {
+        token0,
+        token1,
+        dex: 'sushiswap',
+        timestamp: Math.floor(Date.now() / 1000),
+        depthPoints: depthPoints.slice(0, config.maxDepthPoints)
+      };
+    } catch (error) {
+      console.error('Error fetching SushiSwap depth:', error);
+      return null;
+    }
+  }
+
+  private calculateAmountAtPrice(
+    reserve0: bigint,
+    reserve1: bigint,
+    targetPrice: number,
+    decimals0: number,
+    decimals1: number
+  ): string {
+    // Using constant product formula: x * y = k
+    const k = reserve0 * reserve1;
+    const normalizedReserve0 = Number(DecimalUtils.formatAmount(reserve0, decimals0));
+    const newReserve1 = DecimalUtils.normalizeAmount(
+      (normalizedReserve0 * targetPrice).toString(),
+      decimals1
+    );
+    const newReserve0 = k / newReserve1;
+    return DecimalUtils.formatAmount(newReserve0, decimals0);
   }
 } 

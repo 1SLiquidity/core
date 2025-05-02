@@ -34,6 +34,14 @@ functions:
           path: /price
           method: get
           cors: true
+  depth:
+    handler: src/functions/depth/handler.main
+    timeout: 30
+    events:
+      - http:
+          path: /depth
+          method: get
+          cors: true
 
 plugins:
   - serverless-offline

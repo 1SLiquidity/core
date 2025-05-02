@@ -29,11 +29,17 @@ export const CONTRACT_ABIS = {
       'function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
       'function token0() external view returns (address)',
       'function token1() external view returns (address)'
+    ],
+    ERC20: [
+      'function decimals() view returns (uint8)',
+      'function symbol() view returns (string)'
     ]
   },
   UNISWAP_V3: {
     FACTORY: [
-      'function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)'
+      'function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)',
+      'function feeAmountTickSpacing(uint24 fee) external view returns (int24 tickSpacing)'
+
     ],
     QUOTER: [
       'function quoteExactInputSingle(address tokenIn, address tokenOut, uint24 fee, uint256 amountIn, uint160 sqrtPriceLimitX96) external returns (uint256 amountOut)'

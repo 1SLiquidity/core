@@ -9,6 +9,7 @@ interface PriceRequest {
   tokenA: string;
   tokenB: string;
   dexes?: string[]; // Optional: specify which DEXes to query
+  bidirectional?: boolean; // Optional: get prices in both directions
 }
 
 function validateTokenAddress(address: string): boolean {
@@ -71,7 +72,16 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       };
     }
 
-    const prices = await priceAggregator.getBestPrice(tokenA, tokenB);
+    // const response = await priceAggregator.getBestPrice(tokenA, tokenB);
+    const bidirectional = event.queryStringParameters?.bidirectional === 'true' || 
+                     (event.httpMethod === 'POST' && parseRequestBody(event)?.bidirectional);
+
+    let response;
+    if (bidirectional) {
+      response = await priceAggregator.getBidirectionalPrices(tokenA, tokenB);
+    } else {
+      response = await priceAggregator.getAllPrices(tokenA, tokenB);
+    }
 
     return {
       statusCode: 200,
@@ -79,7 +89,7 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
         'Content-Type': 'application/json',
         'Access-Control-Allow-Origin': '*'
       },
-      body: JSON.stringify(prices)
+      body: JSON.stringify(response)
     };
   } catch (error) {
     console.error('Error in price handler:', error);
