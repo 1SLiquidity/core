@@ -1,9 +1,13 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { ethers } from 'ethers';
 import { PriceAggregator } from '../../services/price-aggregator';
+import { getCache, setCache, generateCacheKey } from '../../utils/redis';
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const priceAggregator = new PriceAggregator(provider);
+
+// Cache TTL in seconds
+const CACHE_TTL = 30;
 
 interface PriceRequest {
   tokenA: string;
@@ -72,16 +76,41 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       };
     }
 
-    // const response = await priceAggregator.getBestPrice(tokenA, tokenB);
     const bidirectional = event.queryStringParameters?.bidirectional === 'true' || 
                      (event.httpMethod === 'POST' && parseRequestBody(event)?.bidirectional);
 
+    // // Generate cache key based on tokens and direction
+    // const cacheKey = generateCacheKey('PRICE', `${tokenA}-${tokenB}${bidirectional ? '-bidirectional' : ''}`);
+
+    // // Try to get from cache first
+    // const cachedData = await getCache<any>(cacheKey);
+    // if (cachedData) {
+    //   console.log(`Cache hit for price of ${tokenA}-${tokenB}`);
+    //   return {
+    //     statusCode: 200,
+    //     headers: {
+    //       'Content-Type': 'application/json',
+    //       'Access-Control-Allow-Origin': '*'
+    //     },
+    //     body: JSON.stringify(cachedData)
+    //   };
+    // }
+
+    // // If not in cache, fetch from API
+    // console.log(`Cache miss for price of ${tokenA}-${tokenB}, fetching from API...`);
     let response;
     if (bidirectional) {
       response = await priceAggregator.getBidirectionalPrices(tokenA, tokenB);
     } else {
       response = await priceAggregator.getAllPrices(tokenA, tokenB);
     }
+
+    // // Only store in cache if we have valid data
+    // if (response && (Array.isArray(response) ? response.length > 0 : Object.keys(response).length > 0)) {
+    //   await setCache(cacheKey, response, CACHE_TTL);
+    // } else {
+    //   console.log(`Skipping cache for empty response: ${tokenA}-${tokenB}`);
+    // }
 
     return {
       statusCode: 200,

@@ -1,9 +1,13 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { ReservesAggregator } from '../../services/reserves-aggregator';
 import { ethers } from 'ethers';
+import { getCache, setCache, generateCacheKey } from '../../utils/redis';
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const reservesService = new ReservesAggregator(provider);
+
+// Cache TTL in seconds
+const CACHE_TTL = 20;
 
 interface ReserveRequest {
   tokenA: string;
@@ -28,11 +32,13 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
   try {
     let tokenA: string | undefined;
     let tokenB: string | undefined;
+    let dexes: string[] | undefined;
 
     // Handle both GET and POST requests
     if (event.httpMethod === 'GET') {
       tokenA = event.queryStringParameters?.tokenA;
       tokenB = event.queryStringParameters?.tokenB;
+      dexes = event.queryStringParameters?.dexes?.split(',');
     } else if (event.httpMethod === 'POST') {
       const body = parseRequestBody(event);
       if (!body) {
@@ -43,6 +49,7 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       }
       tokenA = body.tokenA;
       tokenB = body.tokenB;
+      dexes = body.dexes;
     }
 
     if (!tokenA || !tokenB) {
@@ -67,7 +74,33 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       };
     }
 
+    // Generate cache key based on tokens and dexes
+    const cacheKey = generateCacheKey('RESERVES', `${tokenA}-${tokenB}${dexes ? `-${dexes.join(',')}` : ''}`);
+
+    // Try to get from cache first
+    const cachedData = await getCache<any>(cacheKey);
+    if (cachedData) {
+      console.log(`Cache hit for reserves of ${tokenA}-${tokenB}`);
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify(cachedData)
+      };
+    }
+
+    // If not in cache, fetch from API
+    console.log(`Cache miss for reserves of ${tokenA}-${tokenB}, fetching from API...`);
     const reservesData = await reservesService.getAllReserves(tokenA, tokenB);
+
+    // Only store in cache if we have valid data
+    if (reservesData && (Array.isArray(reservesData) ? reservesData.length > 0 : Object.keys(reservesData).length > 0)) {
+      await setCache(cacheKey, reservesData, CACHE_TTL);
+    } else {
+      console.log(`Skipping cache for empty response: ${tokenA}-${tokenB}`);
+    }
 
     return {
       statusCode: 200,

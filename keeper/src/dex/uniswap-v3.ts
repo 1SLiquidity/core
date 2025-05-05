@@ -52,40 +52,37 @@ export class UniswapV3Service {
     return tokenInfo;
   }
 
-  async getReserves(tokenA: string, tokenB: string): Promise<ReserveResult[]> {
-    const results: ReserveResult[] = [];
+  async getReserves(tokenA: string, tokenB: string, feeTier: number): Promise<ReserveResult | null> {
     try {
       // const [token0Info, token1Info] = await Promise.all([
       //   this.getTokenInfo(tokenA),
       //   this.getTokenInfo(tokenB)
       // ]);
 
-      // Try different fee tiers
-      const feeTiers = [500, 3000, 10000];
-      for (const fee of feeTiers) {
-        const poolAddress = await this.factory.getPool(tokenA, tokenB, fee);
-        if (poolAddress !== COMMON.ZERO_ADDRESS) {
-          const pool = new ethers.Contract(poolAddress, CONTRACT_ABIS.UNISWAP_V3.POOL, this.provider);
-          const liquidity = await pool.liquidity();
+      const poolAddress = await this.factory.getPool(tokenA, tokenB, feeTier);
+      if (poolAddress === COMMON.ZERO_ADDRESS) {
+        return null;
+      }
 
-          results.push({
-            dex: `uniswap-v3-${fee}`,
-            pairAddress: poolAddress,
-            reserves: {
+      const pool = new ethers.Contract(poolAddress, CONTRACT_ABIS.UNISWAP_V3.POOL, this.provider);
+      const liquidity = await pool.liquidity();
+
+        return {
+          dex: `uniswap-v3-${feeTier}`,
+          pairAddress: poolAddress,
+          reserves: {
               token0: DecimalUtils.formatAmount(liquidity, 18), // Liquidity units always use 18 decimals
               token1: '0' // V3 uses liquidity units instead of direct reserves
             },
             timestamp: Date.now()
-          });
-        }
-      }
+      };
     } catch (error) {
       console.error('Error fetching Uniswap V3 reserves:', error);
+      return null;
     }
-    return results;
   }
 
-  async getPrice(tokenA: string, tokenB: string): Promise<PriceResult | null> {
+  async getPrice(tokenA: string, tokenB: string, feeTier: number): Promise<PriceResult | null> {
     try {
       const [token0Info, token1Info] = await Promise.all([
         this.getTokenInfo(tokenA),
@@ -93,7 +90,7 @@ export class UniswapV3Service {
       ]);
 
       // Check if pool exists (using 0.3% fee tier)
-      const poolAddress = await this.factory.getPool(tokenA, tokenB, 3000);
+      const poolAddress = await this.factory.getPool(tokenA, tokenB, feeTier);
       if (poolAddress === COMMON.ZERO_ADDRESS) {
         return null;
       }
@@ -103,7 +100,7 @@ export class UniswapV3Service {
       const data = this.quoter.interface.encodeFunctionData('quoteExactInputSingle', [
         tokenA,
         tokenB,
-        3000,
+        feeTier,
         amountIn,
         0
       ]);
@@ -120,7 +117,7 @@ export class UniswapV3Service {
       );
 
       return {
-        dex: 'uniswap-v3',
+        dex: `uniswap-v3-${feeTier}`,
         price,
         timestamp: Date.now()
       };

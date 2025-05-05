@@ -12,6 +12,9 @@ provider:
     NODE_ENV: ${self:provider.stage}
     RPC_URL: ${env:RPC_URL, 'fallback-rpc-url'}
     CHAIN_ID: ${env:CHAIN_ID, 1}
+    REDIS_HOST: ${env:REDIS_HOST, 'localhost'}
+    REDIS_PORT: ${env:REDIS_PORT, 6379}
+    REDIS_PASSWORD: ${env:REDIS_PASSWORD, ''}
 
 functions:
   reserves:
@@ -58,3 +61,6 @@ custom:
     include:
       - RPC_URL
       - CHAIN_ID
+      - REDIS_HOST
+      - REDIS_PORT
+      - REDIS_PASSWORD

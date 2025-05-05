@@ -3,9 +3,13 @@ import { ethers } from 'ethers';
 import { DepthAggregator } from '../../services/depth-aggregator';
 import { DepthConfig } from '../../types/depth';
 import { CONTRACT_ADDRESSES } from '../../config/dex';
+import { getCache, setCache, generateCacheKey } from '../../utils/redis';
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const depthAggregator = new DepthAggregator(provider);
+
+// Cache TTL in seconds
+const CACHE_TTL = 15;
 
 export const main = async (
   event: APIGatewayProxyEvent
@@ -35,8 +39,33 @@ export const main = async (
       priceIntervals
     };
 
-    // Get depth data
+    // Generate cache key based on tokens and config
+    const cacheKey = generateCacheKey('DEPTH', `${token0}-${token1}-${intervals}-${maxDepthPoints}`);
+
+    // Try to get from cache first
+    const cachedData = await getCache<any>(cacheKey);
+    if (cachedData) {
+      console.log(`Cache hit for depth of ${token0}-${token1}`);
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify(cachedData)
+      };
+    }
+
+    // If not in cache, fetch from API
+    console.log(`Cache miss for depth of ${token0}-${token1}, fetching from API...`);
     const depthData = await depthAggregator.getDepth(token0, token1, config);
+
+    // Only store in cache if we have valid data
+    if (depthData && (Array.isArray(depthData) ? depthData.length > 0 : Object.keys(depthData).length > 0)) {
+      await setCache(cacheKey, depthData, CACHE_TTL);
+    } else {
+      console.log(`Skipping cache for empty response: ${token0}-${token1}`);
+    }
 
     return {
       statusCode: 200,
