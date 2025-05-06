@@ -21,22 +21,22 @@ contract DeployScript is Script {
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address constant WBTC = 0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599;
     address constant DAI = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
-    
+
     function run() external {
         vm.startBroadcast();
-        
+
         UniswapV2Fetcher uniswapV2Fetcher = new UniswapV2Fetcher(UNISWAP_V2_FACTORY);
         SushiswapFetcher sushiswapFetcher = new SushiswapFetcher(SUSHISWAP_FACTORY);
-        
+
         uint24[] memory feeTiers = new uint24[](3);
-        feeTiers[0] = 500;   // 0.05%
-        feeTiers[1] = 3000;  // 0.3%
+        feeTiers[0] = 500; // 0.05%
+        feeTiers[1] = 3000; // 0.3%
         feeTiers[2] = 10000; // 1%
         UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers);
-        
+
         // CurveFetcher curveFetcher = new CurveFetcher(CURVE_REGISTRY);
         // BalancerFetcher balancerFetcher = new BalancerFetcher(address(0), BALANCER_VAULT); // Placeholder for pool
-        
+
         // Create an array of DEX addresses to monitor
         address[] memory dexAddresses = new address[](3);
         dexAddresses[0] = address(uniswapV2Fetcher);
@@ -44,14 +44,14 @@ contract DeployScript is Script {
         dexAddresses[2] = address(uniswapV3Fetcher);
         // dexAddresses[3] = address(curveFetcher);
         // dexAddresses[4] = address(balancerFetcher);
-        
+
         // Deploy StreamDaemon with the first fetcher as the primary interface
         // and all fetchers in the dexAddresses array
         StreamDaemon streamDaemon = new StreamDaemon(address(uniswapV2Fetcher), dexAddresses);
-        
+
         // Deploy Executor
         Executor executor = new Executor(address(streamDaemon));
-        
+
         console.log("UniswapV2Fetcher deployed at:", address(uniswapV2Fetcher));
         console.log("SushiswapFetcher deployed at:", address(sushiswapFetcher));
         console.log("UniswapV3Fetcher deployed at:", address(uniswapV3Fetcher));
@@ -59,7 +59,7 @@ contract DeployScript is Script {
         // console.log("BalancerFetcher deployed at:", address(balancerFetcher));
         console.log("StreamDaemon deployed at:", address(streamDaemon));
         console.log("Executor deployed at:", address(executor));
-        
+
         console.log("\n=== Testing Reserve Fetching ===");
         (address bestDex, uint256 maxReserve) = streamDaemon.findHighestReservesForTokenPair(WETH, USDC);
         console.log("Best DEX for WETH-USDC:", bestDex);
@@ -70,54 +70,40 @@ contract DeployScript is Script {
         (bestDex, maxReserve) = streamDaemon.findHighestReservesForTokenPair(WETH, DAI);
         console.log("Best DEX for WETH-DAI:", bestDex);
         console.log("Highest reserve:", maxReserve);
-        
+
         // test for sweet spot calculation
         console.log("\n=== Testing Sweet Spot Calculation ===");
         // Volume in tokens (e.g., 10,000 tokens)
         uint256 testVolume = 10000 * 1e18;
-        
+
         // Gas price in dollar terms (approximate)
         // Assuming ETH at $3000 and gas price of 50 gwei
         // 50 gwei * 200000 gas = 0.01 ETH = $30 at current prices
         // We'll use a simplified dollar value directly
         uint256 gasPriceInDollars = 30; // $30 gas cost
-        
+
         // Ensure minimum of $0.1 as mentioned
         uint256 effectiveGasInDollars = gasPriceInDollars > 0.1 ether ? gasPriceInDollars : 0.1 ether;
-        
+
         // Test sweet spot for WETH-USDC
-        (uint256 sweetSpot, address sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(
-            WETH, 
-            USDC, 
-            testVolume, 
-            effectiveGasInDollars
-        );
+        (uint256 sweetSpot, address sweetSpotDex) =
+            streamDaemon.evaluateSweetSpotAndDex(WETH, USDC, testVolume, effectiveGasInDollars);
         console.log("WETH-USDC Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);
         console.log("Sweet Spot Value:", sweetSpot);
-        
+
         // Test sweet spot for WETH-WBTC
-        (sweetSpot, sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(
-            WETH, 
-            WBTC, 
-            testVolume, 
-            effectiveGasInDollars
-        );
+        (sweetSpot, sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(WETH, WBTC, testVolume, effectiveGasInDollars);
         console.log("WETH-WBTC Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);
         console.log("Sweet Spot Value:", sweetSpot);
-        
+
         // Test sweet spot for WETH-DAI
-        (sweetSpot, sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(
-            WETH, 
-            DAI, 
-            testVolume, 
-            effectiveGasInDollars
-        );
+        (sweetSpot, sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(WETH, DAI, testVolume, effectiveGasInDollars);
         console.log("WETH-DAI Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);
         console.log("Sweet Spot Value:", sweetSpot);
-        
+
         vm.stopBroadcast();
     }
-} 
+}

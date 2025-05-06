@@ -5,10 +5,9 @@ import {StreamDaemon} from "./StreamDaemon.sol";
 import {IERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract Executor {
-
     StreamDaemon public streamDaemon;
 
-    uint256 public gasConsumption;  
+    uint256 public gasConsumption;
     uint256 public lastCachedTimestamp;
     uint256 public constant CACHE_DURATION = 30 seconds;
 
@@ -32,5 +31,4 @@ contract Executor {
     function compileTrade(bytes calldata trade) internal returns (uint256) {
         // here, we compile a trade for the given DEX
     }
-
 }

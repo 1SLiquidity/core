@@ -66,15 +66,14 @@ contract TestReservesScript is Script {
 
         console.log("\n=== Testing Sweet Spot Calculation ===");
 
-        // Convert to more reasonable values
         // For a $10M pool, let's test with ~1% / $100,000
         // now testing ETH at $1500
         uint256 testVolume = 2 * 33333333333333333333; // ~66 eth in 18 decimal 
 
-        uint256 gasPriceInDollars = 1; // $30 gas cost
+        uint256 effectiveGasInDollars = 1; // $30 gas cost 
 
         // Ensure minimum of $1 as mentioned (updated from $0.1)
-        uint256 effectiveGasInDollars = gasPriceInDollars > 1 ? gasPriceInDollars : 1;
+        // uint256 effectiveGasInDollars = gasPriceInDollars > 1 ? gasPriceInDollars : 1;
 
         for (uint256 i = 0; i < tokenPairs.length; i++) {
             address token0 = tokenPairs[i][0];
