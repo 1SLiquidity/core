@@ -20,9 +20,14 @@ contract BalancerFetcher is IUniversalDexInterface {
         vault = _vault;
     }
 
-    function getReserves(address tokenA, address tokenB) external view override returns (uint256 reserveA, uint256 reserveB) {
+    function getReserves(address tokenA, address tokenB)
+        external
+        view
+        override
+        returns (uint256 reserveA, uint256 reserveB)
+    {
         bytes32 poolId = IBalancerPool(pool).getPoolId();
-        (address[] memory tokens, uint256[] memory balances, ) = IBalancerVault(vault).getPoolTokens(poolId);
+        (address[] memory tokens, uint256[] memory balances,) = IBalancerVault(vault).getPoolTokens(poolId);
 
         uint256 indexA = 0;
         uint256 indexB = 1;

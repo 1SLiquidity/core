@@ -15,7 +15,12 @@ contract CurveFetcher is IUniversalDexInterface {
         pool = _pool;
     }
 
-    function getReserves(address tokenA, address tokenB) external view override returns (uint256 reserveA, uint256 reserveB) {
+    function getReserves(address tokenA, address tokenB)
+        external
+        view
+        override
+        returns (uint256 reserveA, uint256 reserveB)
+    {
         address token0 = ICurvePool(pool).coins(0);
         address token1 = ICurvePool(pool).coins(1);
         uint256 balance0 = ICurvePool(pool).balances(0);

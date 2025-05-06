@@ -18,11 +18,11 @@ interface ISushiSwapPair {
  */
 contract SushiswapFetcher is IUniversalDexInterface {
     address public factory;
-    
+
     constructor(address _factory) {
         factory = _factory;
     }
-    
+
     /**
      * @dev return reserves for token pair
      * @param tokenA First token in the pair
@@ -30,17 +30,22 @@ contract SushiswapFetcher is IUniversalDexInterface {
      * @return reserveA Reserve of tokenA
      * @return reserveB Reserve of tokenB
      */
-    function getReserves(address tokenA, address tokenB) external view override returns (uint256 reserveA, uint256 reserveB) {
+    function getReserves(address tokenA, address tokenB)
+        external
+        view
+        override
+        returns (uint256 reserveA, uint256 reserveB)
+    {
         address pair = ISushiSwapFactory(factory).getPair(tokenA, tokenB);
-        
+
         if (pair == address(0)) {
             // @audit this should be a revert or throw a custom error
             // during runtime, a fail here may resul in stale persisting transactions and could bottleneck the protocol
             // if used as an atack vector (dos)
             return (0, 0);
         }
-        
-        (uint112 reserve0, uint112 reserve1, ) = ISushiSwapPair(pair).getReserves();
+
+        (uint112 reserve0, uint112 reserve1,) = ISushiSwapPair(pair).getReserves();
         address token0 = ISushiSwapPair(pair).token0();
         if (tokenA == token0) {
             return (uint256(reserve0), uint256(reserve1));
