@@ -180,30 +180,30 @@ contract StreamDaemon is Ownable {
         }
     }
 
-    function _sweetSpotAlgoOld(
-        address tokenIn,
-        address tokenOut,
-        uint256 volume,
-        uint256 reserves,
-        uint256 effectiveGas
-    ) public view returns (uint256 sweetSpot) {
-        // Ensure we don't divide by zero / run the trade on impossible params
-        if (reserves == 0 || effectiveGas == 0) {
-            revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
-        }
+    /**
+     * DEPRECATED
+     */
+    // function _sweetSpotAlgoOld(
+    //     address tokenIn,
+    //     address tokenOut,
+    //     uint256 volume,
+    //     uint256 reserves,
+    //     uint256 effectiveGas
+    // ) public view returns (uint256 sweetSpot) {
+    //     if (reserves == 0 || effectiveGas == 0) {
+    //         revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
+    //     }
 
-        uint8 decimalsIn = IERC20Metadata(tokenIn).decimals();
+    //     uint8 decimalsIn = IERC20Metadata(tokenIn).decimals();
+    //     uint256 scaledVolume = volume / (10 ** decimalsIn);
+    //     uint256 scaledReserves = reserves / (10 ** decimalsIn);
 
-        // Scale down to human-readable numbers (e.g., 33333333333333333333 -> 33)
-        uint256 scaledVolume = volume / (10 ** decimalsIn);
-        uint256 scaledReserves = reserves / (10 ** decimalsIn);
+    //     // Original equation: volume / (sqrt(reserves * effectiveGas))
+    //     sweetSpot = scaledVolume / (sqrt(scaledReserves * effectiveGas));
 
-        // Original equation: volume / (sqrt(reserves * effectiveGas))
-        sweetSpot = scaledVolume / (sqrt(scaledReserves * effectiveGas));
-
-        // Ensure minimum of 2 splits
-        if (sweetSpot < 2) {
-            sweetSpot = 2;
-        }
-    }
+    //     // Ensure minimum of 2 splits
+    //     if (sweetSpot < 2) {
+    //         sweetSpot = 2;
+    //     }
+    // }
 }
