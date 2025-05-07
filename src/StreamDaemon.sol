@@ -12,11 +12,28 @@ contract StreamDaemon is Ownable {
     // Define a constant for minimum effective gas in dollars
     uint256 public constant MIN_EFFECTIVE_GAS_DOLLARS = 1; // $1 minimum
 
+    uint256 public gasConsumption;
+    uint256 public lastCachedTimestamp;
+    uint256 public constant CACHE_DURATION = 30 seconds;
+
     constructor(address _reserveFetcherContract, address[] memory _dexs) Ownable(msg.sender) {
         universalDexInterface = IUniversalDexInterface(_reserveFetcherContract);
         for (uint256 i = 0; i < _dexs.length; i++) {
             dexs.push(_dexs[i]);
         }
+    }
+
+    function _updateGasStats(uint256 startGas, uint256 endGas) internal {
+        uint256 currentGasUsed = startGas - endGas;
+        if (gasConsumption == 0) {
+            gasConsumption = currentGasUsed;
+        } else {
+            gasConsumption = (gasConsumption + currentGasUsed) / 2; // TODO needs proper implementation as TWAP algo
+        }
+    }
+
+    function readGasCache() internal view returns (uint256) {
+        return gasConsumption * tx.gasprice;
     }
 
     function registerDex(address _fetcher) external onlyOwner {
@@ -86,7 +103,6 @@ contract StreamDaemon is Ownable {
         uint256 reserveOut,
         uint256 effectiveGas
     ) public view returns (uint256 sweetSpot) {
-
         // ensure no division by 0
         if (reserveIn == 0 || reserveOut == 0 || effectiveGas == 0) {
             revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
@@ -104,7 +120,7 @@ contract StreamDaemon is Ownable {
          * N >= 2 (so, if the algo returns a value < 1, default to stream count = 2)
          * @audit if the 'lastStreamCount' of a trade = 2, ergo the last execution was the penultimate stream,
          * this algo shouldn't be called (otherwise we would infinitely divide the remaining stream by 2 per stream esxecution)
-         * 
+         *
          * if N > 500 (values of n > 500 show significant trade volume vs the pool reserves. these trades should be flagged and warnings provided)
          * GENERAL EQUATION the equation is built from the premise of quadratic slippage. this yields a best guess approximation, as otherwise
          * we would require an iterative method, likely a finite series, to identify these points, which may result in something very gas heavy.
@@ -136,7 +152,7 @@ contract StreamDaemon is Ownable {
                 scaledReserveOut = reserveOut * (10 ** (18 - decimalsOut));
             }
         }
-        
+
         uint256 alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
 
         sweetSpot = volume / (sqrt((alpha * volume ^ 2) / effectiveGas));
@@ -164,12 +180,13 @@ contract StreamDaemon is Ownable {
         }
     }
 
-
-    function _sweetSpotAlgoOld(address tokenIn, address tokenOut, uint256 volume, uint256 reserves, uint256 effectiveGas)
-        public
-        view
-        returns (uint256 sweetSpot)
-    {
+    function _sweetSpotAlgoOld(
+        address tokenIn,
+        address tokenOut,
+        uint256 volume,
+        uint256 reserves,
+        uint256 effectiveGas
+    ) public view returns (uint256 sweetSpot) {
         // Ensure we don't divide by zero / run the trade on impossible params
         if (reserves == 0 || effectiveGas == 0) {
             revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
