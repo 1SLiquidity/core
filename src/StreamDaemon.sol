@@ -12,9 +12,9 @@ contract StreamDaemon is Ownable {
     // temporarily efine a constant for minimum effective gas in dollars
     uint256 public constant MIN_EFFECTIVE_GAS_DOLLARS = 1; // i.e $1 minimum @audit this should be valuated against TOKEN-USDC value during execution in production
 
-    uint256 public gasConsumption;
-    uint256 public lastCachedTimestamp;
-    uint256 public constant CACHE_DURATION = 30 seconds;
+    // uint256 public gasConsumption;
+    // uint256 public lastCachedTimestamp;
+    // uint256 public constant CACHE_DURATION = 30 seconds;
 
     constructor(address _dexInterface, address[] memory _dexs) Ownable(msg.sender) {
         universalDexInterface = IUniversalDexInterface(_dexInterface);
@@ -23,19 +23,19 @@ contract StreamDaemon is Ownable {
         }
     }
 
-    function _updateGasStats(uint256 startGas, uint256 endGas) internal {
-        uint256 currentGasUsed = startGas - endGas;
-        if (gasConsumption == 0) {
-            gasConsumption = currentGasUsed;
-        } else {
-            gasConsumption = (gasConsumption + currentGasUsed) / 2; // TODO needs proper implementation as TWAP algo
-        }
-        lastCachedTimestamp = block.timestamp;
-    }
+    // function _updateGasStats(uint256 startGas, uint256 endGas) internal {
+    //     uint256 currentGasUsed = startGas - endGas;
+    //     if (gasConsumption == 0) {
+    //         gasConsumption = currentGasUsed;
+    //     } else {
+    //         gasConsumption = (gasConsumption + currentGasUsed) / 2; // TODO needs proper implementation as TWAP algo
+    //     }
+    //     lastCachedTimestamp = block.timestamp;
+    // }
 
-    function readGasCache() internal view returns (uint256) {
-        return gasConsumption * tx.gasprice;
-    }
+    // function readGasCache() internal view returns (uint256) {
+    //     return gasConsumption * tx.gasprice;
+    // }
 
     function registerDex(address _fetcher) external onlyOwner {
         dexs.push(_fetcher);
@@ -158,6 +158,17 @@ contract StreamDaemon is Ownable {
         uint256 alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
 
         sweetSpot = volume / (sqrt((alpha * volume ^ 2) / effectiveGas));
+
+        /**
+         * 
+         * @audit we may need more measures here, specifically monitoring the 
+         * percentage of pool reserves from any incoming trade qnd possibly metering the outputs
+         * of the algorithm accordingly. These modifications may come from deterministic mathematical 
+         * evalutaitons or experimental findings. E.g, if % > 2 || < 1, sweetSpot / 2
+         * 
+         * at this point, whilst not production ready, the algorithm is valid enough to test in integrations.
+         * 
+         *  */ 
 
         if (sweetSpot < 2) {
             sweetSpot = 2;
