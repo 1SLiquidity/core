@@ -54,3 +54,5 @@ coverage/
 .yarn-integrity 
 
 .node_modules/
+
+dump.rdb
