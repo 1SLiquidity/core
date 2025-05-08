@@ -9,15 +9,15 @@ contract StreamDaemon is Ownable {
     IUniversalDexInterface public universalDexInterface;
     address[] public dexs; // goes to Core.sol
 
-    // Define a constant for minimum effective gas in dollars
-    uint256 public constant MIN_EFFECTIVE_GAS_DOLLARS = 1; // $1 minimum
+    // temporarily efine a constant for minimum effective gas in dollars
+    uint256 public constant MIN_EFFECTIVE_GAS_DOLLARS = 1; // i.e $1 minimum @audit this should be valuated against TOKEN-USDC value during execution in production
 
     uint256 public gasConsumption;
     uint256 public lastCachedTimestamp;
     uint256 public constant CACHE_DURATION = 30 seconds;
 
-    constructor(address _reserveFetcherContract, address[] memory _dexs) Ownable(msg.sender) {
-        universalDexInterface = IUniversalDexInterface(_reserveFetcherContract);
+    constructor(address _dexInterface, address[] memory _dexs) Ownable(msg.sender) {
+        universalDexInterface = IUniversalDexInterface(_dexInterface);
         for (uint256 i = 0; i < _dexs.length; i++) {
             dexs.push(_dexs[i]);
         }
@@ -30,6 +30,7 @@ contract StreamDaemon is Ownable {
         } else {
             gasConsumption = (gasConsumption + currentGasUsed) / 2; // TODO needs proper implementation as TWAP algo
         }
+        lastCachedTimestamp = block.timestamp;
     }
 
     function readGasCache() internal view returns (uint256) {
@@ -57,11 +58,11 @@ contract StreamDaemon is Ownable {
         sweetSpot = _sweetSpotAlgo(tokenIn, tokenOut, volume, maxReserveIn, maxReserveOut, effectiveGas);
     }
 
-    function returnReserveForTokenPairFromDex(address tokenIn, address tokenOut)
-        public
-        view
-        returns (uint256 reserve)
-    {}
+    // function returnReserveForTokenPairFromDex(address tokenIn, address tokenOut)
+    //     public
+    //     view
+    //     returns (uint256 reserve)
+    // {}
 
     /**
      * @dev always written in terms of
@@ -78,6 +79,7 @@ contract StreamDaemon is Ownable {
 
             if (reserveTokenIn > maxReserveIn && reserveTokenIn > 0) {
                 maxReserveIn = reserveTokenIn;
+                maxReserveOut = reserveTokenOut;        
                 bestFetcher = address(fetcher);
             }
         }
