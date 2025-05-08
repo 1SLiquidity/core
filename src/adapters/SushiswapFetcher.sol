@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 
 import "../interfaces/IUniversalDexInterface.sol";
 
-interface ISushiSwapFactory {
+interface ISushiswapFactory {
     function getPair(address tokenA, address tokenB) external view returns (address pair);
 }
 
-interface ISushiSwapPair {
+interface ISushiswapPair {
     function getReserves() external view returns (uint112, uint112, uint32);
     function token0() external view returns (address);
     function token1() external view returns (address);
@@ -36,7 +36,7 @@ contract SushiswapFetcher is IUniversalDexInterface {
         override
         returns (uint256 reserveA, uint256 reserveB)
     {
-        address pair = ISushiSwapFactory(factory).getPair(tokenA, tokenB);
+        address pair = ISushiswapFactory(factory).getPair(tokenA, tokenB);
 
         if (pair == address(0)) {
             // @audit this should be a revert or throw a custom error
@@ -45,12 +45,24 @@ contract SushiswapFetcher is IUniversalDexInterface {
             return (0, 0);
         }
 
-        (uint112 reserve0, uint112 reserve1,) = ISushiSwapPair(pair).getReserves();
-        address token0 = ISushiSwapPair(pair).token0();
+        (uint112 reserve0, uint112 reserve1,) = ISushiswapPair(pair).getReserves();
+        address token0 = ISushiswapPair(pair).token0();
         if (tokenA == token0) {
             return (uint256(reserve0), uint256(reserve1));
         } else {
             return (uint256(reserve1), uint256(reserve0));
         }
+    }
+
+    function getPoolAddress(address tokenIn, address tokenOut) external view override returns (address) {
+        return ISushiswapFactory(factory).getPair(tokenIn, tokenOut);
+    }
+
+    function getDexType() external pure override returns (string memory) {
+        return "Sushiswap";
+    }
+
+    function getDexVersion() external pure override returns (string memory) {
+        return "V2";
     }
 }

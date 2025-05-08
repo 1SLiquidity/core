@@ -41,4 +41,16 @@ contract UniswapV2Fetcher is IUniversalDexInterface {
             return (uint256(reserve1), uint256(reserve0));
         }
     }
+
+    function getPoolAddress(address tokenIn, address tokenOut) external view override returns (address) {
+        return IUniswapV2Factory(factory).getPair(tokenIn, tokenOut);
+    }
+
+    function getDexType() external pure override returns (string memory) {
+        return "UniswapV2";
+    }
+
+    function getDexVersion() external pure override returns (string memory) {
+        return "V2";
+    }
 }
