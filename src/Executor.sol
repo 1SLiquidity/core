@@ -14,7 +14,7 @@ contract Executor {
     // address public immutable uniswapV2Router;
     // address public immutable uniswapV3Router;
     // address public immutable balancerVault;
-    
+
     // constructor(
     //     address _uniswapV2Router,
     //     address _uniswapV3Router,
@@ -36,22 +36,18 @@ contract Executor {
     ) external returns (uint256 amountOut) {
         // Approve router to spend tokens
         IERC20(tokenIn).approve(router, amountIn);
-        
+
         address[] memory path = new address[](2);
         path[0] = tokenIn;
         path[1] = tokenOut;
-        
-        uint[] memory amounts = IUniswapV2Router(router).swapExactTokensForTokens(
-            amountIn,
-            amountOutMin,
-            path,
-            recipient,
-            block.timestamp + 300
+
+        uint256[] memory amounts = IUniswapV2Router(router).swapExactTokensForTokens(
+            amountIn, amountOutMin, path, recipient, block.timestamp + 300
         );
-        
+
         return amounts[1];
     }
-    
+
     function executeUniswapV3Trade(
         address router,
         address tokenIn,
@@ -63,7 +59,7 @@ contract Executor {
     ) external returns (uint256 amountOut) {
         // Approve router to spend tokens
         IERC20(tokenIn).approve(router, amountIn);
-        
+
         IUniswapV3Router.ExactInputSingleParams memory params = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,
             tokenOut: tokenOut,
@@ -74,10 +70,10 @@ contract Executor {
             amountOutMinimum: amountOutMin,
             sqrtPriceLimitX96: 0
         });
-        
+
         return IUniswapV3Router(router).exactInputSingle(params);
     }
-    
+
     function executeBalancerTrade(
         address vault,
         address tokenIn,
@@ -89,7 +85,7 @@ contract Executor {
     ) external returns (uint256 amountOut) {
         // Approve vault to spend tokens
         IERC20(tokenIn).approve(vault, amountIn);
-        
+
         IBalancerVault.SingleSwap memory singleSwap = IBalancerVault.SingleSwap({
             poolId: poolId,
             kind: 0, // GIVEN_IN
@@ -98,22 +94,17 @@ contract Executor {
             amount: amountIn,
             userData: ""
         });
-        
+
         IBalancerVault.FundManagement memory funds = IBalancerVault.FundManagement({
             sender: msg.sender,
             fromInternalBalance: false,
             recipient: recipient,
             toInternalBalance: false
         });
-        
-        return IBalancerVault(vault).swap(
-            singleSwap,
-            funds,
-            amountOutMin,
-            block.timestamp + 300
-        );
+
+        return IBalancerVault(vault).swap(singleSwap, funds, amountOutMin, block.timestamp + 300);
     }
-    
+
     function executeCurveTrade(
         address pool,
         int128 i,
@@ -124,12 +115,12 @@ contract Executor {
     ) external returns (uint256 amountOut) {
         // Approve pool to spend tokens
         IERC20(pool).approve(pool, amountIn);
-        
+
         amountOut = ICurvePool(pool).exchange(i, j, amountIn, amountOutMin);
-        
+
         // Transfer tokens to recipient
         IERC20(pool).transfer(recipient, amountOut);
-        
+
         return amountOut;
     }
 }
