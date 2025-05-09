@@ -48,13 +48,13 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
             return (0, 0);
         }
 
-        (uint160 sqrtPriceX96,,,uint16 observationCardinality,,,) = IUniswapV3Pool(pool).slot0();
+        (uint160 sqrtPriceX96,,, uint16 observationCardinality,,,) = IUniswapV3Pool(pool).slot0();
         address token0 = IUniswapV3Pool(pool).token0();
         address token1 = IUniswapV3Pool(pool).token1();
 
         // Convert sqrtPriceX96 to reserves
         uint256 price = uint256(sqrtPriceX96) * uint256(sqrtPriceX96) * 1e18 / (1 << 192);
-        
+
         if (tokenA == token0) {
             return (observationCardinality, observationCardinality * price / 1e18);
         } else {

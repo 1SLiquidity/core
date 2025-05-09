@@ -41,29 +41,29 @@ contract BalancerFetcher is IUniversalDexInterface {
     }
 
     function getPoolAddress(address tokenIn, address tokenOut) external view override returns (address) {
+        // requires proper implementation
         return pool;
     }
 
-    function executeSwap(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address recipient,
-        bytes calldata data
-    ) external override returns (uint256) {
-        revert("Not implemented");
-    }
+    // function executeSwap(
+    //     address tokenIn,
+    //     address tokenOut,
+    //     uint256 amountIn,
+    //     uint256 amountOutMin,
+    //     address recipient,
+    //     bytes calldata data
+    // ) external override returns (uint256) {
+    //     revert("Not implemented");
+    // }
 
-    function getSwapData(
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address recipient
-    ) external view override returns (bytes memory) {
-        revert("Not implemented");
-    }
+    // function getSwapData(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+    //     external
+    //     view
+    //     override
+    //     returns (bytes memory)
+    // {
+    //     revert("Not implemented");
+    // }
 
     function getDexType() external pure override returns (string memory) {
         return "Balancer";
