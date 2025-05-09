@@ -10,14 +10,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     StreamDaemon public immutable streamDaemon;
     Executor public immutable executor;
 
-    // DEX router addresses
     address public immutable uniswapV2Router;
     address public immutable sushiswapRouter;
     address public immutable uniswapV3Router;
     address public immutable balancerVault;
     address public immutable curvePool;
 
-    // Gas recording
     uint256 private startGas;
     uint256 public lastGasUsed;
     uint256 public lastGasPrice;
@@ -56,7 +54,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         TWAP_GAS_COST.push(lastGasCost);
     }
 
-    function readTWAPGasCost(uint8 delta) public view returns (uint256) {
+    function readTWAPGasCost(uint256 delta) public view returns (uint256) {
+        if (TWAP_GAS_COST.length < delta) {
+            delta = TWAP_GAS_COST.length;
+        }
         uint256 totalGasCost = 0;
         for (uint256 i = 0; i < delta; i++) {
             totalGasCost += TWAP_GAS_COST[i];
@@ -83,18 +84,14 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         returns (uint256 amountOut)
     {
         initiateGasRecord();
-        // Get best DEX and number of streams from StreamDaemon
         (uint256 numStreams, address bestDex) = streamDaemon.evaluateSweetSpotAndDex(
             tokenIn,
             tokenOut,
             amountIn,
             readTWAPGasCost(10) // placeholder delta. need optimisation @audit
         );
-
-        // Calculate amount per stream
         uint256 currentAmount = amountIn / numStreams;
 
-        // Execute trade on best DEX
         if (bestDex == uniswapV2Router) {
             (bool success, bytes memory result) = address(executor).delegatecall(
                 abi.encodeWithSelector(
