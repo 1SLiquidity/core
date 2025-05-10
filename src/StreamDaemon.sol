@@ -79,7 +79,7 @@ contract StreamDaemon is Ownable {
 
             if (reserveTokenIn > maxReserveIn && reserveTokenIn > 0) {
                 maxReserveIn = reserveTokenIn;
-                maxReserveOut = reserveTokenOut;        
+                maxReserveOut = reserveTokenOut;
                 bestFetcher = address(fetcher);
             }
         }
@@ -160,16 +160,16 @@ contract StreamDaemon is Ownable {
         sweetSpot = volume / (sqrt((alpha * volume ^ 2) / effectiveGas));
 
         /**
-         * 
-         * @audit we may need more measures here, specifically monitoring the 
+         *
+         * @audit we may need more measures here, specifically monitoring the
          * percentage of pool reserves from any incoming trade qnd possibly metering the outputs
-         * of the algorithm accordingly. These modifications may come from deterministic mathematical 
+         * of the algorithm accordingly. These modifications may come from deterministic mathematical
          * evalutaitons or experimental findings. E.g, if % > 2 || < 1, sweetSpot / 2
-         * 
+         *
          * at this point, whilst not production ready, the algorithm is valid enough to test in integrations.
-         * 
-         *  */ 
-
+         *
+         *
+         */
         if (sweetSpot < 2) {
             sweetSpot = 2;
         }
