@@ -5,24 +5,31 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 // import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "./StreamDaemon.sol";
 import "./Executor.sol";
+import "./Utils.sol";
 
 contract Core is Ownable /*, UUPSUpgradeable */ {
+    // @audit must be able to recieve and transfer tokens
+    StreamDaemon public streamDaemon;
+    Executor public executor;
 
-    // @audit must be able to recieve and transfer tokens 
-    StreamDaemon public immutable streamDaemon;
-    Executor public immutable executor;
-
+    // dexs
     address public immutable uniswapV2Router;
     address public immutable sushiswapRouter;
     address public immutable uniswapV3Router;
     address public immutable balancerVault;
     address public immutable curvePool;
 
+    // gas / TWAP
     uint256 private startGas;
     uint256 public lastGasUsed;
     uint256 public lastGasPrice;
     uint256 public lastGasCost;
     uint256[] public TWAP_GAS_COST;
+
+    // trades
+    uint256 public lastTradeId;
+    mapping(bytes32 => uint256[]) public pairIdTradeIds;
+    mapping(uint256 => Utils.Trade) public trades;
 
     constructor(
         address _streamDaemon,
@@ -65,6 +72,48 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             totalGasCost += TWAP_GAS_COST[i];
         }
         return totalGasCost / TWAP_GAS_COST.length;
+    }
+
+    function placeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+        public
+    {
+        /**
+         * this should:
+         *
+         * transfer funds from the sender to this contract
+         * generate trade metadata, featuring:
+         * botAllocation // formed of approximated gas cost + BPS for trade settlement
+         *  - owner 
+         *  -tokenIn
+         *  -tokenOut
+         *  -tradeId
+         *  -pairId
+         *  -targetAmountOut // amountOut*(1-slippage)
+         *  -realisedAmountOut // @audit must be incremented on each stream execution
+         *  -cumulativeGasEntailed
+         *  -?isInstasettlable
+         *  -?slippage
+         *  -?botGasAllowance
+         *  -attempts
+         *
+         * ..entering trade metadata into contract storage
+         * execute a single stream
+         * (taking 0BPS from the realised amountOut as fees)
+         * update the balances respectively
+         *
+         */
+    }
+
+    function cancelTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+        public
+    {
+        /**
+         * should take a tradeId
+         * verify the owner of the trade is msg.sender
+         * if so, store the trade in memory
+         * then delete the trade from storage
+         * then transfer out appropriate assets to the trade owner
+         */
     }
 
     function executeTrade() public {
