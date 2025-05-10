@@ -7,6 +7,8 @@ import "./StreamDaemon.sol";
 import "./Executor.sol";
 
 contract Core is Ownable /*, UUPSUpgradeable */ {
+
+    // @audit must be able to recieve and transfer tokens 
     StreamDaemon public immutable streamDaemon;
     Executor public immutable executor;
 
@@ -70,7 +72,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          * this should take a trade stored in a queue,
          * execute it via executeStream(), returning the amount settled
          * and thereafter update the trade's metadata.
-         * 
+         *
          * rightful considerations must be given to:
          * - the trade's realised slippage
          * - the trade's realised gas cost
