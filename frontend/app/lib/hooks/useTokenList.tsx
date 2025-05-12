@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { TOKENS_TYPE } from './useWalletTokens'
+import { useAppKitState } from '@reown/appkit/react'
 
 // Type for CoinGecko token response
 interface CoinGeckoToken {
@@ -14,6 +15,15 @@ interface CoinGeckoToken {
   current_price: number
   price_change_percentage_24h: number
   market_cap_rank?: number
+}
+
+// Mapping from chain IDs to CoinGecko platform identifiers
+const CHAIN_ID_TO_PLATFORM: Record<string, string> = {
+  '1': 'ethereum',
+  '42161': 'arbitrum-one',
+  '137': 'polygon-pos',
+  '56': 'binance-smart-chain',
+  // Add more chains as needed
 }
 
 // Add top tokens that might not be captured in the API
@@ -73,39 +83,86 @@ const topTokens = [
   },
 ]
 
-// Function to format tokens to our app's structure
-const formatCoingeckoTokens = (tokens: CoinGeckoToken[]): TOKENS_TYPE[] => {
-  return tokens.map((token) => {
-    // Get the token address from preferred platforms in order
-    let tokenAddress = ''
-    if (token.platforms) {
-      tokenAddress =
-        token.platforms['arbitrum-one'] ||
-        token.platforms['ethereum'] ||
-        token.platforms['polygon-pos'] ||
-        token.platforms['binance-smart-chain'] ||
-        ''
-    }
+// Function to safely get a token address from platforms object
+const getTokenAddressForPlatform = (
+  platforms: { [key: string]: string } | undefined,
+  targetPlatform: string
+): string => {
+  if (!platforms) return ''
 
-    // Format the token data to match our app's token structure
-    return {
-      name: token.name,
-      symbol: token.symbol.toUpperCase(),
-      icon: token.image || `/tokens/${token.symbol.toLowerCase()}.svg`,
-      popular: token.market_cap_rank ? token.market_cap_rank <= 100 : false,
-      value: 0, // Default value, will be updated when wallet balance is available
-      status: token.price_change_percentage_24h >= 0 ? 'increase' : 'decrease',
-      statusAmount: Math.abs(token.price_change_percentage_24h || 0),
-      token_address: tokenAddress.toLowerCase(),
-      decimals: 18, // Default for most tokens
-      balance: '0',
-      possible_spam: false,
-      usd_price: token.current_price || 0,
-    }
-  })
+  // TypeScript now understands platforms is an object with string keys and string values
+  return platforms[targetPlatform] || ''
+}
+
+// Function to format tokens to our app's structure
+const formatCoingeckoTokens = (
+  tokens: CoinGeckoToken[],
+  targetPlatform: string
+): TOKENS_TYPE[] => {
+  return tokens
+    .map((token) => {
+      // Get the token address for the specific platform/chain
+      let tokenAddress = getTokenAddressForPlatform(
+        token.platforms,
+        targetPlatform
+      )
+
+      // If not found on target platform, check for ethereum as fallback
+      if (!tokenAddress && targetPlatform !== 'ethereum') {
+        tokenAddress = getTokenAddressForPlatform(token.platforms, 'ethereum')
+      }
+
+      // Skip tokens that don't have an address on the target platform
+      if (!tokenAddress) {
+        return null
+      }
+
+      // Format the token data to match our app's token structure
+      return {
+        name: token.name,
+        symbol: token.symbol.toUpperCase(),
+        icon: token.image || `/tokens/${token.symbol.toLowerCase()}.svg`,
+        popular: token.market_cap_rank ? token.market_cap_rank <= 100 : false,
+        value: 0, // Default value, will be updated when wallet balance is available
+        status:
+          token.price_change_percentage_24h >= 0 ? 'increase' : 'decrease',
+        statusAmount: Math.abs(token.price_change_percentage_24h || 0),
+        token_address: tokenAddress.toLowerCase(),
+        decimals: 18, // Default for most tokens
+        balance: '0',
+        possible_spam: false,
+        usd_price: token.current_price || 0,
+      }
+    })
+    .filter(Boolean) as TOKENS_TYPE[] // Filter out null values
+}
+
+// Helper function to check if a token has an address on a specific platform
+const tokenHasAddressOnPlatform = (
+  token: CoinGeckoToken,
+  platform: string
+): boolean => {
+  return !!(token.platforms && token.platforms[platform])
+}
+
+// Configuration for token fetching
+const TOKEN_CONFIG = {
+  PAGES_TO_FETCH: 4, // Fetch 4 pages (1000 tokens total with 250 per page)
+  TOKENS_PER_PAGE: 250, // Maximum allowed by CoinGecko API
 }
 
 export const useTokenList = () => {
+  // Get the current chain from AppKit
+  const stateData = useAppKitState()
+  const chainId = stateData?.selectedNetworkId?.split(':')[1] || '1' // Default to Ethereum if not available
+
+  // Get the corresponding platform identifier for CoinGecko API
+  const targetPlatform = CHAIN_ID_TO_PLATFORM[chainId] || 'ethereum'
+
+  // Use the chain ID in the cache key to separate caches for different chains
+  const cacheKey = `tokenListCache_${chainId}`
+  const cacheTimestampKey = `tokenListCacheTimestamp_${chainId}`
+
   // Use React Query to fetch and cache token data
   const {
     data: tokens = [],
@@ -113,34 +170,57 @@ export const useTokenList = () => {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['token-list'],
+    queryKey: ['token-list', chainId],
     queryFn: async () => {
       try {
-        // Check if we have cached data in localStorage
-        const cachedData = localStorage.getItem('tokenListCache')
-        const cachedTimestamp = localStorage.getItem('tokenListCacheTimestamp')
+        // Check if we have cached data in localStorage for this specific chain
+        const cachedData = localStorage.getItem(cacheKey)
+        const cachedTimestamp = localStorage.getItem(cacheTimestampKey)
 
         // If we have cached data and it's less than 24 hours old, use it
         if (cachedData && cachedTimestamp) {
           const cacheAge = Date.now() - parseInt(cachedTimestamp)
           if (cacheAge < 24 * 60 * 60 * 1000) {
             // 24 hours
-            console.log('Using cached token list')
+            console.log(`Using cached token list for chain ${chainId}`)
             return JSON.parse(cachedData)
           }
         }
 
-        // Fetch top 250 tokens by market cap from CoinGecko API
-        console.log('Fetching token list from CoinGecko API')
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false&locale=en&precision=full'
+        // Fetch multiple pages of tokens by market cap from CoinGecko API
+        console.log(
+          `Fetching ${TOKEN_CONFIG.PAGES_TO_FETCH} pages of tokens from CoinGecko API for chain ${chainId} (${targetPlatform})`
         )
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch token list')
+        let allTokens: CoinGeckoToken[] = []
+
+        // Fetch tokens page by page
+        for (let page = 1; page <= TOKEN_CONFIG.PAGES_TO_FETCH; page++) {
+          try {
+            console.log(`Fetching page ${page} of tokens...`)
+            const response = await fetch(
+              `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${TOKEN_CONFIG.TOKENS_PER_PAGE}&page=${page}&sparkline=false&locale=en&precision=full`
+            )
+
+            if (!response.ok) {
+              console.warn(`Failed to fetch page ${page}, stopping pagination`)
+              break
+            }
+
+            const pageData: CoinGeckoToken[] = await response.json()
+            allTokens = [...allTokens, ...pageData]
+
+            // CoinGecko has rate limits, so add a small delay between requests
+            if (page < TOKEN_CONFIG.PAGES_TO_FETCH) {
+              await new Promise((resolve) => setTimeout(resolve, 1100)) // 1.1 second delay to avoid rate limits
+            }
+          } catch (error) {
+            console.error(`Error fetching page ${page}:`, error)
+            break // Stop pagination on error
+          }
         }
 
-        const data: CoinGeckoToken[] = await response.json()
+        console.log(`Successfully fetched ${allTokens.length} tokens`)
 
         // Fetch token platforms (addresses) for the tokens
         const platformsResponse = await fetch(
@@ -154,7 +234,7 @@ export const useTokenList = () => {
         const platformsData = await platformsResponse.json()
 
         // Merge platforms data with token data
-        const enrichedTokens = data.map((token) => {
+        const enrichedTokens = allTokens.map((token) => {
           const platformInfo = platformsData.find((p: any) => p.id === token.id)
           return {
             ...token,
@@ -162,34 +242,57 @@ export const useTokenList = () => {
           }
         })
 
-        // Add missing top tokens
-        const existingIds = enrichedTokens.map((t) => t.id)
-        const missingTopTokens = topTokens.filter(
-          (t) => !existingIds.includes(t.id)
+        // Filter for tokens specifically with addresses on the target platform
+        const platformFilteredTokens = enrichedTokens.filter((token) =>
+          tokenHasAddressOnPlatform(token, targetPlatform)
         )
 
-        // Combine and format tokens
-        const allTokens = [...enrichedTokens, ...missingTopTokens]
-        const formattedTokens = formatCoingeckoTokens(allTokens)
+        console.log(
+          `Found ${platformFilteredTokens.length} tokens available on ${targetPlatform}`
+        )
 
-        // Cache the result in localStorage
-        localStorage.setItem('tokenListCache', JSON.stringify(formattedTokens))
-        localStorage.setItem('tokenListCacheTimestamp', Date.now().toString())
+        // Add missing top tokens (only if they have an address for the current chain)
+        const existingIds = platformFilteredTokens.map((t) => t.id)
+        const missingTopTokens = topTokens.filter(
+          (t) =>
+            !existingIds.includes(t.id) &&
+            tokenHasAddressOnPlatform(t, targetPlatform)
+        )
+
+        // Combine and format tokens, filtering for those with addresses on the selected chain
+        const combinedTokens = [...platformFilteredTokens, ...missingTopTokens]
+        const formattedTokens = formatCoingeckoTokens(
+          combinedTokens,
+          targetPlatform
+        )
+
+        console.log(
+          `Formatted ${formattedTokens.length} tokens for ${targetPlatform}`
+        )
+
+        // Cache the result in localStorage for this specific chain
+        localStorage.setItem(cacheKey, JSON.stringify(formattedTokens))
+        localStorage.setItem(cacheTimestampKey, Date.now().toString())
 
         return formattedTokens
       } catch (error) {
         console.error('Error fetching token list:', error)
 
         // If API fails, try to use cached data regardless of age
-        const cachedData = localStorage.getItem('tokenListCache')
+        const cachedData = localStorage.getItem(cacheKey)
         if (cachedData) {
-          console.log('API failed, using cached token list')
+          console.log(
+            `API failed, using cached token list for chain ${chainId}`
+          )
           return JSON.parse(cachedData)
         }
 
-        // If no cached data, return default top tokens
-        console.log('API failed, using default top tokens')
-        return formatCoingeckoTokens(topTokens)
+        // If no cached data, return default top tokens for the current chain
+        console.log(`API failed, using default top tokens for chain ${chainId}`)
+        const chainTopTokens = topTokens.filter((t) =>
+          tokenHasAddressOnPlatform(t, targetPlatform)
+        )
+        return formatCoingeckoTokens(chainTopTokens, targetPlatform)
       }
     },
     staleTime: 1000 * 60 * 60 * 12, // Cache for 12 hours
@@ -202,5 +305,7 @@ export const useTokenList = () => {
     isLoading,
     error,
     refetch,
+    chainId,
+    platform: targetPlatform,
   }
 }

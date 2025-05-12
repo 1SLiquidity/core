@@ -7,7 +7,7 @@ import Sidebar from '.'
 import StreamDetails from '../streamDetails'
 import SwapStream from '../swapStream'
 import Tabs from '../tabs'
-import { useAppKitAccount } from '@reown/appkit/react'
+import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
 import { useWalletTokens, TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { calculateWalletBalance } from '@/app/lib/moralis'
 
@@ -16,14 +16,23 @@ type WalletDetailsSidebarProps = {
   onClose: () => void
 }
 
-// Available chains for the dropdown
-const AVAILABLE_CHAINS = [
-  { value: 'eth', label: 'Ethereum' },
-  { value: 'bsc', label: 'Binance Smart Chain' },
-  { value: 'polygon', label: 'Polygon' },
-  { value: 'arbitrum', label: 'Arbitrum' },
-  { value: 'avalanche', label: 'Avalanche' },
-]
+// Chain name mapping for display purposes
+const CHAIN_NAMES: { [key: string]: string } = {
+  '1': 'Ethereum',
+  '42161': 'Arbitrum One',
+  '137': 'Polygon',
+  '56': 'BNB Chain',
+  // Add more chains as needed
+}
+
+// Mapping from chain IDs to Moralis chain identifiers
+const CHAIN_ID_TO_MORALIS: { [key: string]: string } = {
+  '1': 'eth',
+  '42161': 'arbitrum',
+  '137': 'polygon',
+  '56': 'bsc',
+  // Add more chains as needed
+}
 
 const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   isOpen,
@@ -32,7 +41,6 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   const [activeTab, setActiveTab] = useState(WALLET_TABS[0])
   const [isStreamDetailsOpen, setIsStreamDetailsOpen] = useState(false)
   const [totalBalance, setTotalBalance] = useState<number | null>(null)
-  const [selectedChain, setSelectedChain] = useState<string>('arbitrum')
   // Track average percentage change across tokens
   const [averagePercentChange, setAveragePercentChange] = useState<
     number | null
@@ -42,6 +50,15 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   const { address, isConnected, caipAddress, status, embeddedWalletInfo } =
     useAppKitAccount()
 
+  // Get current chain from AppKit
+  const stateData = useAppKitState()
+  const chainIdWithPrefix = stateData?.selectedNetworkId || 'eip155:1'
+  const chainId = chainIdWithPrefix.split(':')[1]
+
+  // Map chainId to Moralis chain format
+  const moralisChain = CHAIN_ID_TO_MORALIS[chainId] || 'eth'
+  const chainName = CHAIN_NAMES[chainId] || moralisChain
+
   // Use the Moralis hook with React Query to fetch wallet tokens for the selected chain
   const {
     tokens: walletTokens,
@@ -50,7 +67,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     error: tokensError,
     refetch,
     isFetching,
-  } = useWalletTokens(address, selectedChain)
+  } = useWalletTokens(address, moralisChain)
 
   // Calculate total balance whenever token data changes
   useEffect(() => {
@@ -106,14 +123,6 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     }).format(amount)
-  }
-
-  // Handle chain change
-  const handleChainChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    const newChain = event.target.value
-    setSelectedChain(newChain)
-    // Reset total balance when changing chains
-    setTotalBalance(null)
   }
 
   // Handle manual refresh
@@ -186,27 +195,13 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
               />
             </div>
 
-            {/* Chain Selector */}
+            {/* Chain Indicator */}
             <div className="px-6 mt-4 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <label htmlFor="chain-select" className="text-white text-sm">
-                  Network:
-                </label>
-                <div className="flex items-center gap-1 text-sm text-white hover:text-white p-2 bg-white005 rounded-[10px] disabled:opacity-50 disabled:cursor-not-allowed">
-                  Arbitrum
+              <div className="flex items-center">
+                <div className="text-sm text-white72 px-2 py-1 bg-white12 rounded-full flex items-center">
+                  <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
+                  {chainName}
                 </div>
-                {/* <select
-                  id="chain-select"
-                  value={selectedChain}
-                  onChange={handleChainChange}
-                  className="bg-white005 border border-white14 rounded-[10px] text-white p-2 text-sm"
-                >
-                  {AVAILABLE_CHAINS.map((chain) => (
-                    <option key={chain.value} value={chain.value}>
-                      {chain.label}
-                    </option>
-                  ))}
-                </select> */}
               </div>
               {/* Refresh button */}
               <button
@@ -351,9 +346,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                     </div>
                   ) : walletTokens.length === 0 ? (
                     <div className="text-center p-4 text-white">
-                      No tokens found on{' '}
-                      {AVAILABLE_CHAINS.find((c) => c.value === selectedChain)
-                        ?.label || selectedChain}
+                      No tokens found on {chainName}
                     </div>
                   ) : (
                     displayTokens

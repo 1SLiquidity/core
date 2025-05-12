@@ -7,7 +7,16 @@ import useDebounce from '@/app/lib/hooks/useDebounce'
 import { useModal } from '@/app/lib/context/modalContext'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
-import { useAppKitAccount } from '@reown/appkit/react'
+import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
+
+// Chain name mapping for display purposes
+const CHAIN_NAMES: { [key: string]: string } = {
+  '1': 'Ethereum',
+  '42161': 'Arbitrum One',
+  '137': 'Polygon',
+  '56': 'BNB Chain',
+  // Add more chains as needed
+}
 
 type SelectTokenModalProps = {
   isOpen: boolean
@@ -28,9 +37,19 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     selectedTokenTo,
   } = useModal()
   const { address } = useAppKitAccount()
+  const stateData = useAppKitState()
+  const chainIdWithPrefix = stateData?.selectedNetworkId || 'eip155:1'
+  const chainId = chainIdWithPrefix.split(':')[1]
+  const chainName = CHAIN_NAMES[chainId] || 'Unknown Chain'
 
   // Use token list from our enhanced hook that fetches from CoinGecko API with caching
-  const { tokens: availableTokens, isLoading, error, refetch } = useTokenList()
+  const {
+    tokens: availableTokens,
+    isLoading,
+    error,
+    refetch,
+    platform,
+  } = useTokenList()
 
   // Default to hardcoded tokens if API tokens aren't available yet
   const displayTokens: TOKENS_TYPE[] =
@@ -115,8 +134,16 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
           />
         </div>
 
+        {/* Network information */}
+        <div className="mt-2 mb-4 flex items-center">
+          <div className="text-sm text-white72 px-2 py-1 bg-white12 rounded-full flex items-center">
+            <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
+            {chainName}
+          </div>
+        </div>
+
         {/* searchbar */}
-        <div className="my-6">
+        <div className="my-4">
           <SearchbarWithIcon
             onChange={(e) => setSearchValue(e.target.value)}
             value={searchValue}
@@ -129,7 +156,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
         {error && (
           <div className="mb-4 p-3 bg-red-900/20 rounded-lg border border-red-600/30">
             <p className="text-red-400 text-sm mb-2">
-              There was an error loading the token list
+              There was an error loading the token list for {chainName}
             </p>
             <button
               onClick={() => refetch()}
@@ -146,7 +173,8 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
             <div className="flex flex-col gap-1 my-[13px] h-[30vh] overflow-y-auto scrollbar-hide">
               {getFilteredTokens().length === 0 ? (
                 <div className="text-center p-4 text-white72">
-                  No tokens found matching "{debouncedSearchValue}"
+                  No tokens found matching "{debouncedSearchValue}" on{' '}
+                  {chainName}
                 </div>
               ) : (
                 getFilteredTokens().map((token, ind) => (
@@ -205,7 +233,9 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
         {!(searchValue.length > 0) && (
           <div className="h-full">
-            <p className="text-[20px] text-white72">Popular Tokens</p>
+            <p className="text-[20px] text-white72">
+              Popular Tokens on {chainName}
+            </p>
 
             <div className="flex gap-1 my-[13px] overflow-x-auto scrollbar-hide">
               {getPopularTokens().map((token, ind) => (
@@ -229,7 +259,9 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
               ))}
             </div>
 
-            <p className="text-[20px] text-white72">All Tokens</p>
+            <p className="text-[20px] text-white72">
+              All Tokens on {chainName}
+            </p>
 
             <div className="flex flex-col gap-1 my-[13px] scrollbar-hide h-[30vh] overflow-y-auto pb-5">
               {isLoading ? (
@@ -238,7 +270,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                 </div>
               ) : getFilteredTokens().length === 0 ? (
                 <div className="text-center p-4 text-white72">
-                  No tokens found
+                  No tokens found on {chainName}
                 </div>
               ) : (
                 getFilteredTokens().map((token, ind) => (
