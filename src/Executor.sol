@@ -27,21 +27,20 @@ contract Executor {
     // }
 
     function executeUniswapV2Trade(
-        address router,
+        address core,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
         uint256 amountOutMin,
         address recipient
     ) external returns (uint256 amountOut) {
-        // Approve router to spend tokens
-        IERC20(tokenIn).approve(router, amountIn);
+        IERC20(tokenIn).approve(core, amountIn);
 
         address[] memory path = new address[](2);
         path[0] = tokenIn;
         path[1] = tokenOut;
 
-        uint256[] memory amounts = IUniswapV2Router(router).swapExactTokensForTokens(
+        uint256[] memory amounts = IUniswapV2Router(core).swapExactTokensForTokens(
             amountIn, amountOutMin, path, recipient, block.timestamp + 300
         );
 
@@ -49,7 +48,7 @@ contract Executor {
     }
 
     function executeUniswapV3Trade(
-        address router,
+        address core,
         address tokenIn,
         address tokenOut,
         uint256 amountIn,
@@ -57,8 +56,7 @@ contract Executor {
         address recipient,
         uint24 fee
     ) external returns (uint256 amountOut) {
-        // Approve router to spend tokens
-        IERC20(tokenIn).approve(router, amountIn);
+        IERC20(tokenIn).approve(core, amountIn);
 
         IUniswapV3Router.ExactInputSingleParams memory params = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,
@@ -71,7 +69,7 @@ contract Executor {
             sqrtPriceLimitX96: 0
         });
 
-        return IUniswapV3Router(router).exactInputSingle(params);
+        return IUniswapV3Router(core).exactInputSingle(params);
     }
 
     function executeBalancerTrade(
@@ -101,7 +99,6 @@ contract Executor {
             recipient: recipient,
             toInternalBalance: false
         });
-
         return IBalancerVault(vault).swap(singleSwap, funds, amountOutMin, block.timestamp + 300);
     }
 
@@ -113,14 +110,9 @@ contract Executor {
         uint256 amountOutMin,
         address recipient
     ) external returns (uint256 amountOut) {
-        // Approve pool to spend tokens
         IERC20(pool).approve(pool, amountIn);
-
         amountOut = ICurvePool(pool).exchange(i, j, amountIn, amountOutMin);
-
-        // Transfer tokens to recipient
         IERC20(pool).transfer(recipient, amountOut);
-
         return amountOut;
     }
 }
