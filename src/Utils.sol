@@ -6,16 +6,18 @@ library Utils {
     struct Trade {
         address owner;
         uint256 tradeId;
-        uint256 botAllocation;
         address tokenIn;
         address tokenOut;
-        bytes32 pairId;
-        uint128 targetAmountOut;
-        uint128 realisedAmountOut;
-        uint96 cumulativeGasEntailed;
+        uint256 amountIn;
+        uint256 amountRemaining;
+        uint256 targetAmountOut;
+        uint256 realisedAmountOut;
         bool isInstasettlable;
-        uint64 slippage; // set to 0 if no custom slippage
-        uint64 botGasAllowance;
+        uint256 botGasAllowance;
+        uint96 cumulativeGasEntailed;
         uint8 attempts;
+        bytes32 pairId; //keccak hash of tokenIn, tokenOut. questionable if needed here but in for good measure as it stands @audit
+        uint256 lastSweetSpot;
+        uint64 slippage; // set to 0 if no custom slippage
     }
 }
