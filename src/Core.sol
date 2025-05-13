@@ -168,6 +168,36 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
 
+
+    function cancelTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+        public
+    {
+        /**
+         * should take a tradeId
+         * verify the owner of the trade is msg.sender
+         * if so, store the trade in memory
+         * then delete the trade from storage
+         * then transfer out appropriate assets to the trade owner
+         */
+    }
+
+    function executeTrades() public {
+        /**
+         * this should take trades stored in the queue,
+         * executing stream volumes 1 by 1 via executeStream(), returning the amount settled
+         * and thereafter update the trade's metadata.
+         *
+         * rightful considerations must be given to:
+         * - the number of attempts!
+         * - the trade's realised slippage
+         * - the trade's realised gas cost
+         * - the trade's target amountOut vs realised amountOut
+         * - fees
+         * - if streamCount = 1 || 2, we execute the stream AND transfer assets out
+         * - update the number of attempts
+         */
+    }
+
     function executeStream(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
         internal
         returns (uint256 streamVolume, uint256 amountOut, uint256 lastSweetSpot)
