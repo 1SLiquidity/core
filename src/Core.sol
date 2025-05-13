@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./StreamDaemon.sol";
 import "./Executor.sol";
 import "./Utils.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Core is Ownable /*, UUPSUpgradeable */ {
     // @audit must be able to recieve and transfer tokens
@@ -31,6 +32,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     mapping(bytes32 => uint256[]) public pairIdTradeIds;
     mapping(uint256 => Utils.Trade) public trades;
 
+    // balances
+    mapping(address => mapping(address => uint256)) public eoaTokenBalance;
+    mapping(address => uint256) public modulusResiduals;
+
     constructor(
         address _streamDaemon,
         address _executor,
@@ -47,6 +52,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         balancerVault = _balancerVault;
         curvePool = _curvePool;
         sushiswapRouter = _sushiswapRouter;
+        // @audit initialise TWAP_GAS_COST here
     }
 
     // function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
@@ -74,27 +80,40 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         return totalGasCost / TWAP_GAS_COST.length;
     }
 
-    function placeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+    function returnDollarValueOfEth() public returns (uint256) {
+        /**
+         * @audit need to implement this: utilise our UniversalDEXInterface to read eth price from any one of our DEX's
+         * // question would we, in fact, rather take na average of eth vakue accross the DEX's? probably not, since we need to 
+         * range the value f effective gas between 0.1 - 1 due to sweetSpotAlgo requirements 
+         * (streamCount become insane at low gas costs,@audit how do we balance this with user defined inpout for slippage)
+         */
+    }
+
+    function placeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address owner, bool isInstasettlable, uint256 botGasAllowance)
         public
     {
+
         /**
          * this should:
          *
          * transfer funds from the sender to this contract
          * generate trade metadata, featuring:
-         * botAllocation // formed of approximated gas cost + BPS for trade settlement
-         *  - owner 
-         *  -tokenIn
-         *  -tokenOut
-         *  -tradeId
-         *  -pairId
-         *  -targetAmountOut // amountOut*(1-slippage)
-         *  -realisedAmountOut // @audit must be incremented on each stream execution
-         *  -cumulativeGasEntailed
-         *  -?isInstasettlable
-         *  -?slippage
-         *  -?botGasAllowance
-         *  -attempts
+         * 
+        address owner;
+        uint256 tradeId;
+        uint256 botAllocation;
+        address tokenIn;
+        address tokenOut;
+        uint256 amount;
+        bytes32 pairId;
+        uint256 targetAmountOut;
+        uint256 realisedAmountOut;
+        uint96 cumulativeGasEntailed;
+        bool isInstasettlable;
+        uint64 slippage; // set to 0 if no custom slippage
+        uint64 botGasAllowance;
+        uint8 attempts;
+
          *
          * ..entering trade metadata into contract storage
          * execute a single stream
@@ -102,46 +121,70 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          * update the balances respectively
          *
          */
+
+        // letstransfer funds 
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+
+        // generate trade
+        Utils.Trade memory trade;
+
+        trade.owner = owner;
+        trade.tradeId = lastTradeId;
+        trade.tokenIn = tokenIn;
+        trade.tokenOut = tokenOut;
+        trade.amountIn = amountIn;
+        trade.amountRemaining = amountIn;
+        trade.targetAmountOut = amountOutMin;
+        trade.isInstasettlable = isInstasettlable;
+        trade.botGasAllowance = botGasAllowance;
+        trade.attempts = 1; // yes, we initialise to 1 as we are going to execute a stream here
+        bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut));
+        trade.pairId = pairId;
+        trade.slippage = 0; // not entirely sure on the necessity of this here, as its derivable from amountIn vs targetOut, and is predetermined: all trades experience 1% slippage
+
+        // now, we store the trade in contract storage;
+        pairIdTradeIds[pairId].push(lastTradeId);
+        trades[lastTradeId] = trade;
+        lastTradeId++;
+
+        // now, we execute a single stream;
+        (uint256 realisedAmountIn, uint256 executedAmountOut, uint256 sweetSpot) = executeStream(tokenIn, tokenOut, amountIn, amountOutMin, address(this));
+
+        if (sweetSpot == 1 || sweetSpot == 2) {
+            // we execute the stream AND transfer assets out
+            IERC20(tokenOut).transfer(msg.sender, executedAmountOut);
+            // no need to update or even store the trade's metadata. the above logic can be optimised @audit since caching in memory s gonna cost
+        }
+
+        // otherwise we can update the trade's metadata
+        uint256 realisedGas = readTWAPGasCost(10); // using an arbitrary delta here
+        trade.cumulativeGasEntailed = uint96(realisedGas);
+        trade.realisedAmountOut = executedAmountOut;
+        trade.lastSweetSpot = sweetSpot; // Store the number of streams as the last sweet spot
+        trade.amountRemaining = trade.amountRemaining - realisedAmountIn;
+
+        // Update the trade in storage
+        trades[lastTradeId - 1] = trade;
     }
 
-    function cancelTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
-        public
-    {
-        /**
-         * should take a tradeId
-         * verify the owner of the trade is msg.sender
-         * if so, store the trade in memory
-         * then delete the trade from storage
-         * then transfer out appropriate assets to the trade owner
-         */
-    }
-
-    function executeTrade() public {
-        /**
-         * this should take a trade stored in a queue,
-         * execute it via executeStream(), returning the amount settled
-         * and thereafter update the trade's metadata.
-         *
-         * rightful considerations must be given to:
-         * - the trade's realised slippage
-         * - the trade's realised gas cost
-         * - the trade's target amountOut vs realised amountOut
-         * - fees
-         */
-    }
 
     function executeStream(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
-        external
-        returns (uint256 amountOut)
+        internal
+        returns (uint256 streamVolume, uint256 amountOut, uint256 lastSweetSpot)
     {
         initiateGasRecord();
-        (uint256 numStreams, address bestDex) = streamDaemon.evaluateSweetSpotAndDex(
+        (uint256 sweetSpot, address bestDex) = streamDaemon.evaluateSweetSpotAndDex(
             tokenIn,
             tokenOut,
             amountIn,
             readTWAPGasCost(10) // placeholder delta. need optimisation @audit
         );
-        uint256 currentAmount = amountIn / numStreams;
+        if (sweetSpot < 1e18) { //ensure we have scaled that sweet spot well @audit
+            sweetSpot = 1;
+        } else if (sweetSpot > 1000e18) {
+            sweetSpot = 1000; // this is an arbitrary value once more
+        }
+        streamVolume = amountIn / sweetSpot;
 
         if (bestDex == uniswapV2Router) {
             (bool success, bytes memory result) = address(executor).delegatecall(
@@ -150,8 +193,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                     uniswapV2Router,
                     tokenIn,
                     tokenOut,
-                    currentAmount,
-                    amountOutMin * currentAmount / amountIn,
+                    streamVolume,
+                    amountOutMin / sweetSpot,
                     recipient
                 )
             );
@@ -164,8 +207,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                     uniswapV3Router,
                     tokenIn,
                     tokenOut,
-                    currentAmount,
-                    amountOutMin * currentAmount / amountIn,
+                    streamVolume,
+                    amountOutMin / sweetSpot,
                     recipient,
                     3000 // default fee tier
                 )
@@ -181,8 +224,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                     balancerVault,
                     tokenIn,
                     tokenOut,
-                    currentAmount,
-                    amountOutMin * currentAmount / amountIn,
+                    streamVolume,
+                    amountOutMin / sweetSpot,
                     recipient,
                     poolId
                 )
@@ -193,6 +236,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
         closeGasRecord();
 
-        return amountOut;
+        return (streamVolume, amountOut, sweetSpot);
     }
 }
