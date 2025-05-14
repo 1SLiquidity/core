@@ -1,12 +1,14 @@
 import Image from 'next/image'
 import React, { useState } from 'react'
 import AmountTag from '../../amountTag'
+import { ReserveData } from '@/app/lib/dex/calculators'
 
 type Props = {
   sellAmount: string
   buyAmount: string
   inValidAmount?: boolean
-  reserves?: any
+  reserves?: ReserveData | null
+  dexFee?: number | null
 }
 
 const DetailSection: React.FC<Props> = ({
@@ -14,10 +16,36 @@ const DetailSection: React.FC<Props> = ({
   buyAmount,
   inValidAmount,
   reserves,
+  dexFee,
 }) => {
   const [showDetails, setShowDetails] = useState(true)
 
   const toggleDetails = () => setShowDetails(!showDetails)
+
+  // Calculate the fee amount based on sellAmount and fee percentage
+  const calculateFeeAmount = () => {
+    if (!dexFee || !sellAmount) return '$0.00'
+
+    // Simple calculation: sellAmount * (fee / 100)
+    const numericSellAmount = parseFloat(sellAmount)
+    if (isNaN(numericSellAmount)) return '$0.00'
+
+    const feeAmount = numericSellAmount * (dexFee / 100)
+    return `$${feeAmount.toFixed(2)}`
+  }
+
+  // Extract fee tier from DEX type for display purposes
+  const extractFeeTier = (dexType: string): string => {
+    if (dexType && dexType.startsWith('uniswap-v3-')) {
+      const feeStr = dexType.split('-').pop()
+      if (feeStr && !isNaN(parseInt(feeStr))) {
+        const feeBps = parseInt(feeStr)
+        // Convert basis points to percentage for display
+        return `${(feeBps / 10000).toFixed(2)}%`
+      }
+    }
+    return dexFee ? `${dexFee}%` : 'Unknown'
+  }
 
   return (
     <div className="w-full p-5 border-[2px] border-white12 bg-[#0D0D0D] mt-[26px] rounded-[15px]">
@@ -87,6 +115,13 @@ const DetailSection: React.FC<Props> = ({
         }`}
       >
         <div className="w-full flex flex-col gap-2 py-4 border-b border-borderBottom">
+          {dexFee && (
+            <AmountTag
+              title={`DEX Fee (${dexFee}%)`}
+              amount={calculateFeeAmount()}
+              infoDetail="Estimated"
+            />
+          )}
           <AmountTag
             title="Protocol Fee (20 BPS)"
             amount={'$42.16'}
@@ -144,28 +179,48 @@ const DetailSection: React.FC<Props> = ({
         >
           <div className="w-full flex flex-col gap-2 py-4 border-b border-borderBottom">
             <h3 className="text-white font-medium mb-2">Liquidity Reserves</h3>
-            {reserves &&
-              reserves.map((reserve: any, index: any) => (
-                <div key={index} className="mb-2">
-                  <p className="text-white70 text-sm">Reserve {index + 1}</p>
-                  <div className="flex justify-between mt-1">
-                    <p className="text-white text-sm">Token 0:</p>
-                    <p className="text-white text-sm">
-                      {reserve.reserves.token0
-                        ? parseFloat(reserve.reserves.token0).toFixed(5)
-                        : '0'}
-                    </p>
-                  </div>
-                  <div className="flex justify-between mt-1">
-                    <p className="text-white text-sm">Token 1:</p>
-                    <p className="text-white text-sm">
-                      {reserve.reserves.token1
-                        ? parseFloat(reserve.reserves.token1).toFixed(5)
-                        : '0'}
-                    </p>
-                  </div>
+            {reserves && (
+              <div className="mb-2">
+                <p className="text-white70 text-sm">
+                  {reserves.dex.startsWith('uniswap-v3')
+                    ? `Uniswap V3 Pool (${extractFeeTier(
+                        reserves.dex
+                      )} fee tier)`
+                    : `${reserves.dex} Pool`}
+                </p>
+                <div className="flex justify-between mt-1">
+                  <p className="text-white text-sm">Token 0:</p>
+                  <p className="text-white text-sm">
+                    {reserves.reserves.token0
+                      ? parseFloat(reserves.reserves.token0).toFixed(5)
+                      : '0'}
+                  </p>
                 </div>
-              ))}
+                <div className="flex justify-between mt-1">
+                  <p className="text-white text-sm">Token 1:</p>
+                  <p className="text-white text-sm">
+                    {reserves.reserves.token1
+                      ? parseFloat(reserves.reserves.token1).toFixed(5)
+                      : '0'}
+                  </p>
+                </div>
+                <div className="flex justify-between mt-1">
+                  <p className="text-white text-sm">Pair Address:</p>
+                  <p className="text-white text-xs truncate max-w-[150px]">
+                    {reserves.pairAddress}
+                  </p>
+                </div>
+                {reserves.dex.startsWith('uniswap-v3') && (
+                  <div className="mt-3 p-2 bg-white12 rounded-md">
+                    <p className="text-white70 text-xs mb-1">
+                      Uniswap V3 uses concentrated liquidity which may not be
+                      accurately represented by reserve values. The actual price
+                      impact may vary.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
