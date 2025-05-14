@@ -22,6 +22,7 @@ import {
   ReserveData,
 } from '@/app/lib/dex/calculators'
 import useDebounce from '@/app/lib/hooks/useDebounce'
+import { motion, useAnimation, Variants } from 'framer-motion'
 
 const SELSection = () => {
   const [activeTab, setActiveTab] = useState(SEL_SECTION_TABS[0])
@@ -648,14 +649,34 @@ const SELSection = () => {
     }, 50)
   }
 
-  // Get DEX fee for display
-  const getDexFee = () => {
-    if (!dexCalculator) return null
-    return dexCalculator.getExchangeFee()
+  const controls = useAnimation()
+
+  // Add this useEffect to start the animation when component mounts
+  useEffect(() => {
+    controls.start('visible')
+  }, [controls])
+
+  // Animation variants
+  const containerVariants: Variants = {
+    hidden: { opacity: 0, y: 50 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.3,
+        ease: 'easeOut',
+        delay: 0,
+      },
+    },
   }
 
   return (
-    <div className="md:min-w-[500px] max-w-[500px] w-[95vw] p-2">
+    <motion.div
+      className="md:min-w-[500px] max-w-[500px] w-[95vw] p-2"
+      initial="hidden"
+      animate={controls}
+      variants={containerVariants}
+    >
       <div className="w-full flex justify-between gap-2 mb-4">
         <div className="w-fit">
           <Tabs
@@ -733,7 +754,7 @@ const SELSection = () => {
             buyAmount={`${swap ? sellAmount : buyAmount}`}
             inValidAmount={invaliSelldAmount || invalidBuyAmount}
             reserves={reserveData}
-            dexFee={getDexFee()}
+            // dexFee={getDexFee()}
           />
         )}
 
@@ -755,7 +776,7 @@ const SELSection = () => {
           />
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }
 

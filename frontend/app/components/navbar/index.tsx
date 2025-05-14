@@ -29,7 +29,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
   }
 
   return (
-    <div className="px-5 py-4 w-full flex gap-6 md:gap-0 justify-between relative">
+    <div className="px-5 py-4 w-full flex gap-6 md:gap-0 justify-between relative z-[5555]">
       <div
         onClick={() => setIsMobileNavOpen(true)}
         className="md:hidden absolute cursor-pointer top-6 -left-2 w-6 h-6 rounded-[6px] flex items-center justify-center border-primary border-[2px]"
