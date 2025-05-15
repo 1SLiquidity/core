@@ -98,9 +98,12 @@ export interface ReserveData {
     token1: string
   }
   timestamp: number
-  // Optional token addresses
+  // Token addresses
   token0Address?: string
   token1Address?: string
+  // Token decimals (default to 18 if not provided)
+  token0Decimals?: number
+  token1Decimals?: number
 }
 
 // DEX calculator interface following the Strategy pattern
@@ -255,15 +258,19 @@ export class UniswapV2Calculator extends BaseDexCalculator {
       console.warn('Local calculation failed, trying on-chain:', localError)
 
       try {
+        // Get token decimals from reserveData or default to 18
+        const token0Decimals = reserveData.token0Decimals || 18
+        const token1Decimals = reserveData.token1Decimals || 18
+
         // Convert to BigNumber with proper decimals
-        const amountInBN = ethers.utils.parseUnits(amountIn, 18)
+        const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
         const reserveInBN = ethers.utils.parseUnits(
           reserveData.reserves.token0,
-          18
+          token0Decimals
         )
         const reserveOutBN = ethers.utils.parseUnits(
           reserveData.reserves.token1,
-          18
+          token1Decimals
         )
 
         // Get amount out using the router contract
@@ -274,7 +281,7 @@ export class UniswapV2Calculator extends BaseDexCalculator {
         )
 
         // Convert back to string with proper decimals
-        const result = this.formatOutput(amountOut)
+        const result = this.formatOutput(amountOut, token1Decimals)
 
         // Cache the result
         calculationCache.set(cacheKey, result)
@@ -291,13 +298,20 @@ export class UniswapV2Calculator extends BaseDexCalculator {
     amountIn: string,
     reserveData: ReserveData
   ): string {
+    // Get token decimals from reserveData or default to 18
+    const token0Decimals = reserveData.token0Decimals || 18
+    const token1Decimals = reserveData.token1Decimals || 18
+
     // Uniswap V2 formula: getAmountOut
     // amountOut = (amountIn * 997 * reserveOut) / (reserveIn * 1000 + amountIn * 997)
-    const amountInBN = ethers.utils.parseUnits(amountIn, 18)
-    const reserveInBN = ethers.utils.parseUnits(reserveData.reserves.token0, 18)
+    const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
+    const reserveInBN = ethers.utils.parseUnits(
+      reserveData.reserves.token0,
+      token0Decimals
+    )
     const reserveOutBN = ethers.utils.parseUnits(
       reserveData.reserves.token1,
-      18
+      token1Decimals
     )
 
     const amountInWithFee = amountInBN.mul(997)
@@ -309,7 +323,7 @@ export class UniswapV2Calculator extends BaseDexCalculator {
     }
 
     const amountOut = numerator.div(denominator)
-    return this.formatOutput(amountOut)
+    return this.formatOutput(amountOut, token1Decimals)
   }
 
   async calculateInputAmount(
@@ -340,15 +354,19 @@ export class UniswapV2Calculator extends BaseDexCalculator {
       console.warn('Local calculation failed, trying on-chain:', localError)
 
       try {
+        // Get token decimals from reserveData or default to 18
+        const token0Decimals = reserveData.token0Decimals || 18
+        const token1Decimals = reserveData.token1Decimals || 18
+
         // Convert to BigNumber with proper decimals
-        const amountOutBN = ethers.utils.parseUnits(amountOut, 18)
+        const amountOutBN = ethers.utils.parseUnits(amountOut, token1Decimals)
         const reserveInBN = ethers.utils.parseUnits(
           reserveData.reserves.token0,
-          18
+          token0Decimals
         )
         const reserveOutBN = ethers.utils.parseUnits(
           reserveData.reserves.token1,
-          18
+          token1Decimals
         )
 
         // Check for insufficient liquidity
@@ -366,7 +384,7 @@ export class UniswapV2Calculator extends BaseDexCalculator {
         )
 
         // Convert back to string with proper decimals
-        const result = this.formatOutput(amountIn)
+        const result = this.formatOutput(amountIn, token0Decimals)
 
         // Cache the result
         calculationCache.set(cacheKey, result)
@@ -383,13 +401,20 @@ export class UniswapV2Calculator extends BaseDexCalculator {
     amountOut: string,
     reserveData: ReserveData
   ): string {
+    // Get token decimals from reserveData or default to 18
+    const token0Decimals = reserveData.token0Decimals || 18
+    const token1Decimals = reserveData.token1Decimals || 18
+
     // Uniswap V2 formula: getAmountIn
     // amountIn = (reserveIn * amountOut * 1000) / ((reserveOut - amountOut) * 997)
-    const amountOutBN = ethers.utils.parseUnits(amountOut, 18)
-    const reserveInBN = ethers.utils.parseUnits(reserveData.reserves.token0, 18)
+    const amountOutBN = ethers.utils.parseUnits(amountOut, token1Decimals)
+    const reserveInBN = ethers.utils.parseUnits(
+      reserveData.reserves.token0,
+      token0Decimals
+    )
     const reserveOutBN = ethers.utils.parseUnits(
       reserveData.reserves.token1,
-      18
+      token1Decimals
     )
 
     if (amountOutBN.gte(reserveOutBN)) {
@@ -404,7 +429,7 @@ export class UniswapV2Calculator extends BaseDexCalculator {
     }
 
     const amountIn = numerator.div(denominator)
-    return this.formatOutput(amountIn)
+    return this.formatOutput(amountIn, token0Decimals)
   }
 }
 
@@ -477,6 +502,10 @@ export class SushiSwapCalculator extends BaseDexCalculator {
     try {
       console.log('Using special stable calculation for input = 1')
 
+      // Get token decimals from reserveData or default to 18
+      const token0Decimals = reserveData.token0Decimals || 18
+      const token1Decimals = reserveData.token1Decimals || 18
+
       // Use a stable calculation for value = 1 to avoid floating point imprecision
       const reserveIn = parseFloat(reserveData.reserves.token0)
       const reserveOut = parseFloat(reserveData.reserves.token1)
@@ -510,6 +539,8 @@ export class SushiSwapCalculator extends BaseDexCalculator {
         rawAmountOut: amountOut,
         adjustedAmountOut,
         formula: '(1 * 0.997 * reserveOut) / (reserveIn * 1000 + 997)',
+        token0Decimals,
+        token1Decimals,
       })
 
       // Format this to a stable number of digits to ensure output is always identical
@@ -591,6 +622,10 @@ export class SushiSwapCalculator extends BaseDexCalculator {
     try {
       console.log('Using special stable calculation for output = 1')
 
+      // Get token decimals from reserveData or default to 18
+      const token0Decimals = reserveData.token0Decimals || 18
+      const token1Decimals = reserveData.token1Decimals || 18
+
       // Use a stable calculation for value = 1 to avoid floating point imprecision
       const reserveIn = parseFloat(reserveData.reserves.token0)
       const reserveOut = parseFloat(reserveData.reserves.token1)
@@ -599,6 +634,8 @@ export class SushiSwapCalculator extends BaseDexCalculator {
         reserveIn,
         reserveOut,
         ratio: reserveIn / reserveOut,
+        token0Decimals,
+        token1Decimals,
       })
 
       if (reserveIn <= 0 || reserveOut <= 0 || 1 >= reserveOut) {
@@ -696,20 +733,22 @@ export class UniswapV3Calculator extends BaseDexCalculator {
 
       // Get token addresses from reserveData if available
       // Otherwise use default addresses (this would be replaced with actual addresses in production)
-      const tokenIn =
-        reserveData.token0Address ||
-        '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-      const tokenOut =
-        reserveData.token1Address ||
-        '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+      const tokenIn = reserveData.token0Address
+      const tokenOut = reserveData.token1Address
 
-      // Convert to wei (assuming 18 decimals, should be adjusted for actual token decimals)
-      const amountInWei = ethers.utils.parseUnits(amountIn, 18)
+      // Get token decimals from reserveData or default to 18
+      const token0Decimals = reserveData.token0Decimals || 18
+      const token1Decimals = reserveData.token1Decimals || 18
+
+      // Convert to wei using appropriate decimals
+      const amountInWei = ethers.utils.parseUnits(amountIn, token0Decimals)
 
       console.log('amountInWei', amountInWei)
       console.log('tokenIn', tokenIn)
       console.log('tokenOut', tokenOut)
       console.log('feeTier', this.feeTier)
+      console.log('token0Decimals', token0Decimals)
+      console.log('token1Decimals', token1Decimals)
 
       try {
         // Use the V3 quoter contract
@@ -722,7 +761,7 @@ export class UniswapV3Calculator extends BaseDexCalculator {
         )
 
         // Convert back to string with proper decimals
-        const result = this.formatOutput(amountOutWei)
+        const result = this.formatOutput(amountOutWei, token1Decimals)
 
         // Cache the result
         calculationCache.set(cacheKey, result)
@@ -774,15 +813,22 @@ export class UniswapV3Calculator extends BaseDexCalculator {
       console.log(`Using Uniswap V3 quoter with fee tier: ${this.feeTier}`)
 
       // Get token addresses from reserveData if available
-      const tokenIn =
-        reserveData.token0Address ||
-        '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48'
-      const tokenOut =
-        reserveData.token1Address ||
-        '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+      const tokenIn = reserveData.token0Address
+      const tokenOut = reserveData.token1Address
 
-      // Convert to wei (assuming 18 decimals, should be adjusted for actual token decimals)
-      const amountOutWei = ethers.utils.parseUnits(amountOut, 18)
+      // Get token decimals from reserveData or default to 18
+      const token0Decimals = reserveData.token0Decimals || 18
+      const token1Decimals = reserveData.token1Decimals || 18
+
+      // Convert to wei using appropriate decimals
+      const amountOutWei = ethers.utils.parseUnits(amountOut, token1Decimals)
+
+      console.log('amountOutWei', amountOutWei)
+      console.log('tokenIn', tokenIn)
+      console.log('tokenOut', tokenOut)
+      console.log('feeTier', this.feeTier)
+      console.log('token0Decimals', token0Decimals)
+      console.log('token1Decimals', token1Decimals)
 
       try {
         // Use the V3 quoter contract for exact output calculation
@@ -795,7 +841,7 @@ export class UniswapV3Calculator extends BaseDexCalculator {
         )
 
         // Convert back to string with proper decimals
-        const result = this.formatOutput(amountInWei)
+        const result = this.formatOutput(amountInWei, token0Decimals)
 
         // Cache the result
         calculationCache.set(cacheKey, result)

@@ -65,16 +65,16 @@ const SELSection = () => {
 
         try {
           // Check if tokens have addresses
-          // const fromAddress =
-          //   selectedTokenFrom.token_address ||
-          //   '0xdAC17F958D2ee523a2206206994597C13D831ec7' // Default to USDT if no address
-          // const toAddress =
-          //   selectedTokenTo.token_address ||
-          //   '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
+          const fromAddress =
+            selectedTokenFrom.token_address ||
+            '0xdAC17F958D2ee523a2206206994597C13D831ec7' // Default to USDT if no address
+          const toAddress =
+            selectedTokenTo.token_address ||
+            '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
 
           // TODO: Remove this after testing and use above commented out code
-          const fromAddress = '0xdAC17F958D2ee523a2206206994597C13D831ec7' // Default to USDT if no address
-          const toAddress = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
+          // const fromAddress = '0xdAC17F958D2ee523a2206206994597C13D831ec7' // Default to USDT if no address
+          // const toAddress = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
 
           // Removed chainId parameter from the API request
           const response = await fetch(
@@ -91,8 +91,15 @@ const SELSection = () => {
           console.log('Reserves data:', data)
 
           if (!Array.isArray(data) && data) {
-            // Single object response
-            setReserveData(data as ReserveData)
+            // Single object response - add decimals to the reserve data
+            const reserveDataWithDecimals = {
+              ...data,
+              token0Decimals: selectedTokenFrom.decimals || 18,
+              token1Decimals: selectedTokenTo.decimals || 18,
+            } as ReserveData
+
+            setReserveData(reserveDataWithDecimals)
+
             // Initialize the appropriate calculator based on DEX type
             const calculator = DexCalculatorFactory.createCalculator(
               data.dex,
@@ -183,8 +190,16 @@ const SELSection = () => {
             return
           }
 
-          // Set the reserve data for calculations
-          setReserveData(selectedPool as ReserveData)
+          // Set the reserve data for calculations with token decimals
+          const reserveDataWithDecimals = {
+            ...selectedPool,
+            token0Decimals: selectedTokenFrom.decimals || 18,
+            token1Decimals: selectedTokenTo.decimals || 18,
+            token0Address: selectedTokenFrom.token_address || '',
+            token1Address: selectedTokenTo.token_address || '',
+          } as ReserveData
+
+          setReserveData(reserveDataWithDecimals)
 
           // Initialize the appropriate calculator
           const calculator = DexCalculatorFactory.createCalculator(
