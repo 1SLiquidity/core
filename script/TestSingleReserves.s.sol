@@ -26,7 +26,7 @@ contract TestReservesScript is Script {
         feeTiers[0] = 500; // 0.05%
         feeTiers[1] = 3000; // 0.3%
         feeTiers[2] = 10000; // 1%
-        UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers);
+        UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers[1]);
 
         address[][] memory tokenPairs = new address[][](1);
         tokenPairs[0] = new address[](2);
@@ -49,13 +49,15 @@ contract TestReservesScript is Script {
             address token0 = tokenPairs[i][0];
             address token1 = tokenPairs[i][1];
 
-            (address bestDex, uint256 maxReserve) = streamDaemon.findHighestReservesForTokenPair(token0, token1);
+            (address bestDex, uint256 maxReserveIn, uint256 maxReserveOut) = streamDaemon.findHighestReservesForTokenPair(token0, token1);
+
+            maxReserveOut;
 
             console.log(
                 string(abi.encodePacked("Best DEX for ", getTokenSymbol(token0), "-", getTokenSymbol(token1), ": "))
             );
             console.log(bestDex);
-            console.log("Highest reserve:", maxReserve);
+            console.log("Highest reserve:", maxReserveIn);
         }
 
         // Executor executor = new Executor(address(streamDaemon));
@@ -68,9 +70,9 @@ contract TestReservesScript is Script {
 
         // For a $10M pool, let's test with ~1% / $100,000
         // now testing ETH at $1500
-        uint256 testVolume = 2 * 33333333333333333333; // ~66 eth in 18 decimal 
+        uint256 testVolume = 2 * 33333333333333333333; // ~66 eth in 18 decimal
 
-        uint256 effectiveGasInDollars = 1; // $30 gas cost 
+        uint256 effectiveGasInDollars = 1; // $30 gas cost
 
         // Ensure minimum of $1 as mentioned (updated from $0.1)
         // uint256 effectiveGasInDollars = gasPriceInDollars > 1 ? gasPriceInDollars : 1;

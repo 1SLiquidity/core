@@ -35,10 +35,10 @@ contract TestReservesScript is Script {
         feeTiers[0] = 500; // 0.05%
         feeTiers[1] = 3000; // 0.3%
         feeTiers[2] = 10000; // 1%
-        UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers);
+        UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers[1]);
         // CurveFetcher curveFetcher = new CurveFetcher(CURVE_REGISTRY);
         // BalancerFetcher balancerFetcher = new BalancerFetcher(address(0), BALANCER_VAULT); // Placeholder for pool
-        address[][] memory tokenPairs = new address[][](5);
+        address[][] memory tokenPairs = new address[][](4);
 
         // WETH-USDC
         tokenPairs[0] = new address[](2);
@@ -56,14 +56,14 @@ contract TestReservesScript is Script {
         tokenPairs[2][1] = DAI;
 
         // USDC-USDT
-        tokenPairs[3] = new address[](2);
-        tokenPairs[3][0] = USDC;
-        tokenPairs[3][1] = USDT;
+        // tokenPairs[3] = new address[](2);
+        // tokenPairs[3][0] = USDC;
+        // tokenPairs[3][1] = USDT;
 
         // WETH-UNI
-        tokenPairs[4] = new address[](2);
-        tokenPairs[4][0] = WETH;
-        tokenPairs[4][1] = UNI;
+        tokenPairs[3] = new address[](2);
+        tokenPairs[3][0] = WETH;
+        tokenPairs[3][1] = UNI;
 
         console.log("\n=== Testing Uniswap V2 Reserves ===");
         testReservesForAllPairs(uniswapV2Fetcher, tokenPairs);
@@ -93,20 +93,20 @@ contract TestReservesScript is Script {
             address token0 = tokenPairs[i][0];
             address token1 = tokenPairs[i][1];
 
-            (address bestDex, uint256 maxReserve) = streamDaemon.findHighestReservesForTokenPair(token0, token1);
+            (address bestDex, uint256 maxReserveIn, uint256 maxReserveOut) = streamDaemon.findHighestReservesForTokenPair(token0, token1);
 
             console.log(
                 string(abi.encodePacked("Best DEX for ", getTokenSymbol(token0), "-", getTokenSymbol(token1), ": "))
             );
             console.log(bestDex);
-            console.log("Highest reserve:", maxReserve);
+            console.log("Highest reserve:", maxReserveIn);
         }
 
-        Executor executor = new Executor(address(streamDaemon));
+        Executor executor = new Executor();
         console.log("\n=== Testing Executor Gas Consumption ===");
 
-        uint256 gasUsed = executor.gasConsumption();
-        console.log("Initial gas consumption:", gasUsed);
+        // uint256 gasUsed = executor.gasConsumption();
+        // console.log("Initial gas consumption:", gasUsed);
 
         // Add test for sweet spot calculation
         console.log("\n=== Testing Sweet Spot Calculation ===");
