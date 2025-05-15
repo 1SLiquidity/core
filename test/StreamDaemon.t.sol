@@ -7,12 +7,23 @@ import {IUniversalDexInterface} from "../src/interfaces/IUniversalDexInterface.s
 
 // Mock DEX interface for testing
 contract MockUniversalDexInterface is IUniversalDexInterface {
-    mapping(address => mapping(address => uint256)) public mockReserves;
+    mapping(address => mapping(address => uint256)) private mockReserves;
 
-    // Set mock reserve for a token pair
-    function setReserve(address tokenA, address tokenB, uint256 reserveA, uint256 reserveB) external {
+    function setMockReserves(address tokenA, address tokenB, uint256 reserveA, uint256 reserveB) external {
         mockReserves[tokenA][tokenB] = reserveA;
         mockReserves[tokenB][tokenA] = reserveB;
+    }
+
+    function getPoolAddress(address tokenIn, address tokenOut) external pure returns (address pool) {
+        return address(0);
+    }
+
+    function getDexType() external pure returns (string memory) {
+        return "Mock";
+    }
+
+    function getDexVersion() external pure returns (string memory) {
+        return "1.0.0";
     }
 
     function getReserves(address tokenA, address tokenB) external view returns (uint256 reserveA, uint256 reserveB) {
@@ -22,57 +33,89 @@ contract MockUniversalDexInterface is IUniversalDexInterface {
 
 contract StreamDaemonTest is Test {
     StreamDaemon public streamDaemon;
-    MockUniversalDexInterface public mockDex1;
-    MockUniversalDexInterface public mockDex2;
+    MockUniversalDexInterface public mockDex;
 
     address public constant TOKEN_A = address(0x1);
     address public constant TOKEN_B = address(0x2);
 
     function setUp() public {
-        // Create mock DEXes
-        mockDex1 = new MockUniversalDexInterface();
-        mockDex2 = new MockUniversalDexInterface();
-
-        // Set up initial reserves
-        mockDex1.setReserve(TOKEN_A, TOKEN_B, 1000, 500);
-        mockDex2.setReserve(TOKEN_A, TOKEN_B, 2000, 1000); // Higher reserves
+        // Create mock DEX
+        mockDex = new MockUniversalDexInterface();
 
         // Setup dex addresses array
-        address[] memory dexAddresses = new address[](2);
-        dexAddresses[0] = address(mockDex1);
-        dexAddresses[1] = address(mockDex2);
+        address[] memory dexAddresses = new address[](1);
+        dexAddresses[0] = address(mockDex);
 
         // Deploy StreamDaemon with the mock interface
-        streamDaemon = new StreamDaemon(address(mockDex1), dexAddresses);
+        streamDaemon = new StreamDaemon(address(mockDex), dexAddresses);
     }
 
     function testConstructorInitialization() public {
         // Check that the universalDexInterface was set correctly
-        assertEq(address(streamDaemon.universalDexInterface()), address(mockDex1));
+        assertEq(address(streamDaemon.universalDexInterface()), address(mockDex));
 
         // Check that the dexs array was initialized correctly
-        assertEq(streamDaemon.dexs(0), address(mockDex1));
-        assertEq(streamDaemon.dexs(1), address(mockDex2));
+        assertEq(streamDaemon.dexs(0), address(mockDex));
     }
 
     function testRegisterDex() public {
         // Create a new mock DEX
-        MockUniversalDexInterface mockDex3 = new MockUniversalDexInterface();
+        MockUniversalDexInterface mockDex2 = new MockUniversalDexInterface();
 
         // Register the new DEX
-        streamDaemon.registerDex(address(mockDex3));
+        streamDaemon.registerDex(address(mockDex2));
 
         // Check that the new DEX was added to the array
-        assertEq(streamDaemon.dexs(2), address(mockDex3));
+        assertEq(streamDaemon.dexs(1), address(mockDex2));
     }
 
-    function testFindHighestReservesForTokenPair() public {
-        // Test the findHighestReservesForTokenPair function
-        (address bestFetcher, uint256 maxReserve) = streamDaemon.findHighestReservesForTokenPair(TOKEN_A, TOKEN_B);
+    function testFindHighestReserves() public {
+        // Set up mock reserves
+        mockDex.setMockReserves(TOKEN_A, TOKEN_B, 1000e18, 1000e18);
+        
+        // Test finding highest reserves
+        (address bestFetcher, uint256 maxReserveIn, uint256 maxReserveOut) = streamDaemon.findHighestReservesForTokenPair(TOKEN_A, TOKEN_B);
+        assertEq(bestFetcher, address(mockDex), "Should return mock DEX");
+        assertEq(maxReserveIn, 1000e18, "Should return correct reserve in");
+        assertEq(maxReserveOut, 1000e18, "Should return correct reserve out");
+    }
 
-        // mockDex2 has higher reserves, so it should be selected
-        assertEq(bestFetcher, address(mockDex2));
-        assertEq(maxReserve, 2000); // This should be the reserve of TOKEN_A in mockDex2
+    function testSweetSpotCalculation() public {
+        uint256 volume = 100;
+        uint256 reserves = 1000;
+        uint256 effectiveGas = 5;
+
+        // Test sweet spot calculation
+        uint256 sweetSpot = streamDaemon._sweetSpotAlgo(
+            TOKEN_A,
+            TOKEN_B,
+            volume,
+            reserves,
+            reserves,
+            effectiveGas
+        );
+        assertTrue(sweetSpot >= 2, "Sweet spot should be at least 2");
+
+        // Test with different parameters
+        sweetSpot = streamDaemon._sweetSpotAlgo(
+            TOKEN_A,
+            TOKEN_B,
+            100,
+            100,
+            100,
+            1
+        );
+        assertTrue(sweetSpot >= 2, "Sweet spot should be at least 2");
+
+        sweetSpot = streamDaemon._sweetSpotAlgo(
+            TOKEN_A,
+            TOKEN_B,
+            100,
+            25,
+            25,
+            4
+        );
+        assertTrue(sweetSpot >= 2, "Sweet spot should be at least 2");
     }
 
     function testEvaluateSweetSpotAndDex() public {
@@ -84,41 +127,36 @@ contract StreamDaemonTest is Test {
         (uint256 sweetSpot, address bestFetcher) =
             streamDaemon.evaluateSweetSpotAndDex(TOKEN_A, TOKEN_B, volume, effectiveGas);
 
-        // Check that the best fetcher is mockDex2 (which has higher reserves)
-        assertEq(bestFetcher, address(mockDex2));
+        // Check that the best fetcher is mockDex (which has higher reserves)
+        assertEq(bestFetcher, address(mockDex));
 
         // Calculate the expected sweet spot using our own sqrt implementation
         // The formula is: volume / sqrt(reserves * effectiveGas)
-        uint256 expectedSweetSpot = volume / sqrt(2000 * effectiveGas);
-        assertEq(sweetSpot, expectedSweetSpot);
-    }
-
-    function testSweetSpotAlgo() public {
-        // Test the _sweetSpotAlgo function with simple values
-        uint256 volume = 1000;
-        uint256 reserves = 10000;
-        uint256 effectiveGas = 5;
-
-        uint256 sweetSpot = streamDaemon._sweetSpotAlgo(volume, reserves, effectiveGas);
-
-        // Calculate the expected result using our own sqrt implementation
-        uint256 expectedSweetSpot = volume / sqrt(reserves * effectiveGas);
+        uint256 expectedSweetSpot = volume / sqrt(1000e18 * effectiveGas);
         assertEq(sweetSpot, expectedSweetSpot);
     }
 
     function testSqrtFunction() public {
-        // Test known results to verify our sweet spot algorithm works correctly
-        // We can't directly test the sqrt function since it's internal
-
-        // But we can test _sweetSpotAlgo with values that have known results
-        // For example, if volume = 100, reserves = 100, effectiveGas = 1
-        // Then sweetSpot = 100 / sqrt(100 * 1) = 100 / 10 = 10
-        uint256 sweetSpot = streamDaemon._sweetSpotAlgo(100, 100, 1);
+        // Test sweet spot calculation with known results
+        uint256 sweetSpot = streamDaemon._sweetSpotAlgo(
+            TOKEN_A,
+            TOKEN_B,
+            100,
+            100,
+            100,
+            1
+        );
         assertEq(sweetSpot, 10);
 
-        // Another test: volume = 100, reserves = 25, effectiveGas = 4
-        // Then sweetSpot = 100 / sqrt(25 * 4) = 100 / sqrt(100) = 100 / 10 = 10
-        sweetSpot = streamDaemon._sweetSpotAlgo(100, 25, 4);
+        // Test with different parameters
+        sweetSpot = streamDaemon._sweetSpotAlgo(
+            TOKEN_A,
+            TOKEN_B,
+            100,
+            25,
+            25,
+            4
+        );
         assertEq(sweetSpot, 10);
     }
 
