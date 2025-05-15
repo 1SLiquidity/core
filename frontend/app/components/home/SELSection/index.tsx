@@ -28,8 +28,6 @@ const SELSection = () => {
   const [activeTab, setActiveTab] = useState(SEL_SECTION_TABS[0])
   const [sellAmount, setSellAmount] = useState(0)
   const [buyAmount, setBuyAmount] = useState(0)
-  // We keep this state for compatibility but it's no longer used since we only support sell-to-buy
-  const [isSellAmountActive, setIsSellAmountActive] = useState(false)
   const [invaliSelldAmount, setInvalidSellAmount] = useState(false)
   const [invalidBuyAmount, setInvalidBuyAmount] = useState(false)
   const [swap, setSwap] = useState(false)
@@ -38,14 +36,8 @@ const SELSection = () => {
   const [isCalculating, setIsCalculating] = useState(false)
   const [calculationError, setCalculationError] = useState<string | null>(null)
 
-  // Add a ref to track the last calculation source to prevent loops
-  const calculationSourceRef = useRef<'sell' | null>(null)
-
   // Add a ref to track when we're resetting values to zero
   const isClearingValuesRef = useRef<boolean>(false)
-
-  // Track the last calculation timestamp to prevent rapid recalculations
-  const lastCalculationRef = useRef<number>(0)
 
   // Debounce input values - reduce debounce time for better responsiveness
   const debouncedSellAmount = useDebounce(sellAmount, 300)
@@ -69,6 +61,8 @@ const SELSection = () => {
       setCalculationError(null)
 
       if (selectedTokenFrom && selectedTokenTo) {
+        setIsCalculating(true)
+
         try {
           // Check if tokens have addresses
           // const fromAddress =
@@ -114,13 +108,11 @@ const SELSection = () => {
 
             // Trigger a calculation if we have a sell amount
             if (sellAmount > 0) {
-              setTimeout(() => {
-                calculationSourceRef.current = 'sell'
-                console.log(
-                  'Triggering calculation after reserve fetch with sell amount:',
-                  sellAmount
-                )
-              }, 100)
+              // Force a calculation after reserves are loaded
+              console.log(
+                'Triggering calculation after reserve fetch with sell amount:',
+                sellAmount
+              )
             }
 
             return
@@ -168,17 +160,17 @@ const SELSection = () => {
           //   poolType = 'Uniswap V3'
           // }
           // Otherwise try Uniswap V2
-          // if (uniswapV2Data) {
-          //   selectedPool = uniswapV2Data
-          //   poolType = 'Uniswap V2'
-          // }
+          if (uniswapV2Data) {
+            selectedPool = uniswapV2Data
+            poolType = 'Uniswap V2'
+          }
 
           // TODO: Uncomment above code after testing this
           // Finally fall back to SushiSwap
-          if (sushiswapData) {
-            selectedPool = sushiswapData
-            poolType = 'SushiSwap'
-          }
+          // if (sushiswapData) {
+          //   selectedPool = sushiswapData
+          //   poolType = 'SushiSwap'
+          // }
 
           console.log('Selected pool:', selectedPool)
 
@@ -213,17 +205,19 @@ const SELSection = () => {
               'Triggering initial calculation with sell amount:',
               sellAmount
             )
-            // Wait for state to update before triggering calculation
-            setTimeout(() => {
-              calculationSourceRef.current = 'sell'
-              // No need to re-set sell amount, just trigger calculation
-            }, 100)
+            // Force a calculation after reserves are loaded
+            console.log(
+              'Triggering calculation after reserve fetch with sell amount:',
+              sellAmount
+            )
           }
         } catch (error) {
           console.error('Error fetching reserves:', error)
           setCalculationError('Error fetching liquidity data')
           setReserveData(null)
           setDexCalculator(null)
+        } finally {
+          setIsCalculating(false)
         }
       } else {
         setReserveData(null)
@@ -232,180 +226,110 @@ const SELSection = () => {
     }
 
     fetchReserves()
-  }, [selectedTokenFrom, selectedTokenTo, chainId, sellAmount])
+  }, [selectedTokenFrom, selectedTokenTo, chainId])
 
-  // Prevent calculation if it's too soon after the last one
-  const shouldCalculate = () => {
-    // If we're in the process of clearing values, don't calculate
-    if (isClearingValuesRef.current) {
-      console.log('Clearing values in progress, skipping calculation')
-      return false
-    }
-
-    // If either sell or buy amount is explicitly zero, we shouldn't calculate
-    if (sellAmount === 0 || buyAmount === 0) {
-      console.log('One of the amounts is zero, skipping calculation')
-      return false
-    }
-
-    const now = Date.now()
-
-    // For SushiSwap specifically, add extra delay to prevent flickering
-    const delayTime = reserveData?.dex === 'sushiswap' ? 300 : 150
-
-    // If lastCalculationRef is reset to 0, it means we want to force a calculation
-    if (lastCalculationRef.current === 0) {
-      console.log('Calculation forced - bypassing locks')
-      // Set a new timestamp to prevent immediate recalculation after this one
-      lastCalculationRef.current = now
-      return true
-    }
-
-    // Check if enough time has passed since the last calculation
-    if (now - lastCalculationRef.current < delayTime) {
-      console.log(`Too soon to calculate. Waiting for ${delayTime}ms to pass.`)
-      return false
-    }
-
-    // Update the calculation timestamp
-    lastCalculationRef.current = now
-    return true
-  }
-
-  // Use sell amount for calculations - only direction we support now
+  // Simplified calculation logic - always calculate when sell amount changes
   useEffect(() => {
-    // If we're clearing values, skip calculation to prevent loops
-    if (isClearingValuesRef.current) {
-      console.log('Skipping calculation because values are being cleared')
-      return
-    }
-
-    // Use the most recent sell amount to drive calculations
-    const currentSellAmount = sellAmount
-    const isInputOne =
-      currentSellAmount === 1 || currentSellAmount?.toString() === '1'
-
-    // Make sure we have all requirements for calculation
-    if (!(dexCalculator && reserveData)) {
-      console.log('Missing requirements for sell → buy calculation')
+    // Skip calculation if we don't have required data
+    if (!dexCalculator || !reserveData) {
+      console.log('Missing calculator or reserve data, skipping calculation')
       return
     }
 
     // Don't calculate if there's no amount to calculate with
-    if (currentSellAmount <= 0) {
+    if (sellAmount <= 0) {
       console.log('No sell amount to calculate with')
-      return
-    }
-
-    // For SushiSwap and value 1, we always want to calculate
-    const isForcedCalculation =
-      isInputOne && reserveData?.dex === 'sushiswap' && !isCalculating
-
-    // Only calculate if not already calculating
-    if (isCalculating && !isForcedCalculation) {
-      console.log('Already calculating, skipping')
-      return
-    }
-
-    // Only run the calculation if shouldCalculate or it's a forced calculation
-    if (shouldCalculate() || isForcedCalculation) {
-      console.log('Starting calculation with sell amount:', currentSellAmount, {
-        calculator: dexCalculator?.constructor.name,
-        reserves: reserveData,
-        dex: reserveData?.dex,
-        isSpecialCase: isInputOne,
-      })
-
-      const calculateBuyAmount = async () => {
-        try {
-          setIsCalculating(true)
-          calculationSourceRef.current = 'sell' // Mark that sell is driving the calculation
-          setCalculationError(null)
-
-          console.log('Calculating output amount with:', {
-            sellAmount: currentSellAmount.toString(),
-            reserveData,
-          })
-
-          const calculatedBuyAmount = await dexCalculator.calculateOutputAmount(
-            currentSellAmount.toString(),
-            reserveData
-          )
-
-          console.log(
-            'Calculation result for sell =',
-            currentSellAmount,
-            ':',
-            calculatedBuyAmount
-          )
-
-          if (calculatedBuyAmount === 'Insufficient liquidity') {
-            setCalculationError('Insufficient liquidity for this trade')
-            setBuyAmount(0)
-          } else {
-            // Update buy amount if it's a valid number
-            const numericBuyAmount = parseFloat(calculatedBuyAmount)
-            if (!isNaN(numericBuyAmount)) {
-              // For special value of 1 with SushiSwap, need to handle unit conversion
-              if (isInputOne && reserveData?.dex === 'sushiswap') {
-                console.log(
-                  'Special handling for SushiSwap with sell amount = 1, adjusting units'
-                )
-                // SushiSwap returns values in KEther for input=1, need to convert back to Ether
-                // Divide by 1000 to convert from KEther to Ether for UI consistency
-                const adjustedValue = numericBuyAmount / 1000
-                console.log(
-                  'Converting SushiSwap result from KEther to Ether:',
-                  numericBuyAmount,
-                  '->',
-                  adjustedValue
-                )
-                // Make sure we use the adjusted value, not the raw KEther value
-                setBuyAmount(adjustedValue)
-                console.log(
-                  'Set buy amount for SushiSwap input=1 to:',
-                  adjustedValue
-                )
-              } else if (isInputOne) {
-                console.log(
-                  'Special handling for sell amount = 1, using exact result'
-                )
-                setBuyAmount(parseFloat(calculatedBuyAmount))
-              } else {
-                // Format to a reasonable number of decimal places to avoid excessive precision
-                const formattedAmount = parseFloat(numericBuyAmount.toFixed(8))
-                setBuyAmount(formattedAmount)
-              }
-            } else {
-              setCalculationError('Error calculating output amount')
-            }
-          }
-        } catch (error) {
-          console.error('Error calculating buy amount:', error)
-          setCalculationError('Error calculating output amount')
-        } finally {
-          setIsCalculating(false)
-          // Clear the calculation source after a delay to allow state to settle
-          setTimeout(() => {
-            if (calculationSourceRef.current === 'sell') {
-              calculationSourceRef.current = null
-            }
-          }, 300)
-        }
+      // Clear buy amount if sell amount is zero
+      if (sellAmount === 0 && buyAmount !== 0) {
+        setBuyAmount(0)
       }
-
-      calculateBuyAmount()
-    } else {
-      console.log(
-        'Skipping buy amount calculation due to calculation throttling'
-      )
+      return
     }
-  }, [
-    sellAmount, // Use direct sellAmount (not debounced) for more immediate response
-    reserveData,
-    dexCalculator,
-    isCalculating,
-  ])
+
+    // Check if we're in the process of clearing values
+    if (isClearingValuesRef.current) {
+      console.log('Clearing values in progress, skipping calculation')
+      return
+    }
+
+    // Proceed with calculation
+    const calculateBuyAmount = async () => {
+      // Special handling for value = 1 with SushiSwap
+      const isInputOne = sellAmount === 1 || sellAmount.toString() === '1'
+
+      try {
+        setIsCalculating(true)
+        setCalculationError(null)
+
+        console.log('Calculating output amount with:', {
+          sellAmount: sellAmount.toString(),
+          reserveData,
+        })
+
+        const calculatedBuyAmount = await dexCalculator.calculateOutputAmount(
+          sellAmount.toString(),
+          reserveData
+        )
+
+        console.log(
+          'Calculation result for sell =',
+          sellAmount,
+          ':',
+          calculatedBuyAmount
+        )
+
+        if (calculatedBuyAmount === 'Insufficient liquidity') {
+          setCalculationError('Insufficient liquidity for this trade')
+          setBuyAmount(0)
+        } else {
+          // Update buy amount if it's a valid number
+          const numericBuyAmount = parseFloat(calculatedBuyAmount)
+          if (!isNaN(numericBuyAmount)) {
+            // For special value of 1 with SushiSwap, need to handle unit conversion
+            if (isInputOne && reserveData?.dex === 'sushiswap') {
+              console.log(
+                'Special handling for SushiSwap with sell amount = 1, adjusting units'
+              )
+              // SushiSwap returns values in KEther for input=1, need to convert back to Ether
+              // Divide by 1000 to convert from KEther to Ether for UI consistency
+              const adjustedValue = numericBuyAmount / 1000
+              console.log(
+                'Converting SushiSwap result from KEther to Ether:',
+                numericBuyAmount,
+                '->',
+                adjustedValue
+              )
+              // Make sure we use the adjusted value, not the raw KEther value
+              setBuyAmount(adjustedValue)
+              console.log(
+                'Set buy amount for SushiSwap input=1 to:',
+                adjustedValue
+              )
+            } else if (isInputOne) {
+              console.log(
+                'Special handling for sell amount = 1, using exact result'
+              )
+              setBuyAmount(parseFloat(calculatedBuyAmount))
+            } else {
+              // Format to a reasonable number of decimal places to avoid excessive precision
+              const formattedAmount = parseFloat(numericBuyAmount.toFixed(8))
+              setBuyAmount(formattedAmount)
+            }
+          } else {
+            setCalculationError('Error calculating output amount')
+          }
+        }
+      } catch (error) {
+        console.error('Error calculating buy amount:', error)
+        setCalculationError('Error calculating output amount')
+      } finally {
+        setIsCalculating(false)
+      }
+    }
+
+    // Always run the calculation when sell amount changes
+    calculateBuyAmount()
+  }, [sellAmount, reserveData, dexCalculator])
 
   // Validate amounts
   useEffect(() => {
@@ -422,46 +346,29 @@ const SELSection = () => {
     }
   }, [sellAmount, buyAmount])
 
-  // Modified swap handler for one-way calculation
+  // Simplified swap handler
   const handleSwap = () => {
     if (sellAmount > 0 || buyAmount > 0) {
-      // Clear calculation source and set a new timestamp to prevent immediate recalculation
-      calculationSourceRef.current = null
-      lastCalculationRef.current = Date.now()
-
-      // When swapping, we need to set the sell amount to the current buy amount
-      // and recalculate the buy amount
+      // When swapping, set the sell amount to the current buy amount
       setSellAmount(buyAmount)
       setBuyAmount(0) // Clear buy amount, it will be recalculated
       setSwap(!swap)
-
-      // Force a calculation after a short delay to allow state to update
-      setTimeout(() => {
-        if (buyAmount > 0) {
-          calculationSourceRef.current = 'sell'
-        }
-      }, 100)
     }
   }
 
-  // Fix the input handling to ensure the latest value is used for calculations
+  // Simplified sell amount handler
   const handleSellAmountChange = (val: any) => {
     // Check if the value has actually changed to avoid unnecessary rerenders
     if (val === sellAmount) return
 
     console.log('Updating sell amount from:', sellAmount, 'to:', val)
 
-    // Clear any previous calculations and calculation source
-    calculationSourceRef.current = null
-
-    // First update the state directly to improve UI responsiveness
-    setSellAmount(val)
-
     // If the value is zero, reset the buy amount as well
     if (val === 0 || val === '0' || val === '') {
       console.log('Sell amount is zero, resetting buy amount')
       // Set flag that we're clearing values to prevent calculation loops
       isClearingValuesRef.current = true
+      setSellAmount(0)
       setBuyAmount(0)
       setCalculationError(null) // Clear any calculation errors
 
@@ -469,18 +376,11 @@ const SELSection = () => {
       setTimeout(() => {
         isClearingValuesRef.current = false
       }, 100)
-      return // No need to trigger calculation
+      return
     }
 
-    // Force a recalculation with the new value by resetting any lockouts
-    lastCalculationRef.current = 0
-
-    // This will force a new calculation to run immediately
-    setTimeout(() => {
-      // Set calculation source after state has updated
-      calculationSourceRef.current = 'sell'
-      console.log('Triggering calculation with new sell amount:', val)
-    }, 50)
+    // Update the sell amount - this will trigger the calculation useEffect
+    setSellAmount(val)
   }
 
   // Simplified buy amount handler - just updates the state without triggering calculations

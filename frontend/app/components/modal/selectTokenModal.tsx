@@ -244,7 +244,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                 <div
                   key={ind}
                   onClick={() => handleSelectToken(token)}
-                  className="min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] bg-white005 hover:bg-neutral-800 px-[13px] gap-[6px] border-[2px] border-primary rounded-[15px] cursor-pointer transition-colors"
+                  className="min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] bg-white005 hover:bg-neutral-900 px-[13px] gap-[6px] border-[2px] border-primary rounded-[15px] cursor-pointer transition-colors"
                 >
                   <div className="relative mt-1">
                     <Image
@@ -277,7 +277,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                   <div
                     key={ind}
                     onClick={() => handleSelectToken(token)}
-                    className="w-full flex items-center min-h-[62px] hover:bg-neutral-800 px-[13px] gap-[12px] rounded-[15px] cursor-pointer transition-colors"
+                    className="w-full flex items-center min-h-[62px] hover:bg-neutral-900 px-[13px] gap-[12px] rounded-[15px] cursor-pointer transition-colors"
                   >
                     <div className="relative h-fit">
                       <Image
