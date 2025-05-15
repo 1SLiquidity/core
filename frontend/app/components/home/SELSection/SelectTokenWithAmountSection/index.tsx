@@ -15,6 +15,7 @@ interface InputAmountProps {
   inputRef?: any
   inputField: 'from' | 'to'
   onInputFocus?: () => void
+  disabled?: boolean
 }
 
 const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
@@ -24,6 +25,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   inputRef,
   inputField,
   onInputFocus,
+  disabled,
 }) => {
   const {
     showSelectTokenModal,
@@ -161,6 +163,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
               setAmount(val)
             }}
             onInputFocus={onInputFocus}
+            disable={disabled}
           />
         </div>
 

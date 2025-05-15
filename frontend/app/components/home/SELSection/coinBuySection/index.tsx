@@ -9,6 +9,7 @@ interface Props {
   setAmount: (amount: number) => void
   inValidAmount?: boolean // This prop will handle the invalid amount logic
   swap?: boolean
+  disabled?: boolean
 }
 
 const CoinBuySection: React.FC<Props> = ({
@@ -16,6 +17,7 @@ const CoinBuySection: React.FC<Props> = ({
   setAmount,
   inValidAmount,
   swap,
+  disabled,
 }) => {
   const [active, setActive] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -73,6 +75,7 @@ const CoinBuySection: React.FC<Props> = ({
                 setActive(true)
               }
             }}
+            disabled={disabled}
           />
         </div>
       </div>

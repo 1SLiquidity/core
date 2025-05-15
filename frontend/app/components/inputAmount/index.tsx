@@ -1,18 +1,18 @@
-'use client';
+'use client'
 
-import useOnClickInside from '@/app/lib/hooks/useOnClickInside';
-import useOnClickOutside from '@/app/lib/hooks/useOnClickOutside';
-import React, { useRef, useState } from 'react';
-import { NumericFormat } from 'react-number-format';
+import useOnClickInside from '@/app/lib/hooks/useOnClickInside'
+import useOnClickOutside from '@/app/lib/hooks/useOnClickOutside'
+import React, { useRef, useState } from 'react'
+import { NumericFormat } from 'react-number-format'
 
 interface InputAmountProps {
-  amount: number;
-  setAmount?: (value: number) => void;
-  disable?: boolean;
-  textAlignRight?: boolean;
-  inValidAmount?: boolean;
-  inputRef?: any;
-  onInputFocus?: () => void;
+  amount: number
+  setAmount?: (value: number) => void
+  disable?: boolean
+  textAlignRight?: boolean
+  inValidAmount?: boolean
+  inputRef?: any
+  onInputFocus?: () => void
 }
 
 const InputAmount: React.FC<InputAmountProps> = ({
@@ -24,14 +24,14 @@ const InputAmount: React.FC<InputAmountProps> = ({
   inputRef,
   onInputFocus,
 }) => {
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [focus, setFocus] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const [focus, setFocus] = useState(false)
 
   // Handler to update the amount
   const handleValueChange = (values: any) => {
-    const { floatValue } = values;
-    if (setAmount) setAmount(floatValue || 0);
-  };
+    const { floatValue } = values
+    if (setAmount) setAmount(floatValue || 0)
+  }
 
   // useOnClickOutside(inputRef, () => {
   //   // const inputElement = wrapperRef.current?.querySelector('input');
@@ -55,9 +55,12 @@ const InputAmount: React.FC<InputAmountProps> = ({
       disabled={disable}
       className={`w-full placeholder:text-white disabled:opacity-55 h-full bg-transparent border-none outline-none placeholder:text-gray text-[30px] md:text-[42px] ${
         textAlignRight ? 'text-right' : ''
-      } ${inValidAmount ? 'text-primaryRed' : ''}`}
+      } ${inValidAmount ? 'text-primaryRed' : ''} ${
+        disable ? 'cursor-not-allowed opacity-50' : ''
+      }`}
+      getInputRef={inputRef}
     />
-  );
-};
+  )
+}
 
-export default InputAmount;
+export default InputAmount

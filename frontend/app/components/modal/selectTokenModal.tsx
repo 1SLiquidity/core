@@ -119,6 +119,8 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     e.currentTarget.src = '/icons/default-token.svg'
   }
 
+  console.log('availableTokens', availableTokens)
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       <div className="p-7 h-full">

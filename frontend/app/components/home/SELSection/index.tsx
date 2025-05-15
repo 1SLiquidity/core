@@ -733,6 +733,7 @@ const SELSection = () => {
             setAmount={handleBuyAmountChange}
             inValidAmount={invalidBuyAmount}
             swap={swap}
+            disabled={true}
           />
         )}
       </div>
