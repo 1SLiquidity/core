@@ -15,10 +15,6 @@ contract StreamDaemon is Ownable {
     // temporarily efine a constant for minimum effective gas in dollars
     uint256 public constant MIN_EFFECTIVE_GAS_DOLLARS = 1; // i.e $1 minimum @audit this should be valuated against TOKEN-USDC value during execution in production
 
-    // uint256 public gasConsumption;
-    // uint256 public lastCachedTimestamp;
-    // uint256 public constant CACHE_DURATION = 30 seconds;
-
     constructor(address _dexInterface, address[] memory _dexs) Ownable(msg.sender) {
         universalDexInterface = IUniversalDexInterface(_dexInterface);
         for (uint256 i = 0; i < _dexs.length; i++) {
@@ -26,26 +22,13 @@ contract StreamDaemon is Ownable {
         }
     }
 
-    // function _updateGasStats(uint256 startGas, uint256 endGas) internal {
-    //     uint256 currentGasUsed = startGas - endGas;
-    //     if (gasConsumption == 0) {
-    //         gasConsumption = currentGasUsed;
-    //     } else {
-    //         gasConsumption = (gasConsumption + currentGasUsed) / 2; // TODO needs proper implementation as TWAP algo
-    //     }
-    //     lastCachedTimestamp = block.timestamp;
-    // }
-
-    // function readGasCache() internal view returns (uint256) {
-    //     return gasConsumption * tx.gasprice;
-    // }
-
     function registerDex(address _fetcher) external onlyOwner {
         dexs.push(_fetcher);
     }
 
     function evaluateSweetSpotAndDex(address tokenIn, address tokenOut, uint256 volume, uint256 effectiveGas)
         public
+        view
         returns (uint256 sweetSpot, address bestFetcher)
     {
         (address identifiedFetcher, uint256 maxReserveIn, uint256 maxReserveOut) =
@@ -60,12 +43,6 @@ contract StreamDaemon is Ownable {
 
         sweetSpot = _sweetSpotAlgo(tokenIn, tokenOut, volume, maxReserveIn, maxReserveOut, effectiveGas);
     }
-
-    // function returnReserveForTokenPairFromDex(address tokenIn, address tokenOut)
-    //     public
-    //     view
-    //     returns (uint256 reserve)
-    // {}
 
     /**
      * @dev always written in terms of
@@ -93,42 +70,13 @@ contract StreamDaemon is Ownable {
      * alpha represents a scalar variable which scales the sweet spot elementaries to
      * eliminate shifts in algo output due to reserve differences
      */
-    function computeAlpha(uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 alpha) {
+    function computeAlpha(uint256 numerator, uint256 denominator) internal pure returns (uint256 alpha) {
         // alpha = reserveOut / (reserveIn^2)
-        require(reserveIn > 0, "Invalid reserve");
-        require(reserveOut > 0, "Invalid reserve");
+        require(numerator > 0, "Invalid reserve");
+        require(denominator > 0, "Invalid reserve");
         
-        // Scale up by 1e18 to maintain precision in division
-        return ((reserveOut * 1e24) / (reserveIn * reserveIn));
-    }
-
-    function _yetAnotherAlgo (address tokenIn,
-        address tokenOut,
-        uint256 volume,
-        uint256 reserveIn,
-        uint256 reserveOut,
-        uint256 effectiveGas) public returns (uint256 sweetSpot) {
-
-            uint8 decimalsIn = IERC20Metadata(tokenIn).decimals();
-
-            if (decimalsIn != 18) {
-                if (decimalsIn > 18) {
-                    volume = volume / (10 ** (decimalsIn - 18));
-                    reserveIn = reserveIn / (10 ** (decimalsIn - 18));
-                } else {
-                    volume = volume * (10 ** (18 - decimalsIn));
-                    reserveIn = reserveIn * (10 ** (18 - decimalsIn));
-                }
-            }
-
-            //now change to human readable format
-
-            volume = volume / 1e18;
-            reserveIn = reserveIn / 1e18;
-
-            sweetSpot = volume / sqrt(reserveIn);
-            console.log("sweetSpot", sweetSpot);
-
+        // scale by 1e24 to maintain precision in division
+        return ((numerator * 1e24) / (denominator * denominator));
     }
 
     function _sweetSpotAlgo(
@@ -151,59 +99,40 @@ contract StreamDaemon is Ownable {
         console.log("volume", volume);
 
         uint8 decimalsIn = IERC20Metadata(tokenIn).decimals();
+        console.log("decimalsIn", decimalsIn);
         uint8 decimalsOut = IERC20Metadata(tokenOut).decimals();
+        console.log("decimalsOut", decimalsOut);
 
         // Scale all to 18 decimals
-        uint256 scaledVolume = volume;
+        uint256 scaledVolume = volume / (10 ** decimalsIn);
         console.log("scaledVolume", scaledVolume);
-        uint256 scaledReserveIn = reserveIn;
+        uint256 scaledReserveIn = reserveIn / (10 ** decimalsIn);
         console.log("scaledReserveIn", scaledReserveIn);
-        uint256 scaledReserveOut = reserveOut;
+        uint256 scaledReserveOut = reserveOut / (10 ** decimalsOut);
         console.log("scaledReserveOut", scaledReserveOut);
 
-        if (decimalsIn != 18) {
-            if (decimalsIn > 18) {
-                scaledVolume = volume / (10 ** (decimalsIn - 18));
-                scaledReserveIn = reserveIn / (10 ** (decimalsIn - 18));
-            } else {
-                scaledVolume = volume * (10 ** (18 - decimalsIn));
-                scaledReserveIn = reserveIn * (10 ** (18 - decimalsIn));
-            }
+        uint256 alpha;
+
+        if (scaledReserveIn >= scaledReserveOut) {
+            alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
+        } else {
+            alpha = computeAlpha(scaledReserveOut, scaledReserveIn);
         }
 
-        if (decimalsOut != 18) {
-            if (decimalsOut > 18) {
-                scaledReserveOut = reserveOut / (10 ** (decimalsOut - 18));
-            } else {
-                scaledReserveOut = reserveOut * (10 ** (18 - decimalsOut));
-            }
-        }
-
-        console.log("scaledVolume", scaledVolume);
-        console.log("scaledReserveIn", scaledReserveIn);
-        console.log("scaledReserveOut", scaledReserveOut);
-
-        uint256 alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
         console.log("alpha", alpha);
         
-        // Calculate sweet spot with proper scaling
-        // N = sqrt(a*V^2/g)
+        // N = sqrt(a*V^2)
         uint256 numerator = alpha * scaledVolume * scaledVolume;
         console.log("numerator", numerator);
-        uint256 denominator = effectiveGas * 1e24;
+        uint256 denominator = 1e24;
         console.log("denominator", denominator);
         
-        // Ensure we don't divide by zero
         require(denominator > 0, "Invalid effective gas");
         
-        // Scale up numerator to maintain precision
-        numerator = numerator * 1e18;        // Calculate sqrt of (numerator/denominator)
         sweetSpot = sqrt(numerator / denominator);
         console.log("calculated sweetSpot", sweetSpot);
         require(sweetSpot > 0, "Invalid sqrt calculation");
-        sweetSpot = sweetSpot / 1e17;
 
-        // Ensure minimum of 2 splits and maximum of 500
         if (sweetSpot < 2) {
             sweetSpot = 2;
         }
