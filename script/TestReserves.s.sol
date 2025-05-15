@@ -102,12 +102,6 @@ contract TestReservesScript is Script {
             console.log("Highest reserve:", maxReserveIn);
         }
 
-        Executor executor = new Executor();
-        console.log("\n=== Testing Executor Gas Consumption ===");
-
-        // uint256 gasUsed = executor.gasConsumption();
-        // console.log("Initial gas consumption:", gasUsed);
-
         // Add test for sweet spot calculation
         console.log("\n=== Testing Sweet Spot Calculation ===");
 
@@ -138,14 +132,10 @@ contract TestReservesScript is Script {
             console.log("Sweet Spot:", sweetSpot);
         }
 
-        console.log("methods to add to Executor: ");
-        console.log("- executeOnDEX(address token0, address token1)");
-        console.log("- executeTrade(address token0, address token1, uint256 amount, address dex)");
-
         vm.stopBroadcast();
     }
 
-    function testReservesForAllPairs(IUniversalDexInterface fetcher, address[][] memory tokenPairs) internal {
+    function testReservesForAllPairs(IUniversalDexInterface fetcher, address[][] memory tokenPairs) internal view {
         for (uint256 i = 0; i < tokenPairs.length; i++) {
             address token0 = tokenPairs[i][0];
             address token1 = tokenPairs[i][1];
