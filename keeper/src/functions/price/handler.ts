@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { ethers } from 'ethers';
-import { PriceAggregator } from '../../services/price-aggregator';
+import { PriceAggregator, DexType } from '../../services/price-aggregator';
 import { getCache, setCache, generateCacheKey } from '../../utils/redis';
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
@@ -12,8 +12,7 @@ const CACHE_TTL = 30;
 interface PriceRequest {
   tokenA: string;
   tokenB: string;
-  dexes?: string[]; // Optional: specify which DEXes to query
-  bidirectional?: boolean; // Optional: get prices in both directions
+  dex?: DexType; // Optional: specify which DEX to query
 }
 
 function validateTokenAddress(address: string): boolean {
@@ -33,11 +32,13 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
   try {
     let tokenA: string | undefined;
     let tokenB: string | undefined;
+    let dex: DexType | undefined;
 
     // Handle both GET and POST requests
     if (event.httpMethod === 'GET') {
       tokenA = event.queryStringParameters?.tokenA;
       tokenB = event.queryStringParameters?.tokenB;
+      dex = event.queryStringParameters?.dex as DexType | undefined;
     } else if (event.httpMethod === 'POST') {
       const body = parseRequestBody(event);
       if (!body) {
@@ -52,6 +53,7 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       }
       tokenA = body.tokenA;
       tokenB = body.tokenB;
+      dex = body.dex;
     }
 
     if (!tokenA || !tokenB) {
@@ -76,41 +78,51 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       };
     }
 
-    const bidirectional = event.queryStringParameters?.bidirectional === 'true' || 
-                     (event.httpMethod === 'POST' && parseRequestBody(event)?.bidirectional);
+    // Generate cache key based on tokens, direction, and DEX if specified
+    const cacheKey = generateCacheKey('PRICE', `${tokenA}-${tokenB}${dex ? `-${dex}` : ''}`);
 
-    // // Generate cache key based on tokens and direction
-    // const cacheKey = generateCacheKey('PRICE', `${tokenA}-${tokenB}${bidirectional ? '-bidirectional' : ''}`);
+    // Try to get from cache first
+    const cachedData = await getCache<any>(cacheKey);
+    if (cachedData) {
+      console.log(`Cache hit for price of ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}`);
+      return {
+        statusCode: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*'
+        },
+        body: JSON.stringify(cachedData)
+      };
+    }
 
-    // // Try to get from cache first
-    // const cachedData = await getCache<any>(cacheKey);
-    // if (cachedData) {
-    //   console.log(`Cache hit for price of ${tokenA}-${tokenB}`);
-    //   return {
-    //     statusCode: 200,
-    //     headers: {
-    //       'Content-Type': 'application/json',
-    //       'Access-Control-Allow-Origin': '*'
-    //     },
-    //     body: JSON.stringify(cachedData)
-    //   };
-    // }
-
-    // // If not in cache, fetch from API
-    // console.log(`Cache miss for price of ${tokenA}-${tokenB}, fetching from API...`);
+    // If not in cache, fetch from API
+    console.log(`Cache miss for price of ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}, fetching from API...`);
     let response;
-    if (bidirectional) {
-      response = await priceAggregator.getBidirectionalPrices(tokenA, tokenB);
+    
+    if (dex) {
+      // Fetch price from specific DEX
+      response = await priceAggregator.getPriceFromDex(tokenA, tokenB, dex);
+      if (!response) {
+        return {
+          statusCode: 404,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          },
+          body: JSON.stringify({ error: `No price found for ${tokenA}-${tokenB} on ${dex}` })
+        };
+      }
     } else {
+      // Fetch prices from all DEXes
       response = await priceAggregator.getAllPrices(tokenA, tokenB);
     }
 
-    // // Only store in cache if we have valid data
-    // if (response && (Array.isArray(response) ? response.length > 0 : Object.keys(response).length > 0)) {
-    //   await setCache(cacheKey, response, CACHE_TTL);
-    // } else {
-    //   console.log(`Skipping cache for empty response: ${tokenA}-${tokenB}`);
-    // }
+    // Only store in cache if we have valid data
+    if (response && (Array.isArray(response) ? response.length > 0 : Object.keys(response).length > 0)) {
+      await setCache(cacheKey, response, CACHE_TTL);
+    } else {
+      console.log(`Skipping cache for empty response: ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}`);
+    }
 
     return {
       statusCode: 200,
