@@ -4,6 +4,7 @@ import SelectTokenModal from '@/app/components/modal/selectTokenModal'
 import WalletDetailsModal from '@/app/components/modal/walletDetailsModal'
 import React, { createContext, useContext, useState } from 'react'
 import { TOKENS_TYPE } from '../hooks/useWalletTokens'
+import { ToastProvider } from './toastProvider'
 
 type ModalContextType = {
   showSelectTokenModal: (isOpen: boolean, inputField?: 'from' | 'to') => void
@@ -76,26 +77,32 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
       }}
     >
       {children}
-      {isSelectTokenModalOpen && (
-        <SelectTokenModal
-          isOpen={isSelectTokenModalOpen}
-          onClose={() => {
-            setIsSelectTokenModalOpen(false)
-            setCurrentInputField(null)
-          }}
-        />
-      )}
-      {isWalletDetailsModalOpen && (
-        <WalletDetailsModal
-          isOpen={isWalletDetailsModalOpen}
-          onClose={() => setIsWalletDetailsModalOpen(false)}
-        />
-      )}
-      {isGlobalStreamModalOpen && (
-        <GlobalStreamModal
-          isOpen={isGlobalStreamModalOpen}
-          onClose={() => setIsGlobalStreamModalOpen(false)}
-        />
+      {(isSelectTokenModalOpen ||
+        isWalletDetailsModalOpen ||
+        isGlobalStreamModalOpen) && (
+        <ToastProvider>
+          {isSelectTokenModalOpen && (
+            <SelectTokenModal
+              isOpen={isSelectTokenModalOpen}
+              onClose={() => {
+                setIsSelectTokenModalOpen(false)
+                setCurrentInputField(null)
+              }}
+            />
+          )}
+          {isWalletDetailsModalOpen && (
+            <WalletDetailsModal
+              isOpen={isWalletDetailsModalOpen}
+              onClose={() => setIsWalletDetailsModalOpen(false)}
+            />
+          )}
+          {isGlobalStreamModalOpen && (
+            <GlobalStreamModal
+              isOpen={isGlobalStreamModalOpen}
+              onClose={() => setIsGlobalStreamModalOpen(false)}
+            />
+          )}
+        </ToastProvider>
       )}
     </ModalContext.Provider>
   )

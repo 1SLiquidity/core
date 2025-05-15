@@ -8,6 +8,7 @@ import { useModal } from '@/app/lib/context/modalContext'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
+import { useToast } from '@/app/lib/context/toastProvider'
 
 // Chain name mapping for display purposes
 const CHAIN_NAMES: { [key: string]: string } = {
@@ -51,6 +52,8 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     platform,
   } = useTokenList()
 
+  const { addToast } = useToast()
+
   // Default to hardcoded tokens if API tokens aren't available yet
   const displayTokens: TOKENS_TYPE[] =
     availableTokens.length > 0
@@ -68,6 +71,72 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
   // Function to handle token selection
   const handleSelectToken = (token: TOKENS_TYPE) => {
+    // Check if this token is already selected in the other field
+    if (
+      currentInputField === 'from' &&
+      selectedTokenTo &&
+      token.token_address === selectedTokenTo.token_address
+    ) {
+      // Token is already selected in the "to" field - don't allow selection
+      console.log('Cannot select the same token in both fields')
+      // Show a toast notification
+      addToast(
+        <div className="flex items-center">
+          <div className="mr-2 text-red-500">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <div>Cannot select the same token in both fields</div>
+        </div>
+      )
+      return
+    } else if (
+      currentInputField === 'to' &&
+      selectedTokenFrom &&
+      token.token_address === selectedTokenFrom.token_address
+    ) {
+      // Token is already selected in the "from" field - don't allow selection
+      console.log('Cannot select the same token in both fields')
+      // Show a toast notification
+      addToast(
+        <div className="flex items-center">
+          <div className="mr-2 text-red-500">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="15" y1="9" x2="9" y2="15"></line>
+              <line x1="9" y1="9" x2="15" y2="15"></line>
+            </svg>
+          </div>
+          <div>Cannot select the same token in both fields</div>
+        </div>
+      )
+      return
+    }
+
+    // Proceed with normal token selection
     if (currentInputField === 'from') {
       setSelectedTokenFrom(token)
     } else if (currentInputField === 'to') {
@@ -117,6 +186,16 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     e: React.SyntheticEvent<HTMLImageElement, Event>
   ) => {
     e.currentTarget.src = '/icons/default-token.svg'
+  }
+
+  // Check if a token should be disabled (already selected in the other field)
+  const isTokenDisabled = (token: TOKENS_TYPE) => {
+    if (currentInputField === 'from' && selectedTokenTo) {
+      return token.token_address === selectedTokenTo.token_address
+    } else if (currentInputField === 'to' && selectedTokenFrom) {
+      return token.token_address === selectedTokenFrom.token_address
+    }
+    return false
   }
 
   console.log('availableTokens', availableTokens)
@@ -179,53 +258,67 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                   {chainName}
                 </div>
               ) : (
-                getFilteredTokens().map((token, ind) => (
-                  <div
-                    key={ind}
-                    onClick={() => handleSelectToken(token)}
-                    className="w-full flex items-center min-h-[62px] hover:bg-neutral-800 px-[13px] gap-[12px] rounded-[15px] cursor-pointer transition-colors"
-                  >
-                    <div className="relative h-fit">
-                      <Image
-                        src={token.icon}
-                        alt={token.name}
-                        className="w-[40px] h-[40px] rounded-full"
-                        width={40}
-                        height={40}
-                        onError={handleImageError}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[18px] p-0 leading-tight">
-                        {token.name}
-                      </p>
-                      <p className="text-[14px] uppercase text-gray p-0 leading-tight">
-                        {token.symbol}
-                      </p>
-                    </div>
-                    {token.usd_price > 0 && (
-                      <div className="text-right">
-                        <p className="text-[14px] text-white">
-                          $
-                          {token.usd_price.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 6,
-                          })}
-                        </p>
-                        <p
-                          className={`text-[12px] ${
-                            token.status === 'increase'
-                              ? 'text-green-500'
-                              : 'text-red-500'
+                getFilteredTokens().map((token, ind) => {
+                  const disabled = isTokenDisabled(token)
+                  return (
+                    <div
+                      key={ind}
+                      onClick={() => !disabled && handleSelectToken(token)}
+                      className={`w-full flex items-center min-h-[62px] ${
+                        disabled
+                          ? 'opacity-50 cursor-not-allowed bg-neutral-900'
+                          : 'hover:bg-neutral-800 cursor-pointer'
+                      } px-[13px] gap-[12px] rounded-[15px] transition-colors`}
+                    >
+                      <div className="relative h-fit">
+                        <Image
+                          src={token.icon}
+                          alt={token.name}
+                          className={`w-[40px] h-[40px] rounded-full ${
+                            disabled ? 'grayscale' : ''
                           }`}
-                        >
-                          {token.status === 'increase' ? '+' : '-'}
-                          {token.statusAmount.toFixed(2)}%
+                          width={40}
+                          height={40}
+                          onError={handleImageError}
+                        />
+                        {disabled && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
+                            <span className="text-xs text-white">Selected</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[18px] p-0 leading-tight">
+                          {token.name}
+                        </p>
+                        <p className="text-[14px] uppercase text-gray p-0 leading-tight">
+                          {token.symbol}
                         </p>
                       </div>
-                    )}
-                  </div>
-                ))
+                      {token.usd_price > 0 && (
+                        <div className="text-right">
+                          <p className="text-[14px] text-white">
+                            $
+                            {token.usd_price.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 6,
+                            })}
+                          </p>
+                          <p
+                            className={`text-[12px] ${
+                              token.status === 'increase'
+                                ? 'text-green-500'
+                                : 'text-red-500'
+                            }`}
+                          >
+                            {token.status === 'increase' ? '+' : '-'}
+                            {token.statusAmount.toFixed(2)}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
               )}
             </div>
           </>
@@ -240,25 +333,41 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
             </p>
 
             <div className="flex gap-1 my-[13px] overflow-x-auto scrollbar-hide">
-              {getPopularTokens().map((token, ind) => (
-                <div
-                  key={ind}
-                  onClick={() => handleSelectToken(token)}
-                  className="min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] bg-white005 hover:bg-neutral-900 px-[13px] gap-[6px] border-[2px] border-primary rounded-[15px] cursor-pointer transition-colors"
-                >
-                  <div className="relative mt-1">
-                    <Image
-                      src={token.icon}
-                      alt={token.name}
-                      className="w-[24px] h-[24px] rounded-full"
-                      width={24}
-                      height={24}
-                      onError={handleImageError}
-                    />
+              {getPopularTokens().map((token, ind) => {
+                const disabled = isTokenDisabled(token)
+                return (
+                  <div
+                    key={ind}
+                    onClick={() => !disabled && handleSelectToken(token)}
+                    className={`min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] ${
+                      disabled
+                        ? 'opacity-50 cursor-not-allowed bg-neutral-900'
+                        : 'bg-white005 hover:bg-neutral-900 cursor-pointer'
+                    } px-[13px] gap-[6px] border-[2px] border-primary rounded-[15px] transition-colors`}
+                  >
+                    <div className="relative mt-1">
+                      <Image
+                        src={token.icon}
+                        alt={token.name}
+                        className={`w-[24px] h-[24px] rounded-full ${
+                          disabled ? 'grayscale' : ''
+                        }`}
+                        width={24}
+                        height={24}
+                        onError={handleImageError}
+                      />
+                      {disabled && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
+                          <span className="text-[8px] text-white">
+                            Selected
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="">{token.symbol}</p>
                   </div>
-                  <p className="">{token.symbol}</p>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <p className="text-[20px] text-white">All Tokens on {chainName}</p>
@@ -273,53 +382,67 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                   No tokens found on {chainName}
                 </div>
               ) : (
-                getFilteredTokens().map((token, ind) => (
-                  <div
-                    key={ind}
-                    onClick={() => handleSelectToken(token)}
-                    className="w-full flex items-center min-h-[62px] hover:bg-neutral-900 px-[13px] gap-[12px] rounded-[15px] cursor-pointer transition-colors"
-                  >
-                    <div className="relative h-fit">
-                      <Image
-                        src={token.icon}
-                        alt={token.name}
-                        className="w-[40px] h-[40px] rounded-full"
-                        width={40}
-                        height={40}
-                        onError={handleImageError}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-[18px] p-0 leading-tight">
-                        {token.name}
-                      </p>
-                      <p className="text-[14px] uppercase text-gray p-0 leading-tight">
-                        {token.symbol}
-                      </p>
-                    </div>
-                    {token.usd_price > 0 && (
-                      <div className="text-right">
-                        <p className="text-[14px] text-white">
-                          $
-                          {token.usd_price.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 6,
-                          })}
-                        </p>
-                        <p
-                          className={`text-[12px] ${
-                            token.status === 'increase'
-                              ? 'text-green-500'
-                              : 'text-red-500'
+                getFilteredTokens().map((token, ind) => {
+                  const disabled = isTokenDisabled(token)
+                  return (
+                    <div
+                      key={ind}
+                      onClick={() => !disabled && handleSelectToken(token)}
+                      className={`w-full flex items-center min-h-[62px] ${
+                        disabled
+                          ? 'opacity-50 cursor-not-allowed bg-neutral-900'
+                          : 'hover:bg-neutral-900 cursor-pointer'
+                      } px-[13px] gap-[12px] rounded-[15px] transition-colors`}
+                    >
+                      <div className="relative h-fit">
+                        <Image
+                          src={token.icon}
+                          alt={token.name}
+                          className={`w-[40px] h-[40px] rounded-full ${
+                            disabled ? 'grayscale' : ''
                           }`}
-                        >
-                          {token.status === 'increase' ? '+' : '-'}
-                          {token.statusAmount.toFixed(2)}%
+                          width={40}
+                          height={40}
+                          onError={handleImageError}
+                        />
+                        {disabled && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
+                            <span className="text-xs text-white">Selected</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-[18px] p-0 leading-tight">
+                          {token.name}
+                        </p>
+                        <p className="text-[14px] uppercase text-gray p-0 leading-tight">
+                          {token.symbol}
                         </p>
                       </div>
-                    )}
-                  </div>
-                ))
+                      {token.usd_price > 0 && (
+                        <div className="text-right">
+                          <p className="text-[14px] text-white">
+                            $
+                            {token.usd_price.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 6,
+                            })}
+                          </p>
+                          <p
+                            className={`text-[12px] ${
+                              token.status === 'increase'
+                                ? 'text-green-500'
+                                : 'text-red-500'
+                            }`}
+                          >
+                            {token.status === 'increase' ? '+' : '-'}
+                            {token.statusAmount.toFixed(2)}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
               )}
             </div>
           </div>

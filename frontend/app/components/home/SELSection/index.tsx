@@ -54,6 +54,15 @@ const SELSection = () => {
   // Preload the token list when the component mounts
   const { tokens, isLoading } = useTokenList()
 
+  // Reset sell amount when tokens change
+  useEffect(() => {
+    if (sellAmount > 0) {
+      console.log('Tokens changed, resetting sell amount to 0')
+      setSellAmount(0)
+      setBuyAmount(0)
+    }
+  }, [selectedTokenFrom, selectedTokenTo])
+
   // Fetch reserves only when tokens change or chain changes
   useEffect(() => {
     const fetchReserves = async () => {
