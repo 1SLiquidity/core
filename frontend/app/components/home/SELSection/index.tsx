@@ -4,7 +4,7 @@ import { SEL_SECTION_TABS } from '@/app/lib/constants'
 import { useToast } from '@/app/lib/context/toastProvider'
 import { isNumberValid } from '@/app/lib/helper'
 import Image from 'next/image'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Button from '../../button'
 import Tabs from '../../tabs'
 import NotifiSwapStream from '../../toasts/notifiSwapStream'
@@ -23,6 +23,7 @@ import {
 } from '@/app/lib/dex/calculators'
 import useDebounce from '@/app/lib/hooks/useDebounce'
 import { motion, useAnimation, Variants } from 'framer-motion'
+import { RefreshCcw } from 'lucide-react'
 
 const SELSection = () => {
   const [activeTab, setActiveTab] = useState(SEL_SECTION_TABS[0])
@@ -35,9 +36,18 @@ const SELSection = () => {
   const [reserveData, setReserveData] = useState<ReserveData | null>(null)
   const [isCalculating, setIsCalculating] = useState(false)
   const [calculationError, setCalculationError] = useState<string | null>(null)
+  const [isFetchingReserves, setIsFetchingReserves] = useState(false)
+
+  // Timer related states
+  const [timerActive, setTimerActive] = useState(false)
+  const [timeRemaining, setTimeRemaining] = useState(15) // 15 seconds
+  const TIMER_DURATION = 30 // constant for reset
 
   // Add a ref to track when we're resetting values to zero
   const isClearingValuesRef = useRef<boolean>(false)
+
+  // Timer interval ref
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Debounce input values - reduce debounce time for better responsiveness
   const debouncedSellAmount = useDebounce(sellAmount, 300)
@@ -54,6 +64,174 @@ const SELSection = () => {
   // Preload the token list when the component mounts
   const { tokens, isLoading } = useTokenList()
 
+  // Function to fetch reserves that can be called from multiple places
+  const fetchReserves = useCallback(async () => {
+    console.log('Fetching reserves')
+    setCalculationError(null)
+
+    if (selectedTokenFrom && selectedTokenTo) {
+      setIsFetchingReserves(true)
+
+      try {
+        // Check if tokens have addresses
+        const fromAddress =
+          selectedTokenFrom.token_address ||
+          '0xdAC17F958D2ee523a2206206994597C13D831ec7' // Default to USDT if no address
+        const toAddress =
+          selectedTokenTo.token_address ||
+          '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
+
+        // Removed chainId parameter from the API request
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`
+        )
+
+        console.log('Reserve API response ===>', response)
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch reserves')
+        }
+
+        const data = await response.json()
+        console.log('Reserves data:', data)
+
+        if (!Array.isArray(data) && data) {
+          // Single object response - add decimals to the reserve data
+          const reserveDataWithDecimals = {
+            ...data,
+            token0Decimals: selectedTokenFrom.decimals || 18,
+            token1Decimals: selectedTokenTo.decimals || 18,
+          } as ReserveData
+
+          setReserveData(reserveDataWithDecimals)
+
+          // Initialize the appropriate calculator based on DEX type
+          const calculator = DexCalculatorFactory.createCalculator(
+            data.dex,
+            undefined, // No fee percent for now
+            chainId // Pass the current chainId
+          )
+          setDexCalculator(calculator)
+          console.log(
+            `Using ${
+              data.dex
+            } calculator with fee: ${calculator.getExchangeFee()}% on chain ${chainId}`
+          )
+
+          // Trigger a calculation if we have a sell amount
+          if (sellAmount > 0) {
+            // Force a calculation after reserves are loaded
+            console.log(
+              'Triggering calculation after reserve fetch with sell amount:',
+              sellAmount
+            )
+          }
+
+          return
+        }
+
+        if (!Array.isArray(data) || data.length === 0) {
+          setCalculationError('No liquidity pools found for this pair')
+          setReserveData(null)
+          setDexCalculator(null)
+          return
+        }
+
+        // First check if we have any Uniswap V3 pools with sufficient liquidity
+        const v3Pools = data
+          .filter(
+            (entry) =>
+              entry.dex.startsWith('uniswap-v3') &&
+              parseFloat(entry.reserves.token0) > 0
+          )
+          .sort(
+            (a, b) =>
+              parseFloat(b.reserves.token0) - parseFloat(a.reserves.token0)
+          )
+
+        // Next check for Uniswap V2 pools
+        const uniswapV2Data = data.find(
+          (entry) =>
+            entry.dex === 'uniswap-v2' && parseFloat(entry.reserves.token0) > 0
+        )
+
+        // Finally check for SushiSwap pools
+        const sushiswapData = data.find(
+          (entry) =>
+            entry.dex === 'sushiswap' && parseFloat(entry.reserves.token0) > 0
+        )
+
+        // Select the best pool based on liquidity and preference
+        let selectedPool = null
+        let poolType = ''
+
+        // Prefer V3 pools with the highest liquidity
+        // if (v3Pools.length > 0) {
+        //   selectedPool = v3Pools[0]
+        //   poolType = 'Uniswap V3'
+        // }
+        // Otherwise try Uniswap V2
+        if (uniswapV2Data) {
+          selectedPool = uniswapV2Data
+          poolType = 'Uniswap V2'
+        }
+
+        // TODO: Uncomment above code after testing this
+        // Finally fall back to SushiSwap
+        // if (sushiswapData) {
+        //   selectedPool = sushiswapData
+        //   poolType = 'SushiSwap'
+        // }
+
+        console.log('Selected pool:', selectedPool)
+
+        if (!selectedPool) {
+          setCalculationError(
+            'No liquidity pool found with sufficient liquidity for this pair'
+          )
+          setReserveData(null)
+          setDexCalculator(null)
+          return
+        }
+
+        // Set the reserve data for calculations with token decimals
+        const reserveDataWithDecimals = {
+          ...selectedPool,
+          token0Decimals: selectedTokenFrom.decimals || 18,
+          token1Decimals: selectedTokenTo.decimals || 18,
+          token0Address: selectedTokenFrom.token_address || '',
+          token1Address: selectedTokenTo.token_address || '',
+        } as ReserveData
+
+        setReserveData(reserveDataWithDecimals)
+
+        // Initialize the appropriate calculator
+        const calculator = DexCalculatorFactory.createCalculator(
+          selectedPool.dex,
+          undefined, // No fee percent for now
+          chainId // Pass the current chainId
+        )
+        setDexCalculator(calculator)
+        console.log(
+          `Using ${poolType} calculator (${
+            selectedPool.dex
+          }) with fee: ${calculator.getExchangeFee()}% on chain ${chainId}`
+        )
+        setIsFetchingReserves(false)
+      } catch (error) {
+        console.error('Error fetching reserves:', error)
+        setCalculationError('Error fetching liquidity data')
+        setReserveData(null)
+        setDexCalculator(null)
+      } finally {
+        // setIsFetchingReserves(false)
+      }
+    } else {
+      setReserveData(null)
+      setDexCalculator(null)
+    }
+  }, [selectedTokenFrom, selectedTokenTo, sellAmount, chainId])
+
   // Reset sell amount when tokens change
   useEffect(() => {
     if (sellAmount > 0) {
@@ -65,192 +243,49 @@ const SELSection = () => {
 
   // Fetch reserves only when tokens change or chain changes
   useEffect(() => {
-    const fetchReserves = async () => {
-      console.log('Fetching reserves')
-      setCalculationError(null)
+    fetchReserves()
+  }, [fetchReserves])
 
-      if (selectedTokenFrom && selectedTokenTo) {
-        setIsCalculating(true)
+  // Timer logic
+  useEffect(() => {
+    // Start or reset timer when sell amount changes and both tokens are selected
+    if (sellAmount > 0 && selectedTokenFrom && selectedTokenTo) {
+      // Reset timer
+      setTimeRemaining(TIMER_DURATION)
+      setTimerActive(true)
 
-        try {
-          // Check if tokens have addresses
-          const fromAddress =
-            selectedTokenFrom.token_address ||
-            '0xdAC17F958D2ee523a2206206994597C13D831ec7' // Default to USDT if no address
-          const toAddress =
-            selectedTokenTo.token_address ||
-            '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
+      // Clear any existing interval
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+      }
 
-          // TODO: Remove this after testing and use above commented out code
-          // const fromAddress = '0xdAC17F958D2ee523a2206206994597C13D831ec7' // Default to USDT if no address
-          // const toAddress = '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
-
-          // Removed chainId parameter from the API request
-          const response = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`
-          )
-
-          console.log('Reserve API response ===>', response)
-
-          if (!response.ok) {
-            throw new Error('Failed to fetch reserves')
+      // Set up new interval
+      timerIntervalRef.current = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev <= 1) {
+            // Time's up, refetch reserves
+            fetchReserves()
+            return TIMER_DURATION // Reset timer
           }
-
-          const data = await response.json()
-          console.log('Reserves data:', data)
-
-          if (!Array.isArray(data) && data) {
-            // Single object response - add decimals to the reserve data
-            const reserveDataWithDecimals = {
-              ...data,
-              token0Decimals: selectedTokenFrom.decimals || 18,
-              token1Decimals: selectedTokenTo.decimals || 18,
-            } as ReserveData
-
-            setReserveData(reserveDataWithDecimals)
-
-            // Initialize the appropriate calculator based on DEX type
-            const calculator = DexCalculatorFactory.createCalculator(
-              data.dex,
-              undefined, // No fee percent for now
-              chainId // Pass the current chainId
-            )
-            setDexCalculator(calculator)
-            console.log(
-              `Using ${
-                data.dex
-              } calculator with fee: ${calculator.getExchangeFee()}% on chain ${chainId}`
-            )
-
-            // Trigger a calculation if we have a sell amount
-            if (sellAmount > 0) {
-              // Force a calculation after reserves are loaded
-              console.log(
-                'Triggering calculation after reserve fetch with sell amount:',
-                sellAmount
-              )
-            }
-
-            return
-          }
-
-          if (!Array.isArray(data) || data.length === 0) {
-            setCalculationError('No liquidity pools found for this pair')
-            setReserveData(null)
-            setDexCalculator(null)
-            return
-          }
-
-          // First check if we have any Uniswap V3 pools with sufficient liquidity
-          const v3Pools = data
-            .filter(
-              (entry) =>
-                entry.dex.startsWith('uniswap-v3') &&
-                parseFloat(entry.reserves.token0) > 0
-            )
-            .sort(
-              (a, b) =>
-                parseFloat(b.reserves.token0) - parseFloat(a.reserves.token0)
-            )
-
-          // Next check for Uniswap V2 pools
-          const uniswapV2Data = data.find(
-            (entry) =>
-              entry.dex === 'uniswap-v2' &&
-              parseFloat(entry.reserves.token0) > 0
-          )
-
-          // Finally check for SushiSwap pools
-          const sushiswapData = data.find(
-            (entry) =>
-              entry.dex === 'sushiswap' && parseFloat(entry.reserves.token0) > 0
-          )
-
-          // Select the best pool based on liquidity and preference
-          let selectedPool = null
-          let poolType = ''
-
-          // Prefer V3 pools with the highest liquidity
-          // if (v3Pools.length > 0) {
-          //   selectedPool = v3Pools[0]
-          //   poolType = 'Uniswap V3'
-          // }
-          // Otherwise try Uniswap V2
-          if (uniswapV2Data) {
-            selectedPool = uniswapV2Data
-            poolType = 'Uniswap V2'
-          }
-
-          // TODO: Uncomment above code after testing this
-          // Finally fall back to SushiSwap
-          // if (sushiswapData) {
-          //   selectedPool = sushiswapData
-          //   poolType = 'SushiSwap'
-          // }
-
-          console.log('Selected pool:', selectedPool)
-
-          if (!selectedPool) {
-            setCalculationError(
-              'No liquidity pool found with sufficient liquidity for this pair'
-            )
-            setReserveData(null)
-            setDexCalculator(null)
-            return
-          }
-
-          // Set the reserve data for calculations with token decimals
-          const reserveDataWithDecimals = {
-            ...selectedPool,
-            token0Decimals: selectedTokenFrom.decimals || 18,
-            token1Decimals: selectedTokenTo.decimals || 18,
-            token0Address: selectedTokenFrom.token_address || '',
-            token1Address: selectedTokenTo.token_address || '',
-          } as ReserveData
-
-          setReserveData(reserveDataWithDecimals)
-
-          // Initialize the appropriate calculator
-          const calculator = DexCalculatorFactory.createCalculator(
-            selectedPool.dex,
-            undefined, // No fee percent for now
-            chainId // Pass the current chainId
-          )
-          setDexCalculator(calculator)
-          console.log(
-            `Using ${poolType} calculator (${
-              selectedPool.dex
-            }) with fee: ${calculator.getExchangeFee()}% on chain ${chainId}`
-          )
-
-          // Trigger an initial calculation if the sell amount is already set
-          if (sellAmount > 0) {
-            console.log(
-              'Triggering initial calculation with sell amount:',
-              sellAmount
-            )
-            // Force a calculation after reserves are loaded
-            console.log(
-              'Triggering calculation after reserve fetch with sell amount:',
-              sellAmount
-            )
-          }
-        } catch (error) {
-          console.error('Error fetching reserves:', error)
-          setCalculationError('Error fetching liquidity data')
-          setReserveData(null)
-          setDexCalculator(null)
-        } finally {
-          setIsCalculating(false)
-        }
-      } else {
-        setReserveData(null)
-        setDexCalculator(null)
+          return prev - 1
+        })
+      }, 1000)
+    } else {
+      // No sell amount or missing tokens, stop timer
+      setTimerActive(false)
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+        timerIntervalRef.current = null
       }
     }
 
-    fetchReserves()
-  }, [selectedTokenFrom, selectedTokenTo, chainId])
+    // Cleanup interval on unmount
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current)
+      }
+    }
+  }, [sellAmount, selectedTokenFrom, selectedTokenTo, fetchReserves])
 
   // Simplified calculation logic - always calculate when sell amount changes
   useEffect(() => {
@@ -435,7 +470,7 @@ const SELSection = () => {
     },
   }
 
-  console.log('isCalculating', isCalculating)
+  console.log('fetching reserves ===>', isFetchingReserves)
 
   return (
     <motion.div
@@ -455,7 +490,57 @@ const SELSection = () => {
         </div>
 
         {/* setting button */}
-        <SettingButton />
+        <div className="flex items-center gap-2">
+          {/* Reload Timer */}
+          {timerActive && (
+            <div className="flex items-center justify-end">
+              <div className="flex items-center gap-2 bg-white hover:bg-tabsGradient bg-opacity-[12%] px-2 py-1 rounded-full">
+                <div className="text-sm text-white/70">Auto refresh in</div>
+                <div className="relative w-6 h-6">
+                  {/* Circular timer animation */}
+                  <svg className="w-6 h-6 transform -rotate-90">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="transparent"
+                      className="text-white/10"
+                    />
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      fill="transparent"
+                      strokeDasharray="62.83" // 2 * PI * r (where r=10)
+                      strokeDashoffset={
+                        62.83 * (1 - timeRemaining / TIMER_DURATION)
+                      }
+                      className="text-primary transition-all duration-1000 ease-linear"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+                    {timeRemaining}
+                  </div>
+                </div>
+
+                {/* <RefreshCcw
+                onClick={() => {
+                  // Reset timer and fetch immediately
+                  setTimeRemaining(TIMER_DURATION)
+                  fetchReserves()
+                }}
+                className="w-4 h-4 ml-1 text-primary hover:text-primary/80 transition-colors"
+              /> */}
+              </div>
+            </div>
+          )}
+
+          <SettingButton />
+        </div>
       </div>
 
       {activeTab.title === 'Limit' && (
@@ -479,6 +564,7 @@ const SELSection = () => {
             amount={sellAmount}
             setAmount={handleSellAmountChange}
             inValidAmount={invaliSelldAmount}
+            disabled={isFetchingReserves}
           />
         )}
         <div
@@ -495,6 +581,7 @@ const SELSection = () => {
             setAmount={handleSellAmountChange}
             inValidAmount={invaliSelldAmount}
             swap={swap}
+            disabled={isFetchingReserves}
           />
         ) : (
           <CoinBuySection
@@ -520,12 +607,14 @@ const SELSection = () => {
         sellAmount > 0 &&
         selectedTokenFrom &&
         selectedTokenTo && (
-          <DetailSection
-            sellAmount={`${swap ? buyAmount : sellAmount}`}
-            buyAmount={`${swap ? sellAmount : buyAmount}`}
-            inValidAmount={invaliSelldAmount || invalidBuyAmount}
-            reserves={reserveData}
-          />
+          <>
+            <DetailSection
+              sellAmount={`${swap ? buyAmount : sellAmount}`}
+              buyAmount={`${swap ? sellAmount : buyAmount}`}
+              inValidAmount={invaliSelldAmount || invalidBuyAmount}
+              reserves={reserveData}
+            />
+          </>
         )}
 
       <div className="w-full my-[30px]">

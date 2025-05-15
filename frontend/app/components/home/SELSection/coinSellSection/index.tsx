@@ -9,6 +9,7 @@ interface Props {
   setAmount: (amount: number) => void
   inValidAmount?: boolean
   swap?: boolean
+  disabled?: boolean
 }
 
 const CoinSellSection: React.FC<Props> = ({
@@ -16,6 +17,7 @@ const CoinSellSection: React.FC<Props> = ({
   setAmount,
   inValidAmount,
   swap,
+  disabled,
 }) => {
   const [active, setActive] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -74,6 +76,7 @@ const CoinSellSection: React.FC<Props> = ({
               onInputFocus={() => {
                 if (!active) setActive(true)
               }}
+              disabled={disabled}
             />
           </div>
         </div>
