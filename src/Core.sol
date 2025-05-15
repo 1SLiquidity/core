@@ -80,15 +80,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         return totalGasCost / TWAP_GAS_COST.length;
     }
 
-    function returnDollarValueOfEth() public returns (uint256) {
-        /**
-         * @audit need to implement this: utilise our UniversalDEXInterface to read eth price from any one of our DEX's
-         * // question would we, in fact, rather take na average of eth vakue accross the DEX's? probably not, since we need to 
-         * range the value f effective gas between 0.1 - 1 due to sweetSpotAlgo requirements 
-         * (streamCount become insane at low gas costs,@audit how do we balance this with user defined inpout for slippage)
-         */
-    }
-
     function placeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address owner, bool isInstasettlable, uint256 botGasAllowance)
         public
         payable
@@ -170,8 +161,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
 
 
-    function cancelTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+    function cancelTrade(uint256 tradeId)
         public
+        returns
+        (bool)
     {
         /**
          * should take a tradeId
@@ -180,6 +173,21 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          * then delete the trade from storage
          * then transfer out appropriate assets to the trade owner
          */
+
+        // @audit It is essential that this authority may be granted by a bot, therefore meaning if the msg.sender is Core. 
+        // @audit Similarly, when the Router is implemented, we mnust forward the msg.sdner in the function call
+        Utils.Trade memory trade = trades[tradeId];
+        if (trade.owner == msg.sender) {
+            // Delete the trade from storage
+            delete trades[tradeId];
+            // Transfer out the appropriate assets
+            IERC20(trade.tokenOut).transfer(msg.sender, trade.realisedAmountOut);
+            // and transfer amount remaining
+            IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     function executeTrades() public {
@@ -193,10 +201,14 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          * - the trade's realised slippage
          * - the trade's realised gas cost
          * - the trade's target amountOut vs realised amountOut
-         * - fees
          * - if streamCount = 1 || 2, we execute the stream AND transfer assets out
          * - update the number of attempts
+         * - update the latest stream count
+         * 
+         * 
+         * and ultimately, integrate fees...
          */
+
     }
 
     function _executeStream(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
@@ -208,12 +220,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             tokenIn,
             tokenOut,
             amountIn,
-            readTWAPGasCost(10) // placeholder delta. need optimisation @audit
+            readTWAPGasCost(10) // no longer need this parameter being passed in @audit
         );
-        if (sweetSpot < 1e18) { //ensure we have scaled that sweet spot well @audit
+        if (sweetSpot < 1) { // ensure we have scaled that sweet spot well @audit
             sweetSpot = 1;
-        } else if (sweetSpot > 1000e18) {
-            sweetSpot = 1000; // this is an arbitrary value once more
+        } else if (sweetSpot > 500) {
+            sweetSpot = 500; // this is an arbitrary value once more
         }
         streamVolume = amountIn / sweetSpot;
 
