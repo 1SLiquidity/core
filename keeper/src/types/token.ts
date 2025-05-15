@@ -3,8 +3,3 @@ export interface TokenInfo {
   decimals: number;
   symbol: string;
 }
-
-export interface TokenPair {
-  token0: TokenInfo;
-  token1: TokenInfo;
-} 
