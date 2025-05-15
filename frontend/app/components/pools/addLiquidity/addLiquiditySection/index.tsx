@@ -1,15 +1,15 @@
-import Image from 'next/image';
-import LiquidityToken from '../LiquidityToken';
+import Image from 'next/image'
+import LiquidityToken from '../LiquidityToken'
 
 interface Props extends InputAmountProps {
-  active: boolean;
-  setActive: (active: boolean) => void;
-  inValidAmount?: boolean;
+  active: boolean
+  setActive: (active: boolean) => void
+  inValidAmount?: boolean
 }
 
 interface InputAmountProps {
-  amount: number;
-  setAmount: (amount: number) => void;
+  amount: number
+  setAmount: (amount: number) => void
 }
 
 const AddLiquidtySection: React.FC<Props> = ({
@@ -38,7 +38,7 @@ const AddLiquidtySection: React.FC<Props> = ({
             ? 'bg-primary'
             : inValidAmount
             ? 'bg-primaryRed'
-            : 'bg-white12'
+            : 'bg-neutral-800'
         }`}
         onClick={() => setActive(!active)}
       >
@@ -59,9 +59,7 @@ const AddLiquidtySection: React.FC<Props> = ({
           }`}
         >
           {/* title */}
-          <p className="uppercase text-white72 text-[18px]">
-            Add Liquidity
-          </p>
+          <p className="uppercase text-white text-[18px]">Add Liquidity</p>
 
           <LiquidityToken
             amount={amount}
@@ -71,7 +69,7 @@ const AddLiquidtySection: React.FC<Props> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AddLiquidtySection;
+export default AddLiquidtySection

@@ -4,6 +4,7 @@ import useOnClickInside from '@/app/lib/hooks/useOnClickInside'
 import useOnClickOutside from '@/app/lib/hooks/useOnClickOutside'
 import React, { useRef, useState } from 'react'
 import { NumericFormat } from 'react-number-format'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface InputAmountProps {
   amount: number
@@ -13,6 +14,7 @@ interface InputAmountProps {
   inValidAmount?: boolean
   inputRef?: any
   onInputFocus?: () => void
+  isLoading?: boolean
 }
 
 const InputAmount: React.FC<InputAmountProps> = ({
@@ -23,6 +25,7 @@ const InputAmount: React.FC<InputAmountProps> = ({
   inValidAmount,
   inputRef,
   onInputFocus,
+  isLoading = false,
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [focus, setFocus] = useState(false)
@@ -40,6 +43,11 @@ const InputAmount: React.FC<InputAmountProps> = ({
   //   // }
   //   setFocus(true);
   // });
+
+  // If loading, render custom skeleton that matches input dimensions
+  if (isLoading) {
+    return <Skeleton className="h-10 w-32 sm:w-[12rem]" />
+  }
 
   return (
     <NumericFormat

@@ -138,7 +138,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
         {/* Network information */}
         <div className="mt-2 mb-4 flex items-center">
-          <div className="text-sm text-white72 px-2 py-1 bg-white12 rounded-full flex items-center">
+          <div className="text-sm text-white px-2 py-1 bg-neutral-800 rounded-full flex items-center">
             <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
             {chainName}
           </div>
@@ -169,12 +169,12 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
           </div>
         )}
 
-        {searchValue && <p className="text-[20px] text-white72">Results</p>}
+        {searchValue && <p className="text-[20px] text-white">Results</p>}
         {debouncedSearchValue.length > 0 ? (
           <>
             <div className="flex flex-col gap-1 my-[13px] h-[30vh] overflow-y-auto scrollbar-hide">
               {getFilteredTokens().length === 0 ? (
-                <div className="text-center p-4 text-white72">
+                <div className="text-center p-4 text-white">
                   No tokens found matching "{debouncedSearchValue}" on{' '}
                   {chainName}
                 </div>
@@ -183,7 +183,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                   <div
                     key={ind}
                     onClick={() => handleSelectToken(token)}
-                    className="w-full flex items-center min-h-[62px] hover:bg-white12 px-[13px] gap-[12px] rounded-[15px] cursor-pointer transition-colors"
+                    className="w-full flex items-center min-h-[62px] hover:bg-neutral-800 px-[13px] gap-[12px] rounded-[15px] cursor-pointer transition-colors"
                   >
                     <div className="relative h-fit">
                       <Image
@@ -205,7 +205,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                     </div>
                     {token.usd_price > 0 && (
                       <div className="text-right">
-                        <p className="text-[14px] text-white72">
+                        <p className="text-[14px] text-white">
                           $
                           {token.usd_price.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
@@ -235,7 +235,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
         {!(searchValue.length > 0) && (
           <div className="h-full">
-            <p className="text-[20px] text-white72">
+            <p className="text-[20px] text-white">
               Popular Tokens on {chainName}
             </p>
 
@@ -244,7 +244,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                 <div
                   key={ind}
                   onClick={() => handleSelectToken(token)}
-                  className="min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] bg-white005 hover:bg-white12 px-[13px] gap-[6px] border-[2px] border-primary rounded-[15px] cursor-pointer transition-colors"
+                  className="min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] bg-white005 hover:bg-neutral-800 px-[13px] gap-[6px] border-[2px] border-primary rounded-[15px] cursor-pointer transition-colors"
                 >
                   <div className="relative mt-1">
                     <Image
@@ -261,9 +261,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
               ))}
             </div>
 
-            <p className="text-[20px] text-white72">
-              All Tokens on {chainName}
-            </p>
+            <p className="text-[20px] text-white">All Tokens on {chainName}</p>
 
             <div className="flex flex-col gap-1 my-[13px] scrollbar-hide h-[30vh] overflow-y-auto pb-5">
               {isLoading ? (
@@ -271,7 +269,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               ) : getFilteredTokens().length === 0 ? (
-                <div className="text-center p-4 text-white72">
+                <div className="text-center p-4 text-white">
                   No tokens found on {chainName}
                 </div>
               ) : (
@@ -279,7 +277,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                   <div
                     key={ind}
                     onClick={() => handleSelectToken(token)}
-                    className="w-full flex items-center min-h-[62px] hover:bg-white12 px-[13px] gap-[12px] rounded-[15px] cursor-pointer transition-colors"
+                    className="w-full flex items-center min-h-[62px] hover:bg-neutral-800 px-[13px] gap-[12px] rounded-[15px] cursor-pointer transition-colors"
                   >
                     <div className="relative h-fit">
                       <Image
@@ -301,7 +299,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                     </div>
                     {token.usd_price > 0 && (
                       <div className="text-right">
-                        <p className="text-[14px] text-white72">
+                        <p className="text-[14px] text-white">
                           $
                           {token.usd_price.toLocaleString(undefined, {
                             minimumFractionDigits: 2,

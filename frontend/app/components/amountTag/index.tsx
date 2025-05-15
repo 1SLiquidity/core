@@ -1,20 +1,16 @@
-import Image from 'next/image';
-import Popover from '../popover';
+import Image from 'next/image'
+import Popover from '../popover'
 
 const AmountTag: React.FC<{
-  title: string;
-  amount: string;
-  infoDetail: string;
-  error?: boolean;
+  title: string
+  amount: string
+  infoDetail: string
+  error?: boolean
 }> = ({ title, amount, infoDetail, error }) => {
   return (
     <div className="w-full flex justify-between gap-1 text-[14px]">
       <div className="flex gap-1 items-center">
-        <p
-          className={`${error ? 'text-primaryRed' : 'text-white72'}`}
-        >
-          {title}
-        </p>
+        <p className={`${error ? 'text-primaryRed' : 'text-white'}`}>{title}</p>
         <Popover content={infoDetail} error={error}>
           {
             <Image
@@ -30,9 +26,7 @@ const AmountTag: React.FC<{
 
       {/* amount string */}
       <div className="flex gap-1 justify-end text-right">
-        <p
-          className={`${error ? 'text-primaryRed' : 'text-white72'}`}
-        >
+        <p className={`${error ? 'text-primaryRed' : 'text-white'}`}>
           {amount}
         </p>
         {error && (
@@ -46,7 +40,7 @@ const AmountTag: React.FC<{
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AmountTag;
+export default AmountTag

@@ -1,20 +1,20 @@
-import { formatWalletAddress } from '@/app/lib/helper';
-import Image from 'next/image';
-import Modal from '.';
-import SwapStream from '../swapStream';
-import { useState } from 'react';
-import StreamDetails from '../streamDetails';
+import { formatWalletAddress } from '@/app/lib/helper'
+import Image from 'next/image'
+import Modal from '.'
+import SwapStream from '../swapStream'
+import { useState } from 'react'
+import StreamDetails from '../streamDetails'
 
 type GlobalStreamModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-};
+  isOpen: boolean
+  onClose: () => void
+}
 
 const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [isStreamSelected, setIsStreamSelected] = useState(false);
+  const [isStreamSelected, setIsStreamSelected] = useState(false)
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       {/* close icon */}
@@ -58,9 +58,7 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
                       LIVE
                     </div>
                   </div>
-                  <p className="text-white72 text-[20px]">
-                    Global Stream
-                  </p>
+                  <p className="text-white text-[20px]">Global Stream</p>
                 </div>
               </>
             </div>
@@ -69,18 +67,14 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
               <div className="p-4 rounded-[15px] bg-white005">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col leading-tight gap-0.5 items-start">
-                    <p className="text-white72">Scheduled</p>
+                    <p className="text-white">Scheduled</p>
                     <p className="text-[20px]">99</p>
-                    <p className="text-white52 text-[14px]">
-                      $99,999,922.39
-                    </p>
+                    <p className="text-white52 text-[14px]">$99,999,922.39</p>
                   </div>
                   <div className="flex flex-col leading-tight gap-0.5 items-start">
-                    <p className="text-white72">Ongoing</p>
+                    <p className="text-white">Ongoing</p>
                     <p className="text-[20px]">99</p>
-                    <p className="text-white52 text-[14px]">
-                      $99,999,922.39
-                    </p>
+                    <p className="text-white52 text-[14px]">$99,999,922.39</p>
                   </div>
                 </div>
               </div>
@@ -89,24 +83,12 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
                 <p className="text-[20px] pb-3.5">Global Streams</p>
 
                 <div className="flex flex-col gap-2">
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
                 </div>
               </div>
             </div>
@@ -114,7 +96,7 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
         )}
       </div>
     </Modal>
-  );
-};
+  )
+}
 
-export default GlobalStreamModal;
+export default GlobalStreamModal

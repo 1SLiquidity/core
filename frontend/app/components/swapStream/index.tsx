@@ -1,17 +1,13 @@
-import Image from 'next/image';
-import React from 'react';
+import Image from 'next/image'
+import React from 'react'
 
 type Props = {
-  limit?: boolean;
-  limitContent?: React.ReactNode;
-  onClick?: () => void;
-};
+  limit?: boolean
+  limitContent?: React.ReactNode
+  onClick?: () => void
+}
 
-const SwapStream: React.FC<Props> = ({
-  limit,
-  limitContent,
-  onClick,
-}) => {
+const SwapStream: React.FC<Props> = ({ limit, limitContent, onClick }) => {
   return (
     <div
       className="w-full border border-white14 relative bg-white005 p-4 rounded-[15px] cursor-pointer"
@@ -37,7 +33,7 @@ const SwapStream: React.FC<Props> = ({
               alt="swapStream"
               className="w-[18px] h-[18px]"
             />
-            <p className="text-white72 uppercase">1 ETH</p>
+            <p className="text-white uppercase">1 ETH</p>
           </div>
           <Image
             src="/icons/right-arrow.svg"
@@ -54,7 +50,7 @@ const SwapStream: React.FC<Props> = ({
               alt="swapStream"
               className="w-[18px] h-[18px]"
             />
-            <p className="text-white72 uppercase">3,300 USDC (Est)</p>
+            <p className="text-white uppercase">3,300 USDC (Est)</p>
           </div>
         </div>
 
@@ -85,14 +81,12 @@ const SwapStream: React.FC<Props> = ({
             <div className="p-[3px] rounded-[4px] !text-[12px] flex items-center justify-center bg-primary uppercase text-black">
               Limit
             </div>
-            <div className="text-white52 text-[14px]">
-              {limitContent}
-            </div>
+            <div className="text-white52 text-[14px]">{limitContent}</div>
           </div>
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SwapStream;
+export default SwapStream

@@ -198,7 +198,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
             {/* Chain Indicator */}
             <div className="px-6 mt-4 flex justify-between items-center">
               <div className="flex items-center">
-                <div className="text-sm text-white72 px-2 py-1 bg-white12 rounded-full flex items-center">
+                <div className="text-sm text-white px-2 py-1 bg-neutral-800 rounded-full flex items-center">
                   <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
                   {chainName}
                 </div>
@@ -370,7 +370,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                         return (
                           <div
                             key={ind}
-                            className="w-full flex items-center justify-between border border-white14 bg-white005 hover:bg-white12 p-4 rounded-[15px] cursor-pointer"
+                            className="w-full flex items-center justify-between border border-white14 bg-white005 hover:bg-neutral-800 p-4 rounded-[15px] cursor-pointer"
                           >
                             <div className="flex gap-[12px]">
                               <div className="relative h-fit">

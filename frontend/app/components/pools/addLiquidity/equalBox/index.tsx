@@ -1,8 +1,8 @@
-import Image from 'next/image';
+import Image from 'next/image'
 
 type Props = {
-  active: boolean;
-};
+  active: boolean
+}
 
 const EqualBox: React.FC<Props> = ({ active = false }) => {
   return (
@@ -11,7 +11,7 @@ const EqualBox: React.FC<Props> = ({ active = false }) => {
         className={`w-full h-full rounded-[4px] flex justify-center items-center p-1 ${
           active
             ? 'bg-gradient-to-r from-[#071310] to-[#062118]'
-            : 'bg-white12'
+            : 'bg-neutral-800'
         }`}
       >
         <Image
@@ -23,7 +23,7 @@ const EqualBox: React.FC<Props> = ({ active = false }) => {
         />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default EqualBox;
+export default EqualBox

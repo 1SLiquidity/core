@@ -1,14 +1,14 @@
-import Button from '@/app/components/button';
-import Image from 'next/image';
+import Button from '@/app/components/button'
+import Image from 'next/image'
 
-type Props = {};
+type Props = {}
 
 const ActivityTable: React.FC<Props> = () => {
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="relative overflow-x-auto border border-gray rounded-[15px]">
         <table className="w-full text-left rtl:text-right text-gray-500 text-[16px]">
-          <thead className="text-white72 uppercase bg-gray-50 border-b border-primary">
+          <thead className="text-white uppercase bg-gray-50 border-b border-primary">
             <tr>
               <th
                 scope="col"
@@ -60,7 +60,7 @@ const ActivityTable: React.FC<Props> = () => {
         </table>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ActivityTable;
+export default ActivityTable

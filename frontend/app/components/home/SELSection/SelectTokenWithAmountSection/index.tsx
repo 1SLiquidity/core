@@ -7,6 +7,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useWalletTokens } from '@/app/lib/hooks/useWalletTokens'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface InputAmountProps {
   amount: number
@@ -16,6 +17,7 @@ interface InputAmountProps {
   inputField: 'from' | 'to'
   onInputFocus?: () => void
   disabled?: boolean
+  isLoading?: boolean
 }
 
 const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
@@ -26,6 +28,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   inputField,
   onInputFocus,
   disabled,
+  isLoading,
 }) => {
   const {
     showSelectTokenModal,
@@ -152,7 +155,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
 
   return (
     <div className="w-full">
-      <div className="w-full flex gap-4 justify-between mt-[12px]">
+      <div className="w-full flex gap-4 items-center justify-between mt-[12px]">
         {/* amount */}
         <div className="flex-1">
           <InputAmount
@@ -164,6 +167,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
             }}
             onInputFocus={onInputFocus}
             disable={disabled}
+            isLoading={isLoading}
           />
         </div>
 
@@ -225,11 +229,22 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
 
       {/* bottom section */}
       <div className="mt-2 w-full flex justify-between gap-3 items-center">
-        <p className={`${inValidAmount ? 'text-primaryRed' : 'text-primary'}`}>
-          {selectedToken && selectedToken.usd_price
-            ? `$${(amount * selectedToken.usd_price).toFixed(2)}`
-            : `$${amount}`}
-        </p>
+        {isLoading ? (
+          <Skeleton className="h-4 w-10 mt-4" />
+        ) : (
+          <>
+            <p
+              className={`${
+                inValidAmount ? 'text-primaryRed' : 'text-primary'
+              }`}
+            >
+              {selectedToken && selectedToken.usd_price
+                ? `$${(amount * selectedToken.usd_price).toFixed(2)}`
+                : `$${amount}`}
+            </p>
+          </>
+        )}
+
         <div className="flex gap-1.5 items-center">
           {selectedToken && (
             <>
@@ -246,12 +261,12 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
                 onMouseLeave={() => setShowTooltip(false)}
               >
                 {isLoadingTokens ? (
-                  <p className="text-white72 flex items-center">
+                  <p className="text-white flex items-center">
                     <span className="inline-block w-3 h-3 border-t-2 border-primary animate-spin rounded-full mr-1"></span>
                     Loading...
                   </p>
                 ) : (
-                  <p className="text-white72">{getTokenBalance()}</p>
+                  <p className="text-white">{getTokenBalance()}</p>
                 )}
                 {showTooltip &&
                   parseFloat(getTokenBalance()) > 0 &&
@@ -261,13 +276,13 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
                     </div>
                   )}
               </div>
-              <p className="uppercase text-white72">{selectedToken.symbol}</p>
+              <p className="uppercase text-white">{selectedToken.symbol}</p>
 
               {/* Max button - only visible for the "from" input and when balance > 0 */}
               {shouldShowMaxButton() && (
                 <button
                   onClick={handleSetMaxAmount}
-                  className="ml-1 text-xs bg-white005 hover:bg-white12 text-primary px-2 py-0.5 rounded-md transition-colors"
+                  className="ml-1 text-xs bg-white005 hover:bg-neutral-800 text-primary px-2 py-0.5 rounded-md transition-colors"
                 >
                   MAX
                 </button>

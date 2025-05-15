@@ -68,7 +68,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
         {/* navlinks */}
         {isBack ? (
           <div
-            className="flex gap-1 text-white72 cursor-pointer items-center"
+            className="flex gap-1 text-white cursor-pointer items-center"
             onClick={onBack}
           >
             <Image

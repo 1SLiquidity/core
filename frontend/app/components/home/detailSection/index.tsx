@@ -211,7 +211,7 @@ const DetailSection: React.FC<Props> = ({
                   </p>
                 </div>
                 {reserves.dex.startsWith('uniswap-v3') && (
-                  <div className="mt-3 p-2 bg-white12 rounded-md">
+                  <div className="mt-3 p-2 bg-neutral-800 rounded-md">
                     <p className="text-white70 text-xs mb-1">
                       Uniswap V3 uses concentrated liquidity which may not be
                       accurately represented by reserve values. The actual price

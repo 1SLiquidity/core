@@ -1,17 +1,17 @@
-import Button from '@/app/components/button';
-import Image from 'next/image';
-import Link from 'next/link';
+import Button from '@/app/components/button'
+import Image from 'next/image'
+import Link from 'next/link'
 
 type Props = {
-  onAddLiquidity: () => void;
-};
+  onAddLiquidity: () => void
+}
 
 const PoolTable: React.FC<Props> = ({ onAddLiquidity }) => {
   return (
     <div className="flex flex-col gap-4 w-full">
       <div className="relative overflow-x-auto mt-10">
         <table className="w-full bg-transparent text-left rtl:text-right text-gray-500 text-[16px]">
-          <thead className="text-white72 uppercase bg-transaprent border-b border-primary">
+          <thead className="text-white uppercase bg-transaprent border-b border-primary">
             <tr>
               <th
                 scope="col"
@@ -63,7 +63,7 @@ const PoolTable: React.FC<Props> = ({ onAddLiquidity }) => {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[18px]">Eth</span>
-                      <span className="text-white72">$999.9M</span>
+                      <span className="text-white">$999.9M</span>
                     </div>
                   </div>
                 </td>
@@ -117,7 +117,7 @@ const PoolTable: React.FC<Props> = ({ onAddLiquidity }) => {
         </table>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default PoolTable;
+export default PoolTable

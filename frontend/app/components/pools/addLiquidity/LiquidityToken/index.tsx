@@ -1,10 +1,10 @@
-import InputAmount from '@/app/components/inputAmount';
-import Image from 'next/image';
+import InputAmount from '@/app/components/inputAmount'
+import Image from 'next/image'
 
 interface InputAmountProps {
-  amount: number;
-  setAmount: any;
-  inValidAmount?: boolean;
+  amount: number
+  setAmount: any
+  inValidAmount?: boolean
 }
 
 const LiquidityToken: React.FC<InputAmountProps> = ({
@@ -21,7 +21,7 @@ const LiquidityToken: React.FC<InputAmountProps> = ({
             amount={amount}
             inValidAmount={inValidAmount}
             setAmount={(val: any) => {
-              setAmount(val);
+              setAmount(val)
             }}
           />
         </div>
@@ -29,9 +29,7 @@ const LiquidityToken: React.FC<InputAmountProps> = ({
         {/* select token */}
         <div
           className={`min-w-[165px] w-fit h-12 bg-blackGradient border-[2px] p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold ${
-            amount > 0 && !inValidAmount
-              ? 'border-success'
-              : 'border-primary'
+            amount > 0 && !inValidAmount ? 'border-success' : 'border-primary'
           }`}
         >
           <div className="flex items-center w-fit h-fit">
@@ -58,11 +56,7 @@ const LiquidityToken: React.FC<InputAmountProps> = ({
 
       {/* bottom section */}
       <div className="mt-2 w-full flex justify-between gap-3 items-center">
-        <p
-          className={`${
-            inValidAmount ? 'text-primaryRed' : 'text-primary'
-          }`}
-        >
+        <p className={`${inValidAmount ? 'text-primaryRed' : 'text-primary'}`}>
           ${amount}
         </p>
         <div className="flex gap-1.5 items-center">
@@ -73,17 +67,17 @@ const LiquidityToken: React.FC<InputAmountProps> = ({
             width={20}
             height={20}
           />
-          <p className="text-white72">--</p>
+          <p className="text-white">--</p>
 
           {/* {findedToken && (
-            <p className="uppercase text-white72">
+            <p className="uppercase text-white">
               {findedToken.symbol}
             </p>
           )} */}
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default LiquidityToken;
+export default LiquidityToken

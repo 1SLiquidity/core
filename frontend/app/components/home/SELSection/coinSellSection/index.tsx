@@ -39,18 +39,17 @@ const CoinSellSection: React.FC<Props> = ({
         />
       )}
       <div
-        className={`w-full min-h-[150px] md:min-h-[167px] rounded-[15px] p-[2px] relative
-
+        className={`w-full min-h-[150px] md:min-h-[171px] rounded-[15px] p-[2px] relative
           ${
             amount > 0 && !inValidAmount && active && selectedTokenFrom
               ? 'bg-primary'
               : inValidAmount
               ? 'bg-primaryRed'
-              : 'bg-white12'
+              : 'bg-neutral-800'
           }`}
       >
         <div
-          className={`w-full h-full z-20 sticky left-0 top-0 px-7 py-5 rounded-[13px] ${
+          className={`w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-5 rounded-[13px] ${
             amount > 0 && !inValidAmount && active && selectedTokenFrom
               ? 'bg-gradient-to-r from-[#071310] to-[#062118]'
               : 'bg-[#0D0D0D]'
@@ -63,7 +62,7 @@ const CoinSellSection: React.FC<Props> = ({
           }`}
         >
           {/* title */}
-          <p className="uppercase text-white72 text-[18px]">SELL</p>
+          <p className="uppercase text-white text-[18px]">SELL</p>
 
           <div className="w-full h-full">
             <SelectTokenWithAmountSection
