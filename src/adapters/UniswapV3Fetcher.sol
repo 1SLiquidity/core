@@ -48,18 +48,17 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
             return (0, 0);
         }
 
-        (uint160 sqrtPriceX96,,, uint16 observationCardinality,,,) = IUniswapV3Pool(pool).slot0();
-        address token0 = IUniswapV3Pool(pool).token0();
-        address token1 = IUniswapV3Pool(pool).token1();
+        // Get pool data
+        (uint160 sqrtPriceX96,,,,,,) = IUniswapV3Pool(pool).slot0();
+        uint128 liquidity = IUniswapV3Pool(pool).liquidity();
+        bool isToken0 = tokenA == IUniswapV3Pool(pool).token0();
 
-        // Convert sqrtPriceX96 to reserves
-        uint256 price = uint256(sqrtPriceX96) * uint256(sqrtPriceX96) * 1e18 / (1 << 192);
+        // Calculate virtual reserves
+        uint256 sqrtPrice = uint256(sqrtPriceX96) * 1e9 / (1 << 96);
+        uint256 reserve0 = uint256(liquidity) * 1e18 / sqrtPrice;
+        uint256 reserve1 = uint256(liquidity) * sqrtPrice / 1e18;
 
-        if (tokenA == token0) {
-            return (observationCardinality, observationCardinality * price / 1e18);
-        } else {
-            return (observationCardinality * price / 1e18, observationCardinality);
-        }
+        return isToken0 ? (reserve0, reserve1) : (reserve1, reserve0);
     }
 
     function getPoolAddress(address tokenIn, address tokenOut) external view override returns (address) {

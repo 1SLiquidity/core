@@ -91,6 +91,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
     function placeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address owner, bool isInstasettlable, uint256 botGasAllowance)
         public
+        payable
     {
 
         /**
@@ -123,7 +124,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          */
 
         // letstransfer funds 
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), msg.value);
 
         // generate trade
         Utils.Trade memory trade;
@@ -132,8 +133,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         trade.tradeId = lastTradeId;
         trade.tokenIn = tokenIn;
         trade.tokenOut = tokenOut;
-        trade.amountIn = amountIn;
-        trade.amountRemaining = amountIn;
+        trade.amountIn = msg.value;
+        trade.amountRemaining = msg.value;
         trade.targetAmountOut = amountOutMin;
         trade.isInstasettlable = isInstasettlable;
         trade.botGasAllowance = botGasAllowance;
@@ -148,7 +149,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         lastTradeId++;
 
         // now, we execute a single stream;
-        (uint256 realisedAmountIn, uint256 executedAmountOut, uint256 sweetSpot) = executeStream(tokenIn, tokenOut, amountIn, amountOutMin, address(this));
+        (uint256 realisedAmountIn, uint256 executedAmountOut, uint256 sweetSpot) = _executeStream(tokenIn, tokenOut, amountIn, amountOutMin, address(this));
 
         if (sweetSpot == 1 || sweetSpot == 2) {
             // we execute the stream AND transfer assets out
@@ -198,7 +199,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          */
     }
 
-    function executeStream(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+    function _executeStream(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
         internal
         returns (uint256 streamVolume, uint256 amountOut, uint256 lastSweetSpot)
     {

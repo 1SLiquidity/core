@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+/// elts use console.log to debug
+import "forge-std/console.sol";
+
 import {IUniversalDexInterface} from "./interfaces/IUniversalDexInterface.sol";
 import {Ownable} from "lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import {IERC20Metadata} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -43,12 +46,12 @@ contract StreamDaemon is Ownable {
 
     function evaluateSweetSpotAndDex(address tokenIn, address tokenOut, uint256 volume, uint256 effectiveGas)
         public
-        view
         returns (uint256 sweetSpot, address bestFetcher)
     {
         (address identifiedFetcher, uint256 maxReserveIn, uint256 maxReserveOut) =
             findHighestReservesForTokenPair(tokenIn, tokenOut);
         bestFetcher = identifiedFetcher;
+        console.log("bestFetcher", bestFetcher);
 
         // Ensure effective gas is at least the minimum
         if (effectiveGas < MIN_EFFECTIVE_GAS_DOLLARS) {
@@ -90,11 +93,42 @@ contract StreamDaemon is Ownable {
      * alpha represents a scalar variable which scales the sweet spot elementaries to
      * eliminate shifts in algo output due to reserve differences
      */
-    function computeAlpha(uint256 reserveIn, uint256 reserveOut) public pure returns (uint256) {
+    function computeAlpha(uint256 reserveIn, uint256 reserveOut) internal pure returns (uint256 alpha) {
         // alpha = reserveOut / (reserveIn^2)
         require(reserveIn > 0, "Invalid reserve");
         require(reserveOut > 0, "Invalid reserve");
-        return reserveOut * 1e18 / (reserveIn * reserveIn);
+        
+        // Scale up by 1e18 to maintain precision in division
+        return ((reserveOut * 1e24) / (reserveIn * reserveIn));
+    }
+
+    function _yetAnotherAlgo (address tokenIn,
+        address tokenOut,
+        uint256 volume,
+        uint256 reserveIn,
+        uint256 reserveOut,
+        uint256 effectiveGas) public returns (uint256 sweetSpot) {
+
+            uint8 decimalsIn = IERC20Metadata(tokenIn).decimals();
+
+            if (decimalsIn != 18) {
+                if (decimalsIn > 18) {
+                    volume = volume / (10 ** (decimalsIn - 18));
+                    reserveIn = reserveIn / (10 ** (decimalsIn - 18));
+                } else {
+                    volume = volume * (10 ** (18 - decimalsIn));
+                    reserveIn = reserveIn * (10 ** (18 - decimalsIn));
+                }
+            }
+
+            //now change to human readable format
+
+            volume = volume / 1e18;
+            reserveIn = reserveIn / 1e18;
+
+            sweetSpot = volume / sqrt(reserveIn);
+            console.log("sweetSpot", sweetSpot);
+
     }
 
     function _sweetSpotAlgo(
@@ -109,33 +143,23 @@ contract StreamDaemon is Ownable {
         if (reserveIn == 0 || reserveOut == 0 || effectiveGas == 0) {
             revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
         }
+        console.log("Start |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n                        ||||||||");
 
-        // @audit effectiveGas is in dollars, not gas, and an appropriate gas algo should be used on execution
+        console.log("reserveIn", reserveIn);
+        console.log("reserveOut", reserveOut);
+        console.log("effectiveGas", effectiveGas);
+        console.log("volume", volume);
 
-        // if (effectiveGas < 1e17 || effectiveGas <= 1e18) {
-        //     revert("Effective gas inappropriate");
-        // }
-
-        /**
-         *
-         * limits
-         * N >= 2 (so, if the algo returns a value < 1, default to stream count = 2)
-         * @audit if the 'lastStreamCount' of a trade = 2, ergo the last execution was the penultimate stream,
-         * this algo shouldn't be called (otherwise we would infinitely divide the remaining stream by 2 per stream esxecution)
-         *
-         * if N > 500 (values of n > 500 show significant trade volume vs the pool reserves. these trades should be flagged and warnings provided)
-         * GENERAL EQUATION the equation is built from the premise of quadratic slippage. this yields a best guess approximation, as otherwise
-         * we would require an iterative method, likely a finite series, to identify these points, which may result in something very gas heavy.
-         *
-         * for now, at this stage, the algorithm works in splitting trades for the effect of optimising trade efficiency on a block - by - block basis
-         */
         uint8 decimalsIn = IERC20Metadata(tokenIn).decimals();
         uint8 decimalsOut = IERC20Metadata(tokenOut).decimals();
 
-        // csale alll to 18 decimals
+        // Scale all to 18 decimals
         uint256 scaledVolume = volume;
+        console.log("scaledVolume", scaledVolume);
         uint256 scaledReserveIn = reserveIn;
+        console.log("scaledReserveIn", scaledReserveIn);
         uint256 scaledReserveOut = reserveOut;
+        console.log("scaledReserveOut", scaledReserveOut);
 
         if (decimalsIn != 18) {
             if (decimalsIn > 18) {
@@ -155,25 +179,34 @@ contract StreamDaemon is Ownable {
             }
         }
 
+        console.log("scaledVolume", scaledVolume);
+        console.log("scaledReserveIn", scaledReserveIn);
+        console.log("scaledReserveOut", scaledReserveOut);
+
         uint256 alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
+        console.log("alpha", alpha);
+        
+        // Calculate sweet spot with proper scaling
+        // N = sqrt(a*V^2/g)
+        uint256 numerator = alpha * scaledVolume * scaledVolume;
+        console.log("numerator", numerator);
+        uint256 denominator = effectiveGas * 1e24;
+        console.log("denominator", denominator);
+        
+        // Ensure we don't divide by zero
+        require(denominator > 0, "Invalid effective gas");
+        
+        // Scale up numerator to maintain precision
+        numerator = numerator * 1e18;        // Calculate sqrt of (numerator/denominator)
+        sweetSpot = sqrt(numerator / denominator);
+        console.log("calculated sweetSpot", sweetSpot);
+        require(sweetSpot > 0, "Invalid sqrt calculation");
+        sweetSpot = sweetSpot / 1e17;
 
-        sweetSpot = volume / (sqrt((alpha * volume ^ 2) / effectiveGas));
-
-        /**
-         *
-         * @audit we may need more measures here, specifically monitoring the
-         * percentage of pool reserves from any incoming trade qnd possibly metering the outputs
-         * of the algorithm accordingly. These modifications may come from deterministic mathematical
-         * evalutaitons or experimental findings. E.g, if % > 2 || < 1, sweetSpot / 2
-         *
-         * at this point, whilst not production ready, the algorithm is valid enough to test in integrations.
-         *
-         *
-         */
+        // Ensure minimum of 2 splits and maximum of 500
         if (sweetSpot < 2) {
             sweetSpot = 2;
         }
-
         if (sweetSpot > 500) {
             sweetSpot = 500;
         }
