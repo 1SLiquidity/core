@@ -255,13 +255,14 @@ export class UniswapV2Calculator extends BaseDexCalculator {
 
     try {
       // Get token decimals from reserveData or default to 18
-      // const token0Decimals = reserveData.token0Decimals || 18
-      // const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.token0Decimals || 18
+      const token1Decimals = reserveData.token1Decimals || 18
 
-      const token0Decimals = 6
-      const token1Decimals = 6
+      // const token0Decimals = 6
+      // const token1Decimals = 6
 
-      console.log('this.provider', this.provider)
+      console.log('token0Decimals ===>', token0Decimals)
+      console.log('token1Decimals ===>', token1Decimals)
 
       // Convert to BigNumber with proper decimals
       const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)

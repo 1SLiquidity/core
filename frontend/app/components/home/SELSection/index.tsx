@@ -109,8 +109,10 @@ const SELSection = () => {
         // Add decimals to the reserve data
         const reserveDataWithDecimals = {
           ...data,
-          token0Decimals: selectedTokenFrom.decimals || 18,
-          token1Decimals: selectedTokenTo.decimals || 18,
+          // token0Decimals: selectedTokenFrom.decimals || 18,
+          // token1Decimals: selectedTokenTo.decimals || 18,
+          token0Decimals: data.decimals.token0 || 18,
+          token1Decimals: data.decimals.token1 || 18,
           token0Address: selectedTokenFrom.token_address || '',
           token1Address: selectedTokenTo.token_address || '',
         } as ReserveData
