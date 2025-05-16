@@ -379,69 +379,90 @@ const SELSection = () => {
       transition: {
         duration: 0.3,
         ease: 'easeOut',
-        delay: 0,
+        delay: 0.2,
       },
     },
   }
 
-  console.log('fetching reserves ===>', isFetchingReserves)
+  // Animation variants
+  const titleVariants: Variants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.3,
+        ease: 'easeOut',
+        delay: 0, // Appear after logo
+      },
+    },
+  }
 
   return (
-    <motion.div
-      className="md:min-w-[500px] max-w-[500px] w-[95vw] p-2"
-      initial="hidden"
-      animate={controls}
-      variants={containerVariants}
-    >
-      <div className="w-full flex justify-between gap-2 mb-4">
-        <div className="w-fit">
-          <Tabs
-            tabs={SEL_SECTION_TABS}
-            theme="secondary"
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-          />
-        </div>
+    <div className="w-full flex flex-col justify-center items-center">
+      <motion.h1
+        className="text-4xl md:text-6xl font-bold mb-10 sm:mb-16 text-white"
+        initial="hidden"
+        animate={controls}
+        variants={titleVariants}
+      >
+        Swap anytime, anywhere
+      </motion.h1>
+      <motion.div
+        className="md:min-w-[500px] max-w-[500px] w-[95vw] p-2"
+        initial="hidden"
+        animate={controls}
+        variants={containerVariants}
+      >
+        <div className="w-full flex justify-between gap-2 mb-4">
+          <div className="w-fit">
+            <Tabs
+              tabs={SEL_SECTION_TABS}
+              theme="secondary"
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+            />
+          </div>
 
-        {/* setting button */}
-        <div className="flex items-center gap-2">
-          {/* Reload Timer */}
-          {timerActive && (
-            <div className="flex items-center justify-end">
-              <div className="flex items-center gap-2 bg-white hover:bg-tabsGradient bg-opacity-[12%] px-2 py-1 rounded-full">
-                <div className="text-sm text-white/70">Auto refresh in</div>
-                <div className="relative w-6 h-6">
-                  {/* Circular timer animation */}
-                  <svg className="w-6 h-6 transform -rotate-90">
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      fill="transparent"
-                      className="text-white/10"
-                    />
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      fill="transparent"
-                      strokeDasharray="62.83" // 2 * PI * r (where r=10)
-                      strokeDashoffset={
-                        62.83 * (1 - timeRemaining / TIMER_DURATION)
-                      }
-                      className="text-primary transition-all duration-1000 ease-linear"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
-                    {timeRemaining}
+          {/* setting button */}
+          <div className="flex items-center gap-2">
+            {/* Reload Timer */}
+            {timerActive && (
+              <div className="flex items-center justify-end">
+                <div className="flex items-center gap-2 bg-white hover:bg-tabsGradient bg-opacity-[12%] px-2 py-1 rounded-full">
+                  <div className="text-sm text-white/70">Auto refresh in</div>
+                  <div className="relative w-6 h-6">
+                    {/* Circular timer animation */}
+                    <svg className="w-6 h-6 transform -rotate-90">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        fill="transparent"
+                        className="text-white/10"
+                      />
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        fill="transparent"
+                        strokeDasharray="62.83" // 2 * PI * r (where r=10)
+                        strokeDashoffset={
+                          62.83 * (1 - timeRemaining / TIMER_DURATION)
+                        }
+                        className="text-primary transition-all duration-1000 ease-linear"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center text-xs font-medium">
+                      {timeRemaining}
+                    </div>
                   </div>
-                </div>
 
-                {/* <RefreshCcw
+                  {/* <RefreshCcw
                 onClick={() => {
                   // Reset timer and fetch immediately
                   setTimeRemaining(TIMER_DURATION)
@@ -449,107 +470,110 @@ const SELSection = () => {
                 }}
                 className="w-4 h-4 ml-1 text-primary hover:text-primary/80 transition-colors"
               /> */}
+                </div>
               </div>
-            </div>
+            )}
+
+            <SettingButton />
+          </div>
+        </div>
+
+        {activeTab.title === 'Limit' && (
+          <LimitSection
+            active={false} // Always false since we only support sell-to-buy
+            setActive={() => {}} // No-op function since we don't change this state
+          />
+        )}
+        <div className="w-full mt-4 flex flex-col relative gap-[23px]">
+          {swap ? (
+            <CoinBuySection
+              amount={buyAmount}
+              setAmount={handleBuyAmountChange}
+              inValidAmount={invalidBuyAmount}
+              swap={swap}
+              disabled={true} // Always disabled in swap mode
+              isLoading={false} // Never loading in the top position
+            />
+          ) : (
+            <CoinSellSection
+              amount={sellAmount}
+              setAmount={handleSellAmountChange}
+              inValidAmount={invaliSelldAmount}
+              disabled={isFetchingReserves}
+            />
+          )}
+          <div
+            onClick={handleSwap}
+            className="absolute items-center flex border-[#1F1F1F] border-[2px] border-opacity-[1.5] bg-black justify-center cursor-pointer rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50"
+          >
+            <div className="w-[25.3px] h-[22.8px] absolute bg-black -rotate-45 -z-30 -left-[14px] top-[50.8px]" />
+            <div className="w-[26.4px] h-[22.8px] absolute bg-black -rotate-45 -z-30 -right-[11.8px] -top-[13.2px]" />
+            <SwapBox active={sellAmount > 0 || buyAmount > 0} />
+          </div>
+          {swap ? (
+            <CoinSellSection
+              amount={sellAmount}
+              setAmount={handleSellAmountChange}
+              inValidAmount={invaliSelldAmount}
+              swap={swap}
+              disabled={isFetchingReserves}
+            />
+          ) : (
+            <CoinBuySection
+              amount={buyAmount}
+              setAmount={handleBuyAmountChange}
+              inValidAmount={invalidBuyAmount}
+              swap={swap}
+              disabled={true} // Always disabled since we only support sell-to-buy
+              isLoading={isCalculating} // Show loading state when calculating
+            />
+          )}
+        </div>
+
+        {/* Error message for calculation errors */}
+        {calculationError && (
+          <div className="mt-2 p-2 bg-red-900/30 text-red-400 rounded-lg text-sm">
+            {calculationError}
+          </div>
+        )}
+
+        {/* Detail Section */}
+        {buyAmount > 0 &&
+          sellAmount > 0 &&
+          selectedTokenFrom &&
+          selectedTokenTo && (
+            <>
+              <DetailSection
+                sellAmount={`${swap ? buyAmount : sellAmount}`}
+                buyAmount={`${swap ? sellAmount : buyAmount}`}
+                inValidAmount={invaliSelldAmount || invalidBuyAmount}
+                reserves={reserveData}
+              />
+            </>
           )}
 
-          <SettingButton />
-        </div>
-      </div>
-
-      {activeTab.title === 'Limit' && (
-        <LimitSection
-          active={false} // Always false since we only support sell-to-buy
-          setActive={() => {}} // No-op function since we don't change this state
-        />
-      )}
-      <div className="w-full mt-4 flex flex-col relative gap-[23px]">
-        {swap ? (
-          <CoinBuySection
-            amount={buyAmount}
-            setAmount={handleBuyAmountChange}
-            inValidAmount={invalidBuyAmount}
-            swap={swap}
-            disabled={true} // Always disabled in swap mode
-            isLoading={false} // Never loading in the top position
-          />
-        ) : (
-          <CoinSellSection
-            amount={sellAmount}
-            setAmount={handleSellAmountChange}
-            inValidAmount={invaliSelldAmount}
-            disabled={isFetchingReserves}
-          />
-        )}
-        <div
-          onClick={handleSwap}
-          className="absolute items-center flex border-[#1F1F1F] border-[2px] border-opacity-[1.5] bg-black justify-center cursor-pointer rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50"
-        >
-          <div className="w-[25.3px] h-[22.8px] absolute bg-black -rotate-45 -z-30 -left-[14px] top-[50.8px]" />
-          <div className="w-[26.4px] h-[22.8px] absolute bg-black -rotate-45 -z-30 -right-[11.8px] -top-[13.2px]" />
-          <SwapBox active={sellAmount > 0 || buyAmount > 0} />
-        </div>
-        {swap ? (
-          <CoinSellSection
-            amount={sellAmount}
-            setAmount={handleSellAmountChange}
-            inValidAmount={invaliSelldAmount}
-            swap={swap}
-            disabled={isFetchingReserves}
-          />
-        ) : (
-          <CoinBuySection
-            amount={buyAmount}
-            setAmount={handleBuyAmountChange}
-            inValidAmount={invalidBuyAmount}
-            swap={swap}
-            disabled={true} // Always disabled since we only support sell-to-buy
-            isLoading={isCalculating} // Show loading state when calculating
-          />
-        )}
-      </div>
-
-      {/* Error message for calculation errors */}
-      {calculationError && (
-        <div className="mt-2 p-2 bg-red-900/30 text-red-400 rounded-lg text-sm">
-          {calculationError}
-        </div>
-      )}
-
-      {/* Detail Section */}
-      {buyAmount > 0 &&
-        sellAmount > 0 &&
-        selectedTokenFrom &&
-        selectedTokenTo && (
-          <>
-            <DetailSection
-              sellAmount={`${swap ? buyAmount : sellAmount}`}
-              buyAmount={`${swap ? sellAmount : buyAmount}`}
-              inValidAmount={invaliSelldAmount || invalidBuyAmount}
-              reserves={reserveData}
+        <div className="w-full my-[30px]">
+          {isConnected ? (
+            <Button
+              text="Swap"
+              theme="gradient"
+              onClick={() => addToast(<NotifiSwapStream />)}
+              error={
+                invaliSelldAmount || invalidBuyAmount || !!calculationError
+              }
+              disabled={
+                !selectedTokenFrom || !selectedTokenTo || !!calculationError
+              }
             />
-          </>
-        )}
-
-      <div className="w-full my-[30px]">
-        {isConnected ? (
-          <Button
-            text="Swap"
-            theme="gradient"
-            onClick={() => addToast(<NotifiSwapStream />)}
-            error={invaliSelldAmount || invalidBuyAmount || !!calculationError}
-            disabled={
-              !selectedTokenFrom || !selectedTokenTo || !!calculationError
-            }
-          />
-        ) : (
-          <Button
-            text="Connect Wallet"
-            error={invaliSelldAmount || invalidBuyAmount}
-          />
-        )}
-      </div>
-    </motion.div>
+          ) : (
+            <Button
+              text="Connect Wallet"
+              error={invaliSelldAmount || invalidBuyAmount}
+            />
+          )}
+        </div>
+      </motion.div>
+    </div>
   )
 }
 

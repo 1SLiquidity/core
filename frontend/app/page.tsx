@@ -1,22 +1,19 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import Navbar from './components/navbar'
-import SELSection from './components/home/SELSection'
+import DigitalCustodySection from './components/landing/digital-custody-section'
+import FeaturesSection from './components/landing/features-section'
+import GatewaySection from './components/landing/gateway-section'
+import HeroSection from './components/shared/HeroSection'
 
 export default function Home() {
-  const router = useRouter()
-
-  useEffect(() => {
-    router.push('/swaps')
-  }, [])
-
   return (
-    <div className="">
-      <Navbar />
-      <div className="mt-[110px] mb-10 mx-auto w-fit">
-        <SELSection />
+    <div className="relative min-h-screen bg-black">
+      <HeroSection />
+      {/* Other Sections */}
+      <div className="relative overflow-hidden bg-black z-10">
+        <GatewaySection />
+        <FeaturesSection />
+        <DigitalCustodySection />
       </div>
     </div>
   )

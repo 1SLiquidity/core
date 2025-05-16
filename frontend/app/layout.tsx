@@ -25,8 +25,10 @@ export default async function RootLayout({
   const cookies = (await headers()).get('cookie')
 
   return (
-    <html lang="en">
-      <body className={`${afacadVariable.className} antialiased`}>
+    <html lang="en" className="overflow-x-hidden">
+      <body
+        className={`${afacadVariable.className} antialiased overflow-x-hidden`}
+      >
         <Web3ModalProvider cookies={cookies}>
           <ReactQueryProvider>
             <HomeLayout>{children}</HomeLayout>

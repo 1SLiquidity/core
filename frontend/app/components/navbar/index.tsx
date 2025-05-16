@@ -29,10 +29,10 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
   }
 
   return (
-    <div className="px-5 py-4 w-full flex gap-6 md:gap-0 justify-between relative z-[5555]">
+    <div className="px-4 sm:px-5 py-4 w-full flex gap-3 md:gap-0 justify-between relative z-[5555] overflow-visible">
       <div
         onClick={() => setIsMobileNavOpen(true)}
-        className="md:hidden absolute cursor-pointer top-6 -left-2 w-6 h-6 rounded-[6px] flex items-center justify-center border-primary border-[2px]"
+        className="md:hidden relative cursor-pointer top-0 left-0 w-6 h-6 rounded-[6px] flex items-center justify-center border-primary border-[2px]"
       >
         <Image
           src="/icons/arrow-down-white.svg"
@@ -51,13 +51,13 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       />
 
       {/* logo section with nav links */}
-      <div className="flex gap-[18px] w-fit h-fit">
+      <div className="gap-[18px] w-fit h-fit md:flex hidden">
         <Link
           href={''}
           className="w-10 h-10 bg-white rounded-[12px] flex items-center justify-center"
         >
           <Image
-            src="/assets/logo-1s.png"
+            src="/assets/logo.svg"
             alt="logo"
             className="w-fit h-fit"
             width={40}
@@ -103,7 +103,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                         ? pathname === link.href
                         : pathname.startsWith(link.href) && pathname !== '/'
                     )
-                      ? `/icons/${link.href}-black.svg`
+                      ? `/icons/home-black.svg`
                       : link.icon
                   }`}
                   alt={link.title}
@@ -118,24 +118,17 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
         )}
       </div>
 
-      {/* searchbar */}
-      <div className="w-full lg:flex hidden absolute -z-10 justify-center items-center h-fit">
-        <div
-          className={`
-          md:flex hidden items-center h-10 mx-2 w-full md:max-w-[200px] lg:max-w-[340px]`}
-        >
-          <Searchbar
-            onChange={(e) => setSearchValue(e.target.value)}
-            value={searchValue}
-            setValue={(e: any) => setSearchValue(e)}
-          />
-        </div>
+      {/* searchbar - centered for large screens */}
+      <div className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2 z-0 items-center justify-center h-10 w-full max-w-[340px]">
+        <Searchbar
+          onChange={(e) => setSearchValue(e.target.value)}
+          value={searchValue}
+          setValue={(e: any) => setSearchValue(e)}
+        />
       </div>
 
-      <div
-        className={`
-          md:flex hidden lg:hidden items-center h-10 mx-2 w-full md:max-w-[200px] lg:max-w-[340px]`}
-      >
+      {/* searchbar - for medium screens */}
+      <div className="hidden md:flex lg:hidden items-center h-10 w-full max-w-[200px]">
         <Searchbar
           onChange={(e) => setSearchValue(e.target.value)}
           value={searchValue}

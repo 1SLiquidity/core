@@ -258,9 +258,6 @@ export class UniswapV2Calculator extends BaseDexCalculator {
       const token0Decimals = reserveData.token0Decimals || 18
       const token1Decimals = reserveData.token1Decimals || 18
 
-      // const token0Decimals = 6
-      // const token1Decimals = 6
-
       console.log('token0Decimals ===>', token0Decimals)
       console.log('token1Decimals ===>', token1Decimals)
 
@@ -282,7 +279,7 @@ export class UniswapV2Calculator extends BaseDexCalculator {
         reserveOutBN
       )
 
-      console.log('Uniswap V2 output amount:', amountOut)
+      console.log('Uniswap V2 output amount:', amountOut.toString())
 
       // Convert back to string with proper decimals
       const result = this.formatOutput(amountOut, token1Decimals)
