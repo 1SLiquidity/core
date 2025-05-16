@@ -13,6 +13,7 @@ library Utils {
         uint256 targetAmountOut;
         uint256 realisedAmountOut;
         bool isInstasettlable;
+        uint256 instasettleBps;
         uint256 botGasAllowance;
         uint96 cumulativeGasEntailed;
         uint8 attempts;
