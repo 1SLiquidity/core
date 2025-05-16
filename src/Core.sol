@@ -340,4 +340,34 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         closeGasRecord();
         return updatedTrade;
     }
+
+    function instasettle(uint256 tradeId) public payable {
+        // first we pull the trade from storage into memory
+        Utils.Trade memory trade = trades[tradeId];
+        // then we check if the trade is instasettlable
+        if (trade.isInstasettlable) {
+            // then we execute the stream
+            require(_settleTrade(trade/**, tradePlacer */), "Trade not settled");
+        }
+        // Emit Instasettled(tradeId);
+    }
+
+    function _settleTrade(Utils.Trade memory trade/**, address instasettler */) internal returns (bool) {
+        // we need to ensure the amount of provided tokenIn satisfies the remainingTokenOut from the trade
+        // if so, we execute a full trade swap (no streams)
+        uint256 remainingAmountOut = trade.targetAmountOut - trade.realisedAmountOut;
+        // then, we take the bps
+        uint256 instasettleBps = trade.instasettleBps;
+        uint256 instasettleAmount = trade.amountRemaining - (trade.amountRemaining * instasettleBps) / 10000;
+        // if the instasettleAmount is less than the remainingAmountOut, we revert
+        require(instasettleAmount >= remainingAmountOut, "Insufficient balance to settle trade");
+        // if so, we execute a full trade swap (no streams)
+        //first we initialise the interface
+        IERC20 tokenOut = IERC20(trade.tokenOut);
+        //then, we transfer money from the purchaser to the owner
+        (bool statusIn) = tokenOut.transferFrom(msg.sender, trade.owner, instasettleAmount);
+        //then, we transfer the remaining amount of tokenIn to the purchaser
+        (bool statusOut) = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining); // @audit we pass msg.sender here for testing without a Router, but we should have auth for Router access set up and the caller's address passed as a parameter from Router on this function call
+        return statusIn == statusOut ? true : false;
+    }
 }
