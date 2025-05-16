@@ -28,11 +28,8 @@ contract DeployScript is Script {
         UniswapV2Fetcher uniswapV2Fetcher = new UniswapV2Fetcher(UNISWAP_V2_FACTORY);
         SushiswapFetcher sushiswapFetcher = new SushiswapFetcher(SUSHISWAP_FACTORY);
 
-        uint24[] memory feeTiers = new uint24[](3);
-        feeTiers[0] = 500; // 0.05%
-        feeTiers[1] = 3000; // 0.3%
-        feeTiers[2] = 10000; // 1%
-        UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers);
+        // Deploy fetchers
+        UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, 3000); // Use single fee tier
 
         // CurveFetcher curveFetcher = new CurveFetcher(CURVE_REGISTRY);
         // BalancerFetcher balancerFetcher = new BalancerFetcher(address(0), BALANCER_VAULT); // Placeholder for pool
@@ -50,7 +47,7 @@ contract DeployScript is Script {
         StreamDaemon streamDaemon = new StreamDaemon(address(uniswapV2Fetcher), dexAddresses);
 
         // Deploy Executor
-        Executor executor = new Executor(address(streamDaemon));
+        Executor executor = new Executor();
 
         console.log("UniswapV2Fetcher deployed at:", address(uniswapV2Fetcher));
         console.log("SushiswapFetcher deployed at:", address(sushiswapFetcher));
@@ -61,15 +58,20 @@ contract DeployScript is Script {
         console.log("Executor deployed at:", address(executor));
 
         console.log("\n=== Testing Reserve Fetching ===");
-        (address bestDex, uint256 maxReserve) = streamDaemon.findHighestReservesForTokenPair(WETH, USDC);
-        console.log("Best DEX for WETH-USDC:", bestDex);
-        console.log("Highest reserve:", maxReserve);
-        (bestDex, maxReserve) = streamDaemon.findHighestReservesForTokenPair(WETH, WBTC);
-        console.log("Best DEX for WETH-WBTC:", bestDex);
-        console.log("Highest reserve:", maxReserve);
-        (bestDex, maxReserve) = streamDaemon.findHighestReservesForTokenPair(WETH, DAI);
-        console.log("Best DEX for WETH-DAI:", bestDex);
-        console.log("Highest reserve:", maxReserve);
+        (address bestDex, uint256 maxReserveIn, uint256 maxReserveOut) = streamDaemon.findHighestReservesForTokenPair(WETH, USDC);
+        console.log("Best DEX for WETH/USDC:", bestDex);
+        console.log("Max reserve in:", maxReserveIn);
+        console.log("Max reserve out:", maxReserveOut);
+
+        (bestDex, maxReserveIn, maxReserveOut) = streamDaemon.findHighestReservesForTokenPair(WETH, WBTC);
+        console.log("Best DEX for WETH/WBTC:", bestDex);
+        console.log("Max reserve in:", maxReserveIn);
+        console.log("Max reserve out:", maxReserveOut);
+
+        (bestDex, maxReserveIn, maxReserveOut) = streamDaemon.findHighestReservesForTokenPair(WETH, DAI);
+        console.log("Best DEX for WETH/DAI:", bestDex);
+        console.log("Max reserve in:", maxReserveIn);
+        console.log("Max reserve out:", maxReserveOut);
 
         // test for sweet spot calculation
         console.log("\n=== Testing Sweet Spot Calculation ===");
