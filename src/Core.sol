@@ -80,7 +80,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         return totalGasCost / TWAP_GAS_COST.length;
     }
 
-    function placeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address owner, bool isInstasettlable, uint256 botGasAllowance)
+    function placeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, /*address owner, */bool isInstasettlable, uint256 botGasAllowance)
         public
         payable
     {
@@ -114,13 +114,14 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          *
          */
 
-        // letstransfer funds 
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), msg.value);
+        // letstransfer funds
+        IERC20 token = IERC20(tokenIn);
+        require(token.transferFrom(msg.sender, address(this), amountIn), "Transfer failed"); // no balances are required since they are tracked in trade struct
 
         // generate trade
         Utils.Trade memory trade;
 
-        trade.owner = owner;
+        trade.owner = msg.sender; // @audit this will need updating when we have a router
         trade.tradeId = lastTradeId;
         trade.tokenIn = tokenIn;
         trade.tokenOut = tokenOut;
@@ -132,7 +133,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         trade.attempts = 1; // yes, we initialise to 1 as we are going to execute a stream here
         bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut));
         trade.pairId = pairId;
-        trade.slippage = 0; // not entirely sure on the necessity of this here, as its derivable from amountIn vs targetOut, and is predetermined: all trades experience 1% slippage
 
         // now, we store the trade in contract storage;
         pairIdTradeIds[pairId].push(lastTradeId);
@@ -140,23 +140,20 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         lastTradeId++;
 
         // now, we execute a single stream;
-        (uint256 realisedAmountIn, uint256 executedAmountOut, uint256 sweetSpot) = _executeStream(tokenIn, tokenOut, amountIn, amountOutMin, address(this));
+        // (uint256 realisedAmountIn, uint256 executedAmountOut, uint256 sweetSpot) = _executeStream(tokenIn, tokenOut, amountIn, amountOutMin, address(this));
 
-        if (sweetSpot == 1 || sweetSpot == 2) {
+        // lets rather pass a trade object into the executeStrram function, and we can correct the rebalancing action inside that function in a second
+        Utils.Trade memory updatedTrade = _executeStream(trade);
+
+        // note that this transfer should be deterministically sent to the owner of the trade
+        if (updatedTrade.lastSweetSpot == 1) {
             // we execute the stream AND transfer assets out
-            IERC20(tokenOut).transfer(msg.sender, executedAmountOut);
+            IERC20(tokenOut).transfer(updatedTrade.owner, updatedTrade.realisedAmountOut);
             // no need to update or even store the trade's metadata. the above logic can be optimised @audit since caching in memory s gonna cost
         }
 
-        // otherwise we can update the trade's metadata
-        uint256 realisedGas = readTWAPGasCost(10); // using an arbitrary delta here
-        trade.cumulativeGasEntailed = uint96(realisedGas);
-        trade.realisedAmountOut = executedAmountOut;
-        trade.lastSweetSpot = sweetSpot; // Store the number of streams as the last sweet spot
-        trade.amountRemaining = trade.amountRemaining - realisedAmountIn;
-
-        // Update the trade in storage
-        trades[lastTradeId - 1] = trade;
+        // lastly, we update the trade in storage
+        trades[lastTradeId - 1] = updatedTrade;
     }
 
 
@@ -190,16 +187,16 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         }
     }
 
-    function executeTrades() public {
+    function executeTrades(address tokenIn, address tokenOut) public {
         /**
          * this should take trades stored in the queue,
          * executing stream volumes 1 by 1 via executeStream(), returning the amount settled
          * and thereafter update the trade's metadata.
          *
          * rightful considerations must be given to:
-         * - the number of attempts!
-         * - the trade's realised slippage
-         * - the trade's realised gas cost
+         * - the number of attempts! TICK
+         * - the trade's realised slippage TICK
+         * - the trade's realised gas cost TICK
          * - the trade's target amountOut vs realised amountOut
          * - if streamCount = 1 || 2, we execute the stream AND transfer assets out
          * - update the number of attempts
@@ -209,55 +206,84 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          * and ultimately, integrate fees...
          */
 
+        bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut));
+        uint256[] memory tradeIds = pairIdTradeIds[pairId];
+
+        for (uint256 i = 0; i < tradeIds.length; i++) {
+            Utils.Trade memory trade = trades[tradeIds[i]];
+
+            if (trade.attempts >= 3) {
+                // we delete the trade from storage
+                delete trades[tradeIds[i]];
+                continue;
+            } else {
+            try this._executeStream(trade) returns (Utils.Trade memory updatedTrade) {
+                if (updatedTrade.lastSweetSpot == 1) {
+                    IERC20(trade.tokenOut).transfer(updatedTrade.owner, updatedTrade.realisedAmountOut);
+                    delete trades[tradeIds[i]];
+                } else {
+                    trades[tradeIds[i]] = updatedTrade;
+                }
+            } catch {
+                //increment attempts and keep the trade in the queue
+                trades[tradeIds[i]].attempts++;
+                // Emit FailedTrade(attemptsNumber);
+            }
+            }  
+        }
     }
 
-    function _executeStream(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
-        internal
-        returns (uint256 streamVolume, uint256 amountOut, uint256 lastSweetSpot)
+    function _executeStream(Utils.Trade memory trade)
+        public
+        returns (Utils.Trade memory updatedTrade)
     {
         initiateGasRecord();
+
         (uint256 sweetSpot, address bestDex) = streamDaemon.evaluateSweetSpotAndDex(
-            tokenIn,
-            tokenOut,
-            amountIn,
+            trade.tokenIn,
+            trade.tokenOut,
+            trade.amountIn,
             readTWAPGasCost(10) // no longer need this parameter being passed in @audit
         );
-        if (sweetSpot < 1) { // ensure we have scaled that sweet spot well @audit
+        if (trade.lastSweetSpot == 1) { // ensure we have scaled that sweet spot well @audit
             sweetSpot = 1;
+        } else if (sweetSpot <= 1) {
+            sweetSpot = 2;
         } else if (sweetSpot > 500) {
             sweetSpot = 500; // this is an arbitrary value once more
         }
-        streamVolume = amountIn / sweetSpot;
+        uint256 streamVolume = trade.amountIn / sweetSpot;
+        
 
         if (bestDex == uniswapV2Router) {
             (bool success, bytes memory result) = address(executor).delegatecall(
                 abi.encodeWithSelector(
                     Executor.executeUniswapV2Trade.selector,
                     uniswapV2Router,
-                    tokenIn,
-                    tokenOut,
+                    trade.tokenIn,
+                    trade.tokenOut,
                     streamVolume,
-                    amountOutMin / sweetSpot,
-                    recipient
+                    trade.targetAmountOut / sweetSpot,
+                    address(this)
                 )
             );
             require(success, "UniswapV2 trade failed");
-            amountOut += abi.decode(result, (uint256));
+            trade.realisedAmountOut += abi.decode(result, (uint256));
         } else if (bestDex == uniswapV3Router) {
             (bool success, bytes memory result) = address(executor).delegatecall(
                 abi.encodeWithSelector(
                     Executor.executeUniswapV3Trade.selector,
                     uniswapV3Router,
-                    tokenIn,
-                    tokenOut,
+                    trade.tokenIn,
+                    trade.tokenOut,
                     streamVolume,
-                    amountOutMin / sweetSpot,
-                    recipient,
+                    trade.targetAmountOut / sweetSpot,
+                    address(this),
                     3000 // default fee tier
                 )
             );
             require(success, "UniswapV3 trade failed");
-            amountOut += abi.decode(result, (uint256));
+            trade.realisedAmountOut += abi.decode(result, (uint256));
         } else if (bestDex == balancerVault) {
             // TODO: get poolId from StreamDaemon or registry
             bytes32 poolId = bytes32(0);
@@ -265,20 +291,53 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                 abi.encodeWithSelector(
                     Executor.executeBalancerTrade.selector,
                     balancerVault,
-                    tokenIn,
-                    tokenOut,
+                    trade.tokenIn,
+                    trade.tokenOut,
                     streamVolume,
-                    amountOutMin / sweetSpot,
-                    recipient,
+                    trade.targetAmountOut / sweetSpot,
+                    address(this),
                     poolId
                 )
             );
             require(success, "Balancer trade failed");
-            amountOut += abi.decode(result, (uint256));
+            trade.realisedAmountOut += abi.decode(result, (uint256));
+        } else if (bestDex == sushiswapRouter) {
+            (bool success, bytes memory result) = address(executor).delegatecall(
+                abi.encodeWithSelector(
+                    Executor.executeUniswapV2Trade.selector, // Sushiswap uses the same interface as UniswapV2
+                    sushiswapRouter,
+                    trade.tokenIn,
+                    trade.tokenOut,
+                    streamVolume,
+                    trade.targetAmountOut / sweetSpot,
+                    address(this)
+                )
+            );
+            require(success, "Sushiswap trade failed");
+            trade.realisedAmountOut += abi.decode(result, (uint256));
+        } else if (bestDex == curvePool) {
+            (bool success, bytes memory result) = address(executor).delegatecall(
+                abi.encodeWithSelector(
+                    Executor.executeCurveTrade.selector,
+                    curvePool,
+                    trade.tokenIn,
+                    trade.tokenOut,
+                    streamVolume,
+                    trade.targetAmountOut / sweetSpot,
+                    address(this)
+                )
+            );
+            require(success, "Curve trade failed");
+            trade.realisedAmountOut += abi.decode(result, (uint256));
         }
 
-        closeGasRecord();
+        uint256 realisedGas = readTWAPGasCost(10); // using an arbitrary delta here
+        trade.cumulativeGasEntailed = uint96(realisedGas);
+        trade.lastSweetSpot = sweetSpot == 2 ? 1 : sweetSpot; // Store the number of streams as the last sweet spot
+        trade.amountRemaining = trade.amountRemaining - streamVolume;
+        updatedTrade = trade;
 
-        return (streamVolume, amountOut, sweetSpot);
+        closeGasRecord();
+        return updatedTrade;
     }
 }
