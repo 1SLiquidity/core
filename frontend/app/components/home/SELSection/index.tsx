@@ -68,10 +68,9 @@ const SELSection = () => {
   const fetchReserves = useCallback(async () => {
     console.log('Fetching reserves')
     setCalculationError(null)
+    setIsFetchingReserves(true)
 
     if (selectedTokenFrom && selectedTokenTo) {
-      setIsFetchingReserves(true)
-
       try {
         // Check if tokens have addresses
         const fromAddress =
@@ -81,7 +80,7 @@ const SELSection = () => {
           selectedTokenTo.token_address ||
           '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
 
-        // Removed chainId parameter from the API request
+        // Fetch reserves from the backend API
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`
         )
@@ -95,108 +94,21 @@ const SELSection = () => {
         const data = await response.json()
         console.log('Reserves data:', data)
 
-        if (!Array.isArray(data) && data) {
-          // Single object response - add decimals to the reserve data
-          const reserveDataWithDecimals = {
-            ...data,
-            token0Decimals: selectedTokenFrom.decimals || 18,
-            token1Decimals: selectedTokenTo.decimals || 18,
-          } as ReserveData
-
-          setReserveData(reserveDataWithDecimals)
-
-          // Initialize the appropriate calculator based on DEX type
-          const calculator = DexCalculatorFactory.createCalculator(
-            data.dex,
-            undefined, // No fee percent for now
-            chainId // Pass the current chainId
-          )
-          setDexCalculator(calculator)
-          console.log(
-            `Using ${
-              data.dex
-            } calculator with fee: ${calculator.getExchangeFee()}% on chain ${chainId}`
-          )
-
-          // Trigger a calculation if we have a sell amount
-          if (sellAmount > 0) {
-            // Force a calculation after reserves are loaded
-            console.log(
-              'Triggering calculation after reserve fetch with sell amount:',
-              sellAmount
-            )
-          }
-
-          return
-        }
-
-        if (!Array.isArray(data) || data.length === 0) {
-          setCalculationError('No liquidity pools found for this pair')
+        // Check if we received valid data
+        if (!data) {
+          setCalculationError('No liquidity data received')
           setReserveData(null)
           setDexCalculator(null)
+          setIsFetchingReserves(false)
           return
         }
 
-        // First check if we have any Uniswap V3 pools with sufficient liquidity
-        const v3Pools = data
-          .filter(
-            (entry) =>
-              entry.dex.startsWith('uniswap-v3') &&
-              parseFloat(entry.reserves.token0) > 0
-          )
-          .sort(
-            (a, b) =>
-              parseFloat(b.reserves.token0) - parseFloat(a.reserves.token0)
-          )
+        // Process the single object response
+        console.log('Processing reserve data:', data)
 
-        // Next check for Uniswap V2 pools
-        const uniswapV2Data = data.find(
-          (entry) =>
-            entry.dex === 'uniswap-v2' && parseFloat(entry.reserves.token0) > 0
-        )
-
-        // Finally check for SushiSwap pools
-        const sushiswapData = data.find(
-          (entry) =>
-            entry.dex === 'sushiswap' && parseFloat(entry.reserves.token0) > 0
-        )
-
-        // Select the best pool based on liquidity and preference
-        let selectedPool = null
-        let poolType = ''
-
-        // Prefer V3 pools with the highest liquidity
-        // if (v3Pools.length > 0) {
-        //   selectedPool = v3Pools[0]
-        //   poolType = 'Uniswap V3'
-        // }
-        // Otherwise try Uniswap V2
-        if (uniswapV2Data) {
-          selectedPool = uniswapV2Data
-          poolType = 'Uniswap V2'
-        }
-
-        // TODO: Uncomment above code after testing this
-        // Finally fall back to SushiSwap
-        // if (sushiswapData) {
-        //   selectedPool = sushiswapData
-        //   poolType = 'SushiSwap'
-        // }
-
-        console.log('Selected pool:', selectedPool)
-
-        if (!selectedPool) {
-          setCalculationError(
-            'No liquidity pool found with sufficient liquidity for this pair'
-          )
-          setReserveData(null)
-          setDexCalculator(null)
-          return
-        }
-
-        // Set the reserve data for calculations with token decimals
+        // Add decimals to the reserve data
         const reserveDataWithDecimals = {
-          ...selectedPool,
+          ...data,
           token0Decimals: selectedTokenFrom.decimals || 18,
           token1Decimals: selectedTokenTo.decimals || 18,
           token0Address: selectedTokenFrom.token_address || '',
@@ -205,32 +117,32 @@ const SELSection = () => {
 
         setReserveData(reserveDataWithDecimals)
 
-        // Initialize the appropriate calculator
+        // Initialize the appropriate calculator based on DEX type
         const calculator = DexCalculatorFactory.createCalculator(
-          selectedPool.dex,
+          data.dex,
           undefined, // No fee percent for now
           chainId // Pass the current chainId
         )
         setDexCalculator(calculator)
         console.log(
-          `Using ${poolType} calculator (${
-            selectedPool.dex
-          }) with fee: ${calculator.getExchangeFee()}% on chain ${chainId}`
+          `Using ${
+            data.dex
+          } calculator with fee: ${calculator.getExchangeFee()}% on chain ${chainId}`
         )
-        setIsFetchingReserves(false)
       } catch (error) {
         console.error('Error fetching reserves:', error)
         setCalculationError('Error fetching liquidity data')
         setReserveData(null)
         setDexCalculator(null)
       } finally {
-        // setIsFetchingReserves(false)
+        setIsFetchingReserves(false)
       }
     } else {
       setReserveData(null)
       setDexCalculator(null)
+      setIsFetchingReserves(false)
     }
-  }, [selectedTokenFrom, selectedTokenTo, sellAmount, chainId])
+  }, [selectedTokenFrom, selectedTokenTo, chainId])
 
   // Reset sell amount when tokens change
   useEffect(() => {

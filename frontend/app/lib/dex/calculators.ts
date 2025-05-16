@@ -26,6 +26,14 @@ const getSharedProvider = (chainId: string): ethers.providers.Provider => {
   return sharedProviders[chainId]
 }
 
+export function createAlchemyProvider(): ethers.providers.JsonRpcProvider {
+  const ALCHEMY_API_KEY = 'ljQMRkueWKHdEcFEzjatYBrWlLT3KATW' // replace with your actual key
+  const url = `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY}`
+  const provider = new ethers.providers.JsonRpcProvider(url)
+
+  return provider
+}
+
 // Extract fee tier from DEX identifier (e.g., "uniswap-v3-3000" -> 3000)
 const extractFeeTier = (dexType: string): number => {
   if (dexType.startsWith('uniswap-v3-')) {
@@ -127,7 +135,8 @@ export abstract class BaseDexCalculator implements DexCalculator {
 
   constructor(chainId: string = '1') {
     // Use shared provider to reduce connections
-    this.provider = getSharedProvider(chainId)
+    // this.provider = getSharedProvider(chainId)
+    this.provider = createAlchemyProvider()
     this.chainId = chainId
   }
 
@@ -245,52 +254,95 @@ export class UniswapV2Calculator extends BaseDexCalculator {
     }
 
     try {
-      // First try local calculation to avoid network calls if possible
-      const localResult = this.calculateOutputAmountLocally(
-        amountIn,
-        reserveData
+      // Get token decimals from reserveData or default to 18
+      // const token0Decimals = reserveData.token0Decimals || 18
+      // const token1Decimals = reserveData.token1Decimals || 18
+
+      const token0Decimals = 6
+      const token1Decimals = 6
+
+      console.log('this.provider', this.provider)
+
+      // Convert to BigNumber with proper decimals
+      const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
+      const reserveInBN = ethers.utils.parseUnits(
+        reserveData.reserves.token0,
+        token0Decimals
+      )
+      const reserveOutBN = ethers.utils.parseUnits(
+        reserveData.reserves.token1,
+        token1Decimals
       )
 
-      // Cache and return the local result
-      calculationCache.set(cacheKey, localResult)
-      return localResult
-    } catch (localError) {
-      console.warn('Local calculation failed, trying on-chain:', localError)
+      // Get amount out using the router contract
+      const amountOut = await this.router.getAmountOut(
+        amountInBN,
+        reserveInBN,
+        reserveOutBN
+      )
 
-      try {
-        // Get token decimals from reserveData or default to 18
-        const token0Decimals = reserveData.token0Decimals || 18
-        const token1Decimals = reserveData.token1Decimals || 18
+      console.log('Uniswap V2 output amount:', amountOut)
 
-        // Convert to BigNumber with proper decimals
-        const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
-        const reserveInBN = ethers.utils.parseUnits(
-          reserveData.reserves.token0,
-          token0Decimals
-        )
-        const reserveOutBN = ethers.utils.parseUnits(
-          reserveData.reserves.token1,
-          token1Decimals
-        )
+      // Convert back to string with proper decimals
+      const result = this.formatOutput(amountOut, token1Decimals)
 
-        // Get amount out using the router contract
-        const amountOut = await this.router.getAmountOut(
-          amountInBN,
-          reserveInBN,
-          reserveOutBN
-        )
+      console.log('Uniswap V2 output result:', result)
 
-        // Convert back to string with proper decimals
-        const result = this.formatOutput(amountOut, token1Decimals)
-
-        // Cache the result
-        calculationCache.set(cacheKey, result)
-        return result
-      } catch (error) {
-        console.error('Error calculating output amount:', error)
-        return '0'
-      }
+      // Cache the result
+      // calculationCache.set(cacheKey, result)
+      return result
+    } catch (error) {
+      console.error('Error calculating output amount:', error)
+      return '0'
     }
+
+    // try {
+    //   // First try local calculation to avoid network calls if possible
+    //   const localResult = this.calculateOutputAmountLocally(
+    //     amountIn,
+    //     reserveData
+    //   )
+
+    //   // Cache and return the local result
+    //   calculationCache.set(cacheKey, localResult)
+    //   return localResult
+    // } catch (localError) {
+    //   console.warn('Local calculation failed, trying on-chain:', localError)
+
+    //   try {
+    //     // Get token decimals from reserveData or default to 18
+    //     const token0Decimals = reserveData.token0Decimals || 18
+    //     const token1Decimals = reserveData.token1Decimals || 18
+
+    //     // Convert to BigNumber with proper decimals
+    //     const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
+    //     const reserveInBN = ethers.utils.parseUnits(
+    //       reserveData.reserves.token0,
+    //       token0Decimals
+    //     )
+    //     const reserveOutBN = ethers.utils.parseUnits(
+    //       reserveData.reserves.token1,
+    //       token1Decimals
+    //     )
+
+    //     // Get amount out using the router contract
+    //     const amountOut = await this.router.getAmountOut(
+    //       amountInBN,
+    //       reserveInBN,
+    //       reserveOutBN
+    //     )
+
+    //     // Convert back to string with proper decimals
+    //     const result = this.formatOutput(amountOut, token1Decimals)
+
+    //     // Cache the result
+    //     calculationCache.set(cacheKey, result)
+    //     return result
+    //   } catch (error) {
+    //     console.error('Error calculating output amount:', error)
+    //     return '0'
+    //   }
+    // }
   }
 
   // Local calculation to avoid network calls
@@ -298,32 +350,62 @@ export class UniswapV2Calculator extends BaseDexCalculator {
     amountIn: string,
     reserveData: ReserveData
   ): string {
-    // Get token decimals from reserveData or default to 18
-    const token0Decimals = reserveData.token0Decimals || 18
-    const token1Decimals = reserveData.token1Decimals || 18
+    try {
+      // Get token decimals from reserveData or default to 18
+      const token0Decimals = reserveData.token0Decimals || 18
+      const token1Decimals = reserveData.token1Decimals || 18
 
-    // Uniswap V2 formula: getAmountOut
-    // amountOut = (amountIn * 997 * reserveOut) / (reserveIn * 1000 + amountIn * 997)
-    const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
-    const reserveInBN = ethers.utils.parseUnits(
-      reserveData.reserves.token0,
-      token0Decimals
-    )
-    const reserveOutBN = ethers.utils.parseUnits(
-      reserveData.reserves.token1,
-      token1Decimals
-    )
+      // Uniswap V2 formula: getAmountOut
+      // amountOut = (amountIn * 997 * reserveOut) / (reserveIn * 1000 + amountIn * 997)
 
-    const amountInWithFee = amountInBN.mul(997)
-    const numerator = amountInWithFee.mul(reserveOutBN)
-    const denominator = reserveInBN.mul(1000).add(amountInWithFee)
+      // Use direct decimal math instead of BigNumber
+      const amountInDecimal = parseFloat(amountIn)
+      const reserveInDecimal = parseFloat(reserveData.reserves.token0)
+      const reserveOutDecimal = parseFloat(reserveData.reserves.token1)
 
-    if (denominator.isZero()) {
-      throw new Error('Denominator is zero')
+      // Check for valid values
+      if (
+        isNaN(amountInDecimal) ||
+        isNaN(reserveInDecimal) ||
+        isNaN(reserveOutDecimal)
+      ) {
+        throw new Error('Invalid numeric values for calculation')
+      }
+
+      if (reserveInDecimal <= 0 || reserveOutDecimal <= 0) {
+        throw new Error('Reserves must be positive values')
+      }
+
+      // Calculate using the formula directly with decimal values
+      const amountInWithFee = amountInDecimal * 997
+      const numerator = amountInWithFee * reserveOutDecimal
+      const denominator = reserveInDecimal * 1000 + amountInWithFee
+
+      if (denominator === 0) {
+        throw new Error('Denominator is zero')
+      }
+
+      const amountOut = numerator / denominator
+
+      // Format the result based on magnitude
+      let result: string
+      if (amountOut > 100) {
+        result = amountOut.toFixed(2)
+      } else if (amountOut > 10) {
+        result = amountOut.toFixed(3)
+      } else if (amountOut > 1) {
+        result = amountOut.toFixed(4)
+      } else if (amountOut > 0.1) {
+        result = amountOut.toFixed(6)
+      } else {
+        result = amountOut.toFixed(8)
+      }
+
+      return result
+    } catch (error) {
+      console.error('Error in decimal calculation:', error)
+      throw error // Re-throw to trigger the fallback
     }
-
-    const amountOut = numerator.div(denominator)
-    return this.formatOutput(amountOut, token1Decimals)
   }
 
   async calculateInputAmount(
@@ -401,35 +483,66 @@ export class UniswapV2Calculator extends BaseDexCalculator {
     amountOut: string,
     reserveData: ReserveData
   ): string {
-    // Get token decimals from reserveData or default to 18
-    const token0Decimals = reserveData.token0Decimals || 18
-    const token1Decimals = reserveData.token1Decimals || 18
+    try {
+      // Get token decimals from reserveData or default to 18
+      const token0Decimals = reserveData.token0Decimals || 18
+      const token1Decimals = reserveData.token1Decimals || 18
 
-    // Uniswap V2 formula: getAmountIn
-    // amountIn = (reserveIn * amountOut * 1000) / ((reserveOut - amountOut) * 997)
-    const amountOutBN = ethers.utils.parseUnits(amountOut, token1Decimals)
-    const reserveInBN = ethers.utils.parseUnits(
-      reserveData.reserves.token0,
-      token0Decimals
-    )
-    const reserveOutBN = ethers.utils.parseUnits(
-      reserveData.reserves.token1,
-      token1Decimals
-    )
+      // Uniswap V2 formula: getAmountIn
+      // amountIn = (reserveIn * amountOut * 1000) / ((reserveOut - amountOut) * 997)
 
-    if (amountOutBN.gte(reserveOutBN)) {
-      return 'Insufficient liquidity'
+      // Use direct decimal math instead of BigNumber
+      const amountOutDecimal = parseFloat(amountOut)
+      const reserveInDecimal = parseFloat(reserveData.reserves.token0)
+      const reserveOutDecimal = parseFloat(reserveData.reserves.token1)
+
+      // Check for valid values
+      if (
+        isNaN(amountOutDecimal) ||
+        isNaN(reserveInDecimal) ||
+        isNaN(reserveOutDecimal)
+      ) {
+        throw new Error('Invalid numeric values for calculation')
+      }
+
+      if (reserveInDecimal <= 0 || reserveOutDecimal <= 0) {
+        throw new Error('Reserves must be positive values')
+      }
+
+      // Check for insufficient liquidity
+      if (amountOutDecimal >= reserveOutDecimal) {
+        return 'Insufficient liquidity'
+      }
+
+      // Calculate using the formula directly with decimal values
+      const numerator = reserveInDecimal * amountOutDecimal * 1000
+      const denominator = (reserveOutDecimal - amountOutDecimal) * 997
+
+      if (denominator <= 0) {
+        throw new Error('Denominator is zero or negative')
+      }
+
+      const amountIn = numerator / denominator
+
+      // Format the result based on magnitude
+      let result: string
+      if (amountIn > 100) {
+        result = amountIn.toFixed(2)
+      } else if (amountIn > 10) {
+        result = amountIn.toFixed(3)
+      } else if (amountIn > 1) {
+        result = amountIn.toFixed(4)
+      } else if (amountIn > 0.1) {
+        result = amountIn.toFixed(6)
+      } else {
+        result = amountIn.toFixed(8)
+      }
+
+      return result
+    } catch (error) {
+      console.error('Error in decimal calculation:', error)
+      throw error // Re-throw to trigger the fallback
     }
-
-    const numerator = reserveInBN.mul(amountOutBN).mul(1000)
-    const denominator = reserveOutBN.sub(amountOutBN).mul(997)
-
-    if (denominator.isZero()) {
-      throw new Error('Denominator is zero')
-    }
-
-    const amountIn = numerator.div(denominator)
-    return this.formatOutput(amountIn, token0Decimals)
   }
 }
 
@@ -507,6 +620,7 @@ export class SushiSwapCalculator extends BaseDexCalculator {
       const token1Decimals = reserveData.token1Decimals || 18
 
       // Use a stable calculation for value = 1 to avoid floating point imprecision
+      // Values are already in decimal format, no need to convert
       const reserveIn = parseFloat(reserveData.reserves.token0)
       const reserveOut = parseFloat(reserveData.reserves.token1)
 
@@ -627,6 +741,7 @@ export class SushiSwapCalculator extends BaseDexCalculator {
       const token1Decimals = reserveData.token1Decimals || 18
 
       // Use a stable calculation for value = 1 to avoid floating point imprecision
+      // Values are already in decimal format, no need to convert
       const reserveIn = parseFloat(reserveData.reserves.token0)
       const reserveOut = parseFloat(reserveData.reserves.token1)
 
