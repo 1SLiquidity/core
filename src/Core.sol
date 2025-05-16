@@ -347,7 +347,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // then we check if the trade is instasettlable
         if (trade.isInstasettlable) {
             // then we execute the stream
-            require(_settleTrade(trade/**, tradePlacer */), "Trade not settled");
+            require(_settleTrade(trade/**, tradePlacer */), "Trade not settled"); // parameter for tradePlacer temporarily subbed out until Router is implemented
         }
         // Emit Instasettled(tradeId);
     }
@@ -362,7 +362,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // if the instasettleAmount is less than the remainingAmountOut, we revert
         require(instasettleAmount >= remainingAmountOut, "Insufficient balance to settle trade");
         // if so, we execute a full trade swap (no streams)
-        //first we initialise the interface
+        //first of course we remove the trade from storage
+        delete trades[trade.tradeId];
+        //then we initialise the interface
         IERC20 tokenOut = IERC20(trade.tokenOut);
         //then, we transfer money from the purchaser to the owner
         (bool statusIn) = tokenOut.transferFrom(msg.sender, trade.owner, instasettleAmount);
