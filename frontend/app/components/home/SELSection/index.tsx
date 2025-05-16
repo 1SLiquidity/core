@@ -24,6 +24,8 @@ import {
 import useDebounce from '@/app/lib/hooks/useDebounce'
 import { motion, useAnimation, Variants } from 'framer-motion'
 import { RefreshCcw } from 'lucide-react'
+import { usePathname, useRouter } from 'next/navigation'
+import AdvancedConfig from '../advancedConfig'
 
 const SELSection = () => {
   const [activeTab, setActiveTab] = useState(SEL_SECTION_TABS[0])
@@ -42,24 +44,20 @@ const SELSection = () => {
   const [timerActive, setTimerActive] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(15) // 15 seconds
   const TIMER_DURATION = 30 // constant for reset
-
-  // Add a ref to track when we're resetting values to zero
-  const isClearingValuesRef = useRef<boolean>(false)
-
-  // Timer interval ref
-  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
-
-  // Debounce input values - reduce debounce time for better responsiveness
-  const debouncedSellAmount = useDebounce(sellAmount, 300)
-
   const { addToast } = useToast()
   const { selectedTokenFrom, selectedTokenTo } = useModal()
   const { address, isConnected } = useAppKitAccount()
+  // Add a ref to track when we're resetting values to zero
+  const isClearingValuesRef = useRef<boolean>(false)
+  // Timer interval ref
+  const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   // Get current chain from AppKit
   const stateData = useAppKitState()
   const chainIdWithPrefix = stateData?.selectedNetworkId || 'eip155:1'
   const chainId = chainIdWithPrefix.split(':')[1]
+  const pathname = usePathname()
+  const router = useRouter()
 
   // Preload the token list when the component mounts
   const { tokens, isLoading } = useTokenList()
@@ -537,6 +535,12 @@ const SELSection = () => {
           </div>
         )}
 
+        {/* Advanced Config */}
+        {buyAmount > 0 &&
+          sellAmount > 0 &&
+          selectedTokenFrom &&
+          selectedTokenTo && <AdvancedConfig />}
+
         {/* Detail Section */}
         {buyAmount > 0 &&
           sellAmount > 0 &&
@@ -553,22 +557,43 @@ const SELSection = () => {
           )}
 
         <div className="w-full my-[30px]">
-          {isConnected ? (
+          {isConnected && pathname === '/swaps' ? (
             <Button
-              text="Swap"
+              text={isFetchingReserves ? 'Fetching reserves...' : 'Swap'}
               theme="gradient"
               onClick={() => addToast(<NotifiSwapStream />)}
               error={
                 invaliSelldAmount || invalidBuyAmount || !!calculationError
               }
               disabled={
-                !selectedTokenFrom || !selectedTokenTo || !!calculationError
+                !selectedTokenFrom ||
+                !selectedTokenTo ||
+                !!calculationError ||
+                isFetchingReserves
               }
+              loading={isFetchingReserves}
             />
           ) : (
             <Button
-              text="Connect Wallet"
+              text={
+                pathname === '/'
+                  ? isFetchingReserves
+                    ? 'Fetching reserves...'
+                    : 'Get Started'
+                  : isFetchingReserves
+                  ? 'Fetching reserves...'
+                  : 'Connect Wallet'
+              }
               error={invaliSelldAmount || invalidBuyAmount}
+              onClick={() => {
+                if (pathname === '/') {
+                  router.push('/swaps')
+                } else {
+                  open()
+                }
+              }}
+              disabled={isFetchingReserves}
+              loading={isFetchingReserves}
             />
           )}
         </div>

@@ -119,13 +119,13 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       </div>
 
       {/* searchbar - centered for large screens */}
-      <div className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2 z-0 items-center justify-center h-10 w-full max-w-[340px]">
+      {/* <div className="hidden lg:flex absolute left-1/2 transform -translate-x-1/2 z-0 items-center justify-center h-10 w-full max-w-[340px]">
         <Searchbar
           onChange={(e) => setSearchValue(e.target.value)}
           value={searchValue}
           setValue={(e: any) => setSearchValue(e)}
         />
-      </div>
+      </div> */}
 
       {/* searchbar - for medium screens */}
       <div className="hidden md:flex lg:hidden items-center h-10 w-full max-w-[200px]">

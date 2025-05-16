@@ -1,12 +1,22 @@
+import { Loader2 } from 'lucide-react'
+
 type Props = {
   text: string
   onClick?: () => void
   error?: boolean
   disabled?: boolean
   theme?: 'gradient' | 'primary' | 'secondary' | 'white' | 'black' | 'success'
+  loading?: boolean
 }
 
-const Button: React.FC<Props> = ({ text, onClick, error, disabled, theme }) => {
+const Button: React.FC<Props> = ({
+  text,
+  onClick,
+  error,
+  disabled,
+  theme,
+  loading,
+}) => {
   console.log('error', error)
 
   return (
@@ -24,6 +34,7 @@ const Button: React.FC<Props> = ({ text, onClick, error, disabled, theme }) => {
       }`}
     >
       {`${error ? 'Error Also Here' : text}`}
+      {loading && <Loader2 className="ml-2 w-4 h-4 animate-spin" />}
     </button>
   )
 }
