@@ -23,7 +23,7 @@ import {
 } from '@/app/lib/dex/calculators'
 import useDebounce from '@/app/lib/hooks/useDebounce'
 import { motion, useAnimation, Variants } from 'framer-motion'
-import { RefreshCcw } from 'lucide-react'
+import { ChevronDown, RefreshCcw } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import AdvancedConfig from '../advancedConfig'
 
@@ -597,6 +597,49 @@ const SELSection = () => {
             />
           )}
         </div>
+
+        {/* Scroll to learn more text and icon */}
+        {pathname === '/' && (
+          <div className="flex flex-col items-center justify-center z-20">
+            <motion.div
+              className="flex flex-col items-center cursor-pointer"
+              animate={{
+                y: [0, -5, 0],
+                color: [
+                  'rgba(255,255,255,1)',
+                  'rgba(156,163,175,0.7)',
+                  'rgba(255,255,255,1)',
+                ],
+                textShadow: [
+                  '0 0 5px rgba(255,255,255,0.5)',
+                  '0 0 2px rgba(255,255,255,0.2)',
+                  '0 0 5px rgba(255,255,255,0.5)',
+                ],
+              }}
+              transition={{
+                duration: 1.8,
+                repeat: Infinity,
+                repeatType: 'loop',
+                ease: 'easeInOut',
+              }}
+              onClick={() => {
+                window.scrollTo({
+                  top: window.innerHeight,
+                  behavior: 'smooth',
+                })
+              }}
+            >
+              <p className="text-center mb-1 text-lg font-medium tracking-wide">
+                Explore our features
+              </p>
+              <ChevronDown
+                size={28}
+                strokeWidth={2}
+                className="drop-shadow-[0_0_3px_rgba(255,255,255,0.5)]"
+              />
+            </motion.div>
+          </div>
+        )}
       </motion.div>
     </div>
   )
