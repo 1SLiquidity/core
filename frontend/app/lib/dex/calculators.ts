@@ -261,22 +261,21 @@ export class UniswapV2Calculator extends BaseDexCalculator {
       console.log('token0Decimals ===>', token0Decimals)
       console.log('token1Decimals ===>', token1Decimals)
 
-      // Convert to BigNumber with proper decimals
       const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
-      const reserveInBN = ethers.utils.parseUnits(
-        reserveData.reserves.token0,
-        token0Decimals
-      )
-      const reserveOutBN = ethers.utils.parseUnits(
-        reserveData.reserves.token1,
-        token1Decimals
-      )
+      // const reserveInBN = ethers.utils.parseUnits(
+      //   reserveData.reserves.token0,
+      //   token0Decimals
+      // )
+      // const reserveOutBN = ethers.utils.parseUnits(
+      //   reserveData.reserves.token1,
+      //   token1Decimals
+      // )
 
       // Get amount out using the router contract
       const amountOut = await this.router.getAmountOut(
         amountInBN,
-        reserveInBN,
-        reserveOutBN
+        reserveData.reserves.token0,
+        reserveData.reserves.token1
       )
 
       console.log('Uniswap V2 output amount:', amountOut.toString())
@@ -564,6 +563,51 @@ export class SushiSwapCalculator extends BaseDexCalculator {
   }
 
   async calculateOutputAmount(
+    amountIn: string,
+    reserveData: ReserveData
+  ): Promise<string> {
+    if (!reserveData || !reserveData.reserves) return '0'
+
+    // Check cache first
+    const cacheKey = this.getCacheKey('out', amountIn, reserveData)
+    const cachedResult = calculationCache.get(cacheKey)
+    if (cachedResult) {
+      console.log('Using cached output amount calculation')
+      return cachedResult
+    }
+
+    try {
+      // Get token decimals from reserveData or default to 18
+      const token0Decimals = reserveData.token0Decimals || 18
+      const token1Decimals = reserveData.token1Decimals || 18
+
+      // Convert to BigNumber with proper decimals
+      const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
+
+      // Get amount out using the router contract
+      const amountOut = await this.router.getAmountOut(
+        amountInBN,
+        reserveData.reserves.token0,
+        reserveData.reserves.token1
+      )
+
+      console.log('SushiSwap output amount:', amountOut.toString())
+
+      // Convert back to string with proper decimals
+      const result = this.formatOutput(amountOut, token1Decimals)
+
+      console.log('SushiSwap output result:', result)
+
+      // Cache the result
+      // calculationCache.set(cacheKey, result)
+      return result
+    } catch (error) {
+      console.error('Error calculating output amount:', error)
+      return '0'
+    }
+  }
+
+  async calculateOutputAmountOld(
     amountIn: string,
     reserveData: ReserveData
   ): Promise<string> {

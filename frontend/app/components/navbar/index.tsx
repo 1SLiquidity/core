@@ -53,7 +53,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       {/* logo section with nav links */}
       <div className="gap-[18px] w-fit h-fit md:flex hidden">
         <Link
-          href={''}
+          href="/"
           className="w-10 h-10 bg-white rounded-[12px] flex items-center justify-center"
         >
           <Image
@@ -103,7 +103,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                         ? pathname === link.href
                         : pathname.startsWith(link.href) && pathname !== '/'
                     )
-                      ? `/icons/home-black.svg`
+                      ? `/icons/${link.href}-black.svg`
                       : link.icon
                   }`}
                   alt={link.title}

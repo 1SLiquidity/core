@@ -412,15 +412,15 @@ const SELSection = () => {
         animate={controls}
         variants={containerVariants}
       >
-        <div className="w-full flex justify-between gap-2 mb-4">
-          <div className="w-fit">
+        <div className="w-full flex justify-end gap-2 mb-4">
+          {/* <div className="w-fit">
             <Tabs
               tabs={SEL_SECTION_TABS}
               theme="secondary"
               activeTab={activeTab}
               setActiveTab={setActiveTab}
             />
-          </div>
+          </div> */}
 
           {/* setting button */}
           <div className="flex items-center gap-2">
@@ -472,7 +472,7 @@ const SELSection = () => {
               </div>
             )}
 
-            <SettingButton />
+            {/* <SettingButton /> */}
           </div>
         </div>
 
@@ -556,7 +556,7 @@ const SELSection = () => {
             </>
           )}
 
-        <div className="w-full my-[30px]">
+        <div className="w-full my-[20px]">
           {isConnected && pathname === '/swaps' ? (
             <Button
               text={isFetchingReserves ? 'Fetching reserves...' : 'Swap'}
