@@ -203,6 +203,13 @@ export class ReservesAggregator {
 
     console.log('Selected deepest pool with liquidity:', deepestPool.liquidity.toString())
 
-    return deepestPool.result
+    // Add decimals information to the result
+    return {
+      ...deepestPool.result,
+      decimals: {
+        token0: token0Info.decimals,
+        token1: token1Info.decimals
+      }
+    }
   }
 }
