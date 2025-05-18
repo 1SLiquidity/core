@@ -1,11 +1,8 @@
-'use client';
+'use client'
 
-import Button from '@/app/components/button';
-import Tabs from '@/app/components/tabs';
-import {
-  LIQUIDITY_STATS_DATA,
-  LIQUIDITY_STATS_TABS,
-} from '@/app/lib/constants';
+import Button from '@/app/components/button'
+import Tabs from '@/app/components/tabs'
+import { LIQUIDITY_STATS_DATA, LIQUIDITY_STATS_TABS } from '@/app/lib/constants'
 import {
   ArcElement,
   CategoryScale,
@@ -14,10 +11,10 @@ import {
   LineElement,
   PointElement,
   Tooltip,
-} from 'chart.js';
-import Image from 'next/image';
-import { useState } from 'react';
-import { Doughnut, Line } from 'react-chartjs-2';
+} from 'chart.js'
+import Image from 'next/image'
+import { useState } from 'react'
+import { Doughnut, Line } from 'react-chartjs-2'
 
 ChartJS.register(
   CategoryScale,
@@ -26,18 +23,15 @@ ChartJS.register(
   LineElement,
   ArcElement,
   Tooltip
-);
+)
 
 type Props = {
-  onAddLiquidity: () => void;
-  onWithdraw: () => void;
-};
+  onAddLiquidity: () => void
+  onWithdraw: () => void
+}
 
-export default function LiquidityStats({
-  onAddLiquidity,
-  onWithdraw,
-}: Props) {
-  const [activeTab, setActiveTab] = useState(LIQUIDITY_STATS_TABS[0]);
+export default function LiquidityStats({ onAddLiquidity, onWithdraw }: Props) {
+  const [activeTab, setActiveTab] = useState(LIQUIDITY_STATS_TABS[0])
 
   return (
     <div className="flex flex-col gap-10">
@@ -76,15 +70,10 @@ export default function LiquidityStats({
         <div className="flex flex-col gap-6">
           {/* Liquidity Stats Rows */}
           {LIQUIDITY_STATS_DATA.map((data, ind) => (
-            <div
-              key={ind}
-              className="flex gap-6 items-center justify-between"
-            >
+            <div key={ind} className="flex gap-6 items-center justify-between">
               {/* Title and Value Section */}
               <div className="flex flex-col gap-1">
-                <p className="text-[18px] text-white72 uppercase">
-                  {data.title}
-                </p>
+                <p className="text-[18px] text-white uppercase">{data.title}</p>
                 <p className="text-[27px] uppercase">{data.value}</p>
                 <div
                   className={`text-[14px] flex gap-1 ${
@@ -134,21 +123,17 @@ export default function LiquidityStats({
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 // MiniGraph Component
 type MiniGraphProps = {
-  data: number[];
-  type: string;
-  status: string;
-};
+  data: number[]
+  type: string
+  status: string
+}
 
-const MiniGraph: React.FC<MiniGraphProps> = ({
-  data,
-  type,
-  status,
-}) => {
+const MiniGraph: React.FC<MiniGraphProps> = ({ data, type, status }) => {
   // If type is "Liquidity", render the pie chart
   if (type === 'Liquidity') {
     const pieData = {
@@ -161,7 +146,7 @@ const MiniGraph: React.FC<MiniGraphProps> = ({
           borderWidth: 0, // Removes border
         },
       ],
-    };
+    }
 
     const pieOptions = {
       responsive: true,
@@ -171,9 +156,9 @@ const MiniGraph: React.FC<MiniGraphProps> = ({
         legend: { display: false },
         tooltip: { enabled: false },
       },
-    };
+    }
 
-    return <Doughnut data={pieData} options={pieOptions} />;
+    return <Doughnut data={pieData} options={pieOptions} />
   }
 
   // Otherwise, render the line chart
@@ -193,7 +178,7 @@ const MiniGraph: React.FC<MiniGraphProps> = ({
         fill: true, // Enable gradient fill
       },
     ],
-  };
+  }
 
   const lineOptions = {
     responsive: true,
@@ -214,7 +199,7 @@ const MiniGraph: React.FC<MiniGraphProps> = ({
         },
       },
     },
-  };
+  }
 
-  return <Line data={lineData} options={lineOptions} />;
-};
+  return <Line data={lineData} options={lineOptions} />
+}

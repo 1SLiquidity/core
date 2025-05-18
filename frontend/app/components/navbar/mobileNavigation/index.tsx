@@ -48,7 +48,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               className="w-10 h-10 bg-white rounded-[12px] flex items-center justify-center"
             >
               <Image
-                src="/assets/logo-1s.png"
+                src="/assets/logo.svg"
                 alt="logo"
                 className="w-fit h-fit"
                 width={40}

@@ -1,24 +1,23 @@
-import { TOKENS, WALLET_TABS } from '@/app/lib/constants';
-import { formatWalletAddress } from '@/app/lib/helper';
-import Image from 'next/image';
-import { useState } from 'react';
-import Modal from '.';
-import StreamDetails from '../streamDetails';
-import SwapStream from '../swapStream';
-import Tabs from '../tabs';
+import { TOKENS, WALLET_TABS } from '@/app/lib/constants'
+import { formatWalletAddress } from '@/app/lib/helper'
+import Image from 'next/image'
+import { useState } from 'react'
+import Modal from '.'
+import StreamDetails from '../streamDetails'
+import SwapStream from '../swapStream'
+import Tabs from '../tabs'
 
 type WalletDetailsModalProps = {
-  isOpen: boolean;
-  onClose: () => void;
-};
+  isOpen: boolean
+  onClose: () => void
+}
 
 const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [activeTab, setActiveTab] = useState(WALLET_TABS[0]);
-  const [isStreamDetailsOpen, setIsStreamDetailsOpen] =
-    useState(false);
+  const [activeTab, setActiveTab] = useState(WALLET_TABS[0])
+  const [isStreamDetailsOpen, setIsStreamDetailsOpen] = useState(false)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -66,7 +65,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                     height={200}
                   />
                 </div>
-                <p className="text-white72">
+                <p className="text-white">
                   {formatWalletAddress('GY68234nasmd234asfKT21')}
                 </p>
               </div>
@@ -85,7 +84,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
               <div className="">
                 <p className="text-[36px] font-bold">$915.56</p>
                 {/* progress */}
-                <div className="flex gap-1.5 text-white72 text-[14px]">
+                <div className="flex gap-1.5 text-white text-[14px]">
                   <Image
                     src={'/icons/progress-down.svg'}
                     alt="progress"
@@ -100,7 +99,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
 
               {/* LP Positions */}
               <div className="mt-7 bg-white005 py-4 px-3.5 rounded-[15px]">
-                <div className="flex text-white72 gap-1 items-center">
+                <div className="flex text-white gap-1 items-center">
                   <p className="">LP Positions</p>
                   <Image
                     src={'/icons/right-arrow.svg'}
@@ -111,7 +110,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                   />
                 </div>
                 <p className="text-[20px]">$999,999.99</p>
-                <div className="flex gap-1 text-white72">
+                <div className="flex gap-1 text-white">
                   <p className="">Reward: </p>
                   <p className="">$22.39 </p>
                 </div>
@@ -166,7 +165,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                   {TOKENS.map((token, ind) => (
                     <div
                       key={ind}
-                      className="w-full flex items-center justify-between border border-white14 bg-white005 hover:bg-white12 p-4 rounded-[15px] cursor-pointer"
+                      className="w-full flex items-center justify-between border border-white14 bg-white005 hover:bg-neutral-800 p-4 rounded-[15px] cursor-pointer"
                     >
                       <div className="flex gap-[12px]">
                         <div className="relative h-fit">
@@ -204,9 +203,9 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                                 : 'text-primaryRed'
                             }`}
                           >
-                            {`${
-                              token.status == 'increase' ? '+' : '-'
-                            } ${token.statusAmount}`}
+                            {`${token.status == 'increase' ? '+' : '-'} ${
+                              token.statusAmount
+                            }`}
                           </p>
                         }
                         {/* {token.status == 'increase' ? ( */}
@@ -236,7 +235,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
         )}
       </div>
     </Modal>
-  );
-};
+  )
+}
 
-export default WalletDetailsModal;
+export default WalletDetailsModal

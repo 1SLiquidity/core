@@ -1,6 +1,6 @@
-import Image from 'next/image';
+import Image from 'next/image'
 
-type Props = {};
+type Props = {}
 
 const NotifiSwapStream: React.FC<Props> = () => {
   return (
@@ -12,7 +12,7 @@ const NotifiSwapStream: React.FC<Props> = () => {
           height={24}
           alt="swapStream"
         />
-        <p className="text-white72">Swap stream 1/2 completed</p>
+        <p className="text-white">Swap stream 1/2 completed</p>
       </div>
 
       {/* main content */}
@@ -26,7 +26,7 @@ const NotifiSwapStream: React.FC<Props> = () => {
               alt="swapStream"
               className="w-[18px] h-[18px]"
             />
-            <p className="text-white72 uppercase">1 ETH</p>
+            <p className="text-white uppercase">1 ETH</p>
           </div>
           <Image
             src="/icons/right-arrow.svg"
@@ -43,7 +43,7 @@ const NotifiSwapStream: React.FC<Props> = () => {
               alt="swapStream"
               className="w-[18px] h-[18px]"
             />
-            <p className="text-white72 uppercase">3,300 USDC (Est)</p>
+            <p className="text-white uppercase">3,300 USDC (Est)</p>
           </div>
         </div>
 
@@ -70,7 +70,7 @@ const NotifiSwapStream: React.FC<Props> = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default NotifiSwapStream;
+export default NotifiSwapStream

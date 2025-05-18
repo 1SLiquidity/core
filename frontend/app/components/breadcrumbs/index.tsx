@@ -1,9 +1,9 @@
-import Image from 'next/image';
-import Link from 'next/link';
+import Image from 'next/image'
+import Link from 'next/link'
 
 type BreadcrumbProps = {
-  links: BREADCRUMBS_LINKS[];
-};
+  links: BREADCRUMBS_LINKS[]
+}
 
 const Breadcrumbs: React.FC<BreadcrumbProps> = ({ links }) => {
   return (
@@ -12,9 +12,7 @@ const Breadcrumbs: React.FC<BreadcrumbProps> = ({ links }) => {
         <div key={link.title} className="flex gap-2 items-center">
           <Link
             href={link.href}
-            className={`${
-              link.active ? '' : 'text-white72'
-            } text-[14px]`}
+            className={`${link.active ? '' : 'text-white'} text-[14px]`}
           >
             {link.title}
           </Link>
@@ -30,7 +28,7 @@ const Breadcrumbs: React.FC<BreadcrumbProps> = ({ links }) => {
         </div>
       ))}
     </div>
-  );
-};
+  )
+}
 
-export default Breadcrumbs;
+export default Breadcrumbs

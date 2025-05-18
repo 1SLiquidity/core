@@ -1,8 +1,9 @@
-import { error } from 'console';
-import type { Config } from 'tailwindcss';
-import scrollbarHide from 'tailwind-scrollbar-hide';
+import { error } from 'console'
+import type { Config } from 'tailwindcss'
+import scrollbarHide from 'tailwind-scrollbar-hide'
 
 export default {
+  darkMode: ['class'],
   content: [
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
@@ -16,6 +17,17 @@ export default {
         primaryRed: 'var(--primary-red)',
         primary: 'var(--primary)',
         secondary: 'var(--secondary)',
+        // background: 'hsl(var(--background))',
+        // foreground: 'hsl(var(--foreground))',
+        // primaryRed: 'var(--primary-red)',
+        // primary: {
+        //   DEFAULT: 'hsl(var(--primary))',
+        //   foreground: 'hsl(var(--primary-foreground))',
+        // },
+        // secondary: {
+        //   DEFAULT: 'hsl(var(--secondary))',
+        //   foreground: 'hsl(var(--secondary-foreground))',
+        // },
         gray: 'var(--border-primary)',
         white72: 'var(--white72)',
         white12: 'var(--white12)',
@@ -27,6 +39,36 @@ export default {
         ongoing: 'var(--ongoing)',
         scheduled: 'var(--scheduled)',
         gradientText: 'var(--gradient-text)',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        chart: {
+          '1': 'hsl(var(--chart-1))',
+          '2': 'hsl(var(--chart-2))',
+          '3': 'hsl(var(--chart-3))',
+          '4': 'hsl(var(--chart-4))',
+          '5': 'hsl(var(--chart-5))',
+        },
       },
       backgroundImage: {
         primaryGradient: 'var(--primary-gradient)',
@@ -46,7 +88,12 @@ export default {
       textColor: {
         gray: 'var(--text-gray)',
       },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
+      },
     },
   },
-  plugins: [scrollbarHide],
-} satisfies Config;
+  plugins: [scrollbarHide, require('tailwindcss-animate')],
+} satisfies Config

@@ -3,7 +3,7 @@ const ConversionSection: React.FC = ({}) => {
     <div className="w-full">
       <div className="w-full flex gap-2 justify-between items-center mt-[12px] uppercase text-[18px]">
         {/* select token */}
-        <p className="text-white72">Share of pool</p>
+        <p className="text-white">Share of pool</p>
         <p className="bg-gradientText bg-clip-text text-transparent inline-block">
           Est. WEEKLY Yield
         </p>
@@ -20,7 +20,7 @@ const ConversionSection: React.FC = ({}) => {
         <p className="text-primary">0.015 ETH*</p>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ConversionSection;
+export default ConversionSection

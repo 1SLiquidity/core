@@ -1,10 +1,10 @@
-'use client';
+'use client'
 
 import {
   DAYS,
   OVERALL_SECTION_TABS,
   POOL_TOKEN_TABS,
-} from '@/app/lib/constants';
+} from '@/app/lib/constants'
 import {
   BarElement,
   CategoryScale,
@@ -12,12 +12,12 @@ import {
   LinearScale,
   LineElement,
   PointElement,
-} from 'chart.js';
-import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
-import { Bar, Line } from 'react-chartjs-2';
-import Tabs from '../../tabs';
-import { formatWalletAddress } from '@/app/lib/helper';
+} from 'chart.js'
+import Image from 'next/image'
+import { useEffect, useRef, useState } from 'react'
+import { Bar, Line } from 'react-chartjs-2'
+import Tabs from '../../tabs'
+import { formatWalletAddress } from '@/app/lib/helper'
 
 ChartJS.register(
   BarElement,
@@ -25,15 +25,15 @@ ChartJS.register(
   LinearScale,
   LineElement,
   PointElement
-);
+)
 
-type Props = {};
+type Props = {}
 
 const PoolToken: React.FC<Props> = () => {
   const [poolTokenActiveTab, setPoolTokenActiveTab] = useState(
     OVERALL_SECTION_TABS[0]
-  );
-  const [daysActiveTab, setDaysActiveTab] = useState(DAYS[0]);
+  )
+  const [daysActiveTab, setDaysActiveTab] = useState(DAYS[0])
 
   return (
     <>
@@ -50,7 +50,7 @@ const PoolToken: React.FC<Props> = () => {
           </div>
           <div className="flex gap-2 text-[27px]">
             <span className="uppercase">ETH</span>
-            <span className="uppercase underline text-white72">
+            <span className="uppercase underline text-white">
               {formatWalletAddress('0x2a4941dsfdgdfngkd74642f')}
             </span>
           </div>
@@ -95,14 +95,12 @@ const PoolToken: React.FC<Props> = () => {
         <div>
           {/* Render the graph based on the active tab */}
           {poolTokenActiveTab.title === 'Volume' && <VolumeGraph />}
-          {poolTokenActiveTab.title === 'Liquidity' && (
-            <RewardsGraph />
-          )}
+          {poolTokenActiveTab.title === 'Liquidity' && <RewardsGraph />}
         </div>
       </div>
     </>
-  );
-};
+  )
+}
 
 // Volume Graph (Bar Chart)
 const VolumeGraph = () => {
@@ -127,7 +125,7 @@ const VolumeGraph = () => {
         borderSkipped: false, // Round all sides
       },
     ],
-  };
+  }
 
   const options = {
     responsive: true,
@@ -145,33 +143,33 @@ const VolumeGraph = () => {
       y: { display: false },
     },
     barPercentage: 1, // Adjust bar width
-  };
+  }
 
   return (
     <div style={{ width: '100%', height: '300px' }}>
       <Bar data={data} options={options} />
     </div>
-  );
-};
+  )
+}
 
 // TVL Graph (Line Chart)
 const TVLGraph = () => {
-  const chartRef = useRef<any>(null);
+  const chartRef = useRef<any>(null)
 
   const createGradient = (
     ctx: CanvasRenderingContext2D,
     color1: string,
     color2: string
   ) => {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, color1); // Start color
-    gradient.addColorStop(1, color2); // End color
-    return gradient;
-  };
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300)
+    gradient.addColorStop(0, color1) // Start color
+    gradient.addColorStop(1, color2) // End color
+    return gradient
+  }
 
   useEffect(() => {
     if (chartRef.current && chartRef.current.canvas) {
-      const ctx = chartRef.current.canvas.getContext('2d');
+      const ctx = chartRef.current.canvas.getContext('2d')
 
       if (ctx) {
         // Create gradients for both datasets
@@ -179,23 +177,23 @@ const TVLGraph = () => {
           ctx,
           'rgba(64, 251, 177, 0.3)', // Green with transparency
           'rgba(64, 251, 177, 0)' // Fully transparent
-        );
+        )
 
         const dataset2Gradient = createGradient(
           ctx,
           'rgba(84, 149, 246, 0.3)', // Blue with transparency
           'rgba(84, 149, 246, 0)' // Fully transparent
-        );
+        )
 
         // Apply gradients to datasets
-        const chart = chartRef.current;
-        chart.data.datasets[0].backgroundColor = dataset1Gradient;
-        chart.data.datasets[1].backgroundColor = dataset2Gradient;
+        const chart = chartRef.current
+        chart.data.datasets[0].backgroundColor = dataset1Gradient
+        chart.data.datasets[1].backgroundColor = dataset2Gradient
 
-        chart.update();
+        chart.update()
       }
     }
-  }, []);
+  }, [])
 
   const data = {
     labels: [
@@ -228,7 +226,7 @@ const TVLGraph = () => {
         fill: true, // Enable gradient fill
       },
     ],
-  };
+  }
 
   const options = {
     responsive: true,
@@ -260,33 +258,33 @@ const TVLGraph = () => {
         display: false, // Hide y-axis
       },
     },
-  };
+  }
 
   return (
     <div style={{ width: '100%', height: '300px' }}>
       <Line ref={chartRef} data={data} options={options} />
     </div>
-  );
-};
+  )
+}
 
 // Rewards Graph (Line Chart)
 const RewardsGraph = () => {
-  const chartRef = useRef<any>(null);
+  const chartRef = useRef<any>(null)
 
   const createGradient = (
     ctx: CanvasRenderingContext2D,
     color1: string,
     color2: string
   ) => {
-    const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-    gradient.addColorStop(0, color1); // Start color
-    gradient.addColorStop(1, color2); // End color
-    return gradient;
-  };
+    const gradient = ctx.createLinearGradient(0, 0, 0, 300)
+    gradient.addColorStop(0, color1) // Start color
+    gradient.addColorStop(1, color2) // End color
+    return gradient
+  }
 
   useEffect(() => {
     if (chartRef.current && chartRef.current.canvas) {
-      const ctx = chartRef.current.canvas.getContext('2d');
+      const ctx = chartRef.current.canvas.getContext('2d')
 
       if (ctx) {
         // Create gradient for the rewards dataset
@@ -294,16 +292,16 @@ const RewardsGraph = () => {
           ctx,
           'rgba(64, 251, 177, 0.3)', // Green with transparency
           'rgba(64, 251, 177, 0)' // Fully transparent
-        );
+        )
 
         // Apply gradient to dataset
-        const chart = chartRef.current;
-        chart.data.datasets[0].backgroundColor = rewardsGradient;
+        const chart = chartRef.current
+        chart.data.datasets[0].backgroundColor = rewardsGradient
 
-        chart.update();
+        chart.update()
       }
     }
-  }, []);
+  }, [])
 
   const data = {
     labels: [
@@ -327,7 +325,7 @@ const RewardsGraph = () => {
         fill: true, // Enable gradient fill
       },
     ],
-  };
+  }
 
   const options = {
     responsive: true,
@@ -357,13 +355,13 @@ const RewardsGraph = () => {
         display: false, // Hide y-axis
       },
     },
-  };
+  }
 
   return (
     <div style={{ width: '100%', height: '300px' }}>
       <Line ref={chartRef} data={data} options={options} />
     </div>
-  );
-};
+  )
+}
 
-export default PoolToken;
+export default PoolToken

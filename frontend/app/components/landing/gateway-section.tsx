@@ -28,7 +28,7 @@ const GatewaySection = () => {
     logoImage.onload = checkAllLoaded
 
     bgImage.src = '/ovals/ovals-bg.png'
-    logoImage.src = '/horse-logo.png'
+    logoImage.src = '/ovals/horse-logo.png'
 
     // Safety timeout in case images don't load
     const timeout = setTimeout(() => {
@@ -230,7 +230,7 @@ const GatewaySection = () => {
             whileHover="hover"
           >
             <Image
-              src="/horse-logo.png"
+              src="/ovals/horse-logo.png"
               alt="DECASWAP logo"
               width={180}
               height={180}

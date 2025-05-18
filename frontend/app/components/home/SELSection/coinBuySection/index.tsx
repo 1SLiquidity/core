@@ -9,6 +9,8 @@ interface Props {
   setAmount: (amount: number) => void
   inValidAmount?: boolean // This prop will handle the invalid amount logic
   swap?: boolean
+  disabled?: boolean
+  isLoading?: boolean // Add isLoading prop
 }
 
 const CoinBuySection: React.FC<Props> = ({
@@ -16,6 +18,8 @@ const CoinBuySection: React.FC<Props> = ({
   setAmount,
   inValidAmount,
   swap,
+  disabled,
+  isLoading, // Destructure isLoading
 }) => {
   const [active, setActive] = useState(false)
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -26,7 +30,7 @@ const CoinBuySection: React.FC<Props> = ({
   })
 
   return (
-    <div ref={sectionRef} className="w-fit h-fit relative">
+    <div ref={sectionRef} className="w-full h-full relative">
       {amount > 0 && !inValidAmount && active && selectedTokenTo && (
         <Image
           src="/assets/valid-amount-succes.svg"
@@ -39,16 +43,16 @@ const CoinBuySection: React.FC<Props> = ({
         />
       )}
       <div
-        className={`w-full min-h-[150px] md:min-h-[167px] rounded-[15px] p-[2px] relative ${
+        className={`w-full min-h-[163px] md:min-h-[171px] rounded-[15px] p-[2px] relative ${
           amount > 0 && !inValidAmount && active && selectedTokenTo
             ? 'bg-primary'
             : inValidAmount
             ? 'bg-primaryRed'
-            : 'bg-white12'
+            : 'bg-neutral-800'
         }`}
       >
         <div
-          className={`w-full h-full z-20 sticky left-0 top-0 px-7 py-5 rounded-[13px] ${
+          className={`w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-5 rounded-[13px] ${
             amount > 0 && !inValidAmount && active && selectedTokenTo
               ? 'bg-gradient-to-r from-[#071310] to-[#062118]'
               : 'bg-[#0D0D0D]'
@@ -61,7 +65,7 @@ const CoinBuySection: React.FC<Props> = ({
           }`}
         >
           {/* Title */}
-          <p className="uppercase text-white72 text-[18px]">BUY</p>
+          <p className="uppercase text-white text-[18px]">BUY</p>
 
           <SelectTokenWithAmountSection
             inputField="to"
@@ -73,6 +77,8 @@ const CoinBuySection: React.FC<Props> = ({
                 setActive(true)
               }
             }}
+            disabled={disabled}
+            isLoading={isLoading} // Pass isLoading prop
           />
         </div>
       </div>

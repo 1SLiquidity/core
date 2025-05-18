@@ -1,15 +1,15 @@
-import Image from 'next/image';
-import { useState } from 'react';
+import Image from 'next/image'
+import { useState } from 'react'
 
 type Props = {
-  active: boolean;
-};
+  active: boolean
+}
 
 const SwapBox: React.FC<Props> = ({ active = false }) => {
   return (
     <div className="w-16 h-16 overflow-hidden flex gap-4 p-2 group">
       <div
-        className={`w-full h-full rounded-[4px] flex justify-center bg-white12 items-center p-1 group-hover:bg-gradient-to-r from-[#071310] to-[#062118]
+        className={`w-full h-full rounded-[4px] flex justify-center bg-neutral-800 items-center p-1 group-hover:bg-gradient-to-r from-[#071310] to-[#062118]
           `}
       >
         <Image
@@ -28,7 +28,7 @@ const SwapBox: React.FC<Props> = ({ active = false }) => {
         />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default SwapBox;
+export default SwapBox

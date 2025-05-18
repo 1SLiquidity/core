@@ -1,12 +1,12 @@
-import InputAmount from '@/app/components/inputAmount';
-import Tag from '@/app/components/tag';
-import { TOKENS } from '@/app/lib/constants';
-import Image from 'next/image';
-import { useState } from 'react';
+import InputAmount from '@/app/components/inputAmount'
+import Tag from '@/app/components/tag'
+import { TOKENS } from '@/app/lib/constants'
+import Image from 'next/image'
+import { useState } from 'react'
 
 const ConversionSection: React.FC = ({}) => {
-  const [amount, setAmount] = useState(0);
-  const [limitType, setLimitType] = useState('Market');
+  const [amount, setAmount] = useState(0)
+  const [limitType, setLimitType] = useState('Market')
 
   return (
     <div className="w-full">
@@ -57,7 +57,7 @@ const ConversionSection: React.FC = ({}) => {
         {/* <div className="max-w-[33%] w-fit"> */}
         <InputAmount amount={amount} setAmount={setAmount} />
         {/* </div> */}
-        <p className="w-[70%] flex justify-center items-cente text-white72">
+        <p className="w-[70%] flex justify-center items-cente text-white">
           is equal to
         </p>
         {/* <div className="max-w-[33%] w-fit"> */}
@@ -98,7 +98,7 @@ const ConversionSection: React.FC = ({}) => {
         />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ConversionSection;
+export default ConversionSection

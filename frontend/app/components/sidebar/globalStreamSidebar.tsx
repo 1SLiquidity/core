@@ -1,19 +1,19 @@
-import Image from 'next/image';
-import { useState } from 'react';
-import Sidebar from '.';
-import StreamDetails from '../streamDetails';
-import SwapStream from '../swapStream';
+import Image from 'next/image'
+import { useState } from 'react'
+import Sidebar from '.'
+import StreamDetails from '../streamDetails'
+import SwapStream from '../swapStream'
 
 type GlobalStreamSidebarProps = {
-  isOpen: boolean;
-  onClose: () => void;
-};
+  isOpen: boolean
+  onClose: () => void
+}
 
 const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [isStreamSelected, setIsStreamSelected] = useState(false);
+  const [isStreamSelected, setIsStreamSelected] = useState(false)
   return (
     <Sidebar isOpen={isOpen} onClose={onClose}>
       {/* close icon */}
@@ -57,9 +57,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                       LIVE
                     </div>
                   </div>
-                  <p className="text-white72 text-[20px]">
-                    Global Stream
-                  </p>
+                  <p className="text-white text-[20px]">Global Stream</p>
                 </div>
               </>
             </div>
@@ -68,18 +66,14 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
               <div className="p-4 rounded-[15px] bg-white005">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col leading-tight gap-0.5 items-start">
-                    <p className="text-white72">Scheduled</p>
+                    <p className="text-white">Scheduled</p>
                     <p className="text-[20px]">99</p>
-                    <p className="text-white52 text-[14px]">
-                      $99,999,922.39
-                    </p>
+                    <p className="text-white52 text-[14px]">$99,999,922.39</p>
                   </div>
                   <div className="flex flex-col leading-tight gap-0.5 items-start">
-                    <p className="text-white72">Ongoing</p>
+                    <p className="text-white">Ongoing</p>
                     <p className="text-[20px]">99</p>
-                    <p className="text-white52 text-[14px]">
-                      $99,999,922.39
-                    </p>
+                    <p className="text-white52 text-[14px]">$99,999,922.39</p>
                   </div>
                 </div>
               </div>
@@ -88,24 +82,12 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                 <p className="text-[20px] pb-3.5">Global Streams</p>
 
                 <div className="flex flex-col gap-2">
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
-                  <SwapStream
-                    onClick={() => setIsStreamSelected(true)}
-                  />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  <SwapStream onClick={() => setIsStreamSelected(true)} />
                 </div>
               </div>
             </div>
@@ -113,7 +95,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
         )}
       </div>
     </Sidebar>
-  );
-};
+  )
+}
 
-export default GlobalStreamSidebar;
+export default GlobalStreamSidebar
