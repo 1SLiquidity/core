@@ -42,6 +42,14 @@ export class UniswapV2Service {
       const token0Reserve = isToken0First ? reserve0 : reserve1;
       const token1Reserve = isToken0First ? reserve1 : reserve0;
 
+      // const normalizedToken0Reserve = this.normalizeTo18Decimals(token0Reserve, decimals.token0)
+      // const normalizedToken1Reserve = this.normalizeTo18Decimals(token1Reserve, decimals.token1)
+
+      console.log('Uniswap V2 reserves:', {
+        token0: token0Reserve.toString(),
+        token1: token1Reserve.toString()
+      })
+
       return {
         dex: 'uniswap-v2',
         pairAddress,
@@ -50,7 +58,7 @@ export class UniswapV2Service {
           token1: token1Reserve.toString()
         },
         timestamp: Date.now()
-      };
+      } as ReserveResult;
     } catch (error) {
       console.error('Error fetching Uniswap V2 reserves:', error);
       return null;

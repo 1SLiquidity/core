@@ -46,14 +46,21 @@ export class ReservesAggregator {
     return null
   }
 
-  private calculateV2Liquidity(reserves: { token0: string, token1: string }, token0Decimals: number, token1Decimals: number): bigint {
+  private normalizeTo18Decimals(value: bigint, fromDecimals: number): bigint {
+    if (fromDecimals === 18) return value
+    if (fromDecimals > 18) {
+      return value / BigInt(10n ** BigInt(fromDecimals - 18))
+    }
+    return value * BigInt(10n ** BigInt(18 - fromDecimals))
+  }
+
+  private calculateGeometricMean(reserves: { token0: string, token1: string }, decimals: { token0: number, token1: number }): bigint {
     // Convert reserves to BigInt
     const reserve0 = BigInt(reserves.token0)
     const reserve1 = BigInt(reserves.token1)
 
-    // Normalize reserves to 18 decimals for fair comparison
-    const normalizedReserve0 = this.normalizeTo18Decimals(reserve0, token0Decimals)
-    const normalizedReserve1 = this.normalizeTo18Decimals(reserve1, token1Decimals)
+    const normalizedReserve0 = this.normalizeTo18Decimals(reserve0, decimals.token0)
+    const normalizedReserve1 = this.normalizeTo18Decimals(reserve1, decimals.token1)
 
     // Calculate geometric mean
     // sqrt(a * b) = sqrt(a) * sqrt(b)
@@ -61,14 +68,6 @@ export class ReservesAggregator {
     const sqrtReserve1 = this.sqrt(normalizedReserve1)
     
     return sqrtReserve0 * sqrtReserve1
-  }
-
-  private normalizeTo18Decimals(value: bigint, fromDecimals: number): bigint {
-    if (fromDecimals === 18) return value
-    if (fromDecimals > 18) {
-      return value / BigInt(10n ** BigInt(fromDecimals - 18))
-    }
-    return value * BigInt(10n ** BigInt(18 - fromDecimals))
   }
 
   private sqrt(value: bigint): bigint {
@@ -94,7 +93,7 @@ export class ReservesAggregator {
       this.tokenService.getTokenInfo(tokenB)
     ])
 
-    const results: { result: ReserveResult, liquidity: bigint }[] = []
+    const results: { result: ReserveResult, meanReserves: bigint }[] = []
 
     // Fetch data sequentially instead of in parallel to avoid rate limits
     console.log('Fetching Uniswap V3 (500) reserves...')
@@ -103,25 +102,25 @@ export class ReservesAggregator {
       'Uniswap V3 (500)'
     )
     if (uniswapV3_500Reserves) {
-      const liquidity = BigInt(uniswapV3_500Reserves.reserves.token0)
-      console.log('Uniswap V3 (500) liquidity:', liquidity.toString())
+      const meanReserves = this.calculateGeometricMean(uniswapV3_500Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
+      console.log('Uniswap V3 (500) meanReserves:', meanReserves.toString())
       results.push({
         result: uniswapV3_500Reserves,
-        liquidity
+        meanReserves: meanReserves
       })
     }
 
     console.log('Fetching Uniswap V3 (3000) reserves...')
     const uniswapV3_3000Reserves = await this.fetchWithRetry(
       () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
-      'Uniswap V3 (3000)'
+      'Uniswap V3 (3000)' 
     )
     if (uniswapV3_3000Reserves) {
-      const liquidity = BigInt(uniswapV3_3000Reserves.reserves.token0)
-      console.log('Uniswap V3 (3000) liquidity:', liquidity.toString())
+      const meanReserves = this.calculateGeometricMean(uniswapV3_3000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
+      console.log('Uniswap V3 (3000) liquidity:', meanReserves.toString())
       results.push({
         result: uniswapV3_3000Reserves,
-        liquidity
+        meanReserves: meanReserves
       })
     }
 
@@ -131,11 +130,11 @@ export class ReservesAggregator {
       'Uniswap V3 (10000)'
     )
     if (uniswapV3_10000Reserves) {
-      const liquidity = BigInt(uniswapV3_10000Reserves.reserves.token0)
-      console.log('Uniswap V3 (10000) liquidity:', liquidity.toString())
+      const meanReserves = this.calculateGeometricMean(uniswapV3_10000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
+      console.log('Uniswap V3 (10000) liquidity:', meanReserves.toString())
       results.push({
         result: uniswapV3_10000Reserves,
-        liquidity
+        meanReserves: meanReserves
       })
     }
 
@@ -148,19 +147,11 @@ export class ReservesAggregator {
       'Uniswap V2'
     )
     if (uniswapV2Reserves) {
-      const liquidity = this.calculateV2Liquidity(
-        uniswapV2Reserves.reserves,
-        token0Info.decimals,
-        token1Info.decimals
-      )
-      console.log('Uniswap V2 liquidity:', liquidity.toString())
-      console.log('Uniswap V2 raw reserves:', {
-        token0: uniswapV2Reserves.reserves.token0,
-        token1: uniswapV2Reserves.reserves.token1
-      })
+      const meanReserves = this.calculateGeometricMean(uniswapV2Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
+      console.log('Uniswap V2 liquidity:', meanReserves.toString())
       results.push({
         result: uniswapV2Reserves,
-        liquidity
+        meanReserves: meanReserves
       })
     }
 
@@ -173,19 +164,11 @@ export class ReservesAggregator {
       'SushiSwap'
     )
     if (sushiswapReserves) {
-      const liquidity = this.calculateV2Liquidity(
-        sushiswapReserves.reserves,
-        token0Info.decimals,
-        token1Info.decimals
-      )
-      console.log('SushiSwap liquidity:', liquidity.toString())
-      console.log('SushiSwap raw reserves:', {
-        token0: sushiswapReserves.reserves.token0,
-        token1: sushiswapReserves.reserves.token1
-      })
+      const meanReserves = this.calculateGeometricMean(sushiswapReserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
+      console.log('SushiSwap liquidity:', meanReserves.toString())
       results.push({
         result: sushiswapReserves,
-        liquidity
+        meanReserves: meanReserves
       })
     }
 
@@ -196,12 +179,12 @@ export class ReservesAggregator {
     // Find the result with highest liquidity
     const deepestPool = results.reduce((prev, current) => {
       console.log('Comparing pools:')
-      console.log('Previous pool liquidity:', prev.liquidity.toString())
-      console.log('Current pool liquidity:', current.liquidity.toString())
-      return current.liquidity > prev.liquidity ? current : prev
+      console.log('Previous pool liquidity:', prev.meanReserves.toString())
+      console.log('Current pool liquidity:', current.meanReserves.toString())
+      return current.meanReserves > prev.meanReserves ? current : prev
     })
 
-    console.log('Selected deepest pool with liquidity:', deepestPool.liquidity.toString())
+    console.log('Selected deepest pool with liquidity:', deepestPool.meanReserves.toString())
 
     // Add decimals information to the result
     return {

@@ -34,7 +34,7 @@ export async function getCache<T>(key: string): Promise<T | null> {
 }
 
 // Helper function to set a cached value with TTL (in seconds)
-export async function setCache<T>(key: string, value: T, ttl: number = 30): Promise<void> {
+export async function setCache<T>(key: string, value: T, ttl: number = 10): Promise<void> {
   try {
     await redisClient.setex(key, ttl, JSON.stringify(value));
   } catch (error) {

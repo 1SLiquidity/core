@@ -42,6 +42,14 @@ export class SushiSwapService {
       const token0Reserve = isToken0First ? reserve0 : reserve1;
       const token1Reserve = isToken0First ? reserve1 : reserve0;
 
+      // const normalizedToken0Reserve = this.normalizeTo18Decimals(token0Reserve, decimals.token0)
+      // const normalizedToken1Reserve = this.normalizeTo18Decimals(token1Reserve, decimals.token1)
+
+      console.log('SushiSwap reserves:', {
+        token0: token0Reserve.toString(),
+        token1: token1Reserve.toString()
+      })
+
       return {
         dex: 'sushiswap',
         pairAddress,
@@ -50,7 +58,7 @@ export class SushiSwapService {
           token1: token1Reserve.toString()
         },
         timestamp: Date.now()
-      };
+      } as ReserveResult;
     } catch (error) {
       console.error('Error fetching SushiSwap reserves:', error);
       return null;

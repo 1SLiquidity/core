@@ -27,6 +27,14 @@ export class UniswapV3Service {
     );
   }
 
+  private normalizeTo18Decimals(value: bigint, fromDecimals: number): bigint {
+    if (fromDecimals === 18) return value
+    if (fromDecimals > 18) {
+      return value / BigInt(10n ** BigInt(fromDecimals - 18))
+    }
+    return value * BigInt(10n ** BigInt(18 - fromDecimals))
+  }
+
   async getReserves(tokenA: string, tokenB: string, feeTier: number): Promise<ReserveResult | null> {
     try {
 
@@ -36,17 +44,36 @@ export class UniswapV3Service {
       }
 
       const pool = new ethers.Contract(poolAddress, CONTRACT_ABIS.UNISWAP_V3.POOL, this.provider);
-      const liquidity = await pool.liquidity();
+      const [liquidity, slot0] = await Promise.all([
+        pool.liquidity(),
+        pool.slot0()
+      ]);
+
+      const sqrtPriceX96 = BigInt(slot0.sqrtPriceX96);
+
+      const q96 = BigInt(2 ** 96);
+
+      const virtualToken0Reserve = (BigInt(liquidity) * q96) / sqrtPriceX96;
+      const virtualToken1Reserve = (BigInt(liquidity) * sqrtPriceX96) / q96;
+      
+      // Normalize reserves by token decimals
+      // const normalizedToken0Reserve = this.normalizeTo18Decimals(virtualToken0Reserve, decimals.token0);
+      // const normalizedToken1Reserve = this.normalizeTo18Decimals(virtualToken1Reserve, decimals.token1)
+
+      console.log('Uniswap V3 (500) reserves:', {
+        token0: virtualToken0Reserve.toString(),
+        token1: virtualToken1Reserve.toString()
+      })
 
         return {
           dex: `uniswap-v3-${feeTier}`,
           pairAddress: poolAddress,
           reserves: {
-              token0: liquidity.toString(), // Liquidity units always use 18 decimals
-              token1: '0' // V3 uses liquidity units instead of direct reserves
+              token0: virtualToken0Reserve.toString(),
+              token1: virtualToken1Reserve.toString()
             },
             timestamp: Date.now()
-      };
+      } as ReserveResult;
     } catch (error) {
       console.error('Error fetching Uniswap V3 reserves:', error);
       return null;
