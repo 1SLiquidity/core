@@ -83,7 +83,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
         ) : (
           <div className="w-fit h-10 border-[2px] border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
             {NAV_LINKS.map((link) => (
-              <a
+              <Link
                 key={link.title}
                 href={link.href}
                 className={`flex gap-[6px] items-center py-[10px] px-[9px] rounded-[8px] ${
@@ -97,22 +97,23 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                 }`}
               >
                 <Image
-                  src={`${
+                  src={
                     (
                       link.href === '/'
                         ? pathname === link.href
                         : pathname.startsWith(link.href) && pathname !== '/'
                     )
-                      ? `/icons/${link.href}-black.svg`
+                      ? link.icon.replace('.svg', '-black.svg')
                       : link.icon
-                  }`}
+                  }
                   alt={link.title}
                   className="w-fit h-fit"
                   width={20}
                   height={20}
                 />
+
                 <span>{link.title}</span>
-              </a>
+              </Link>
             ))}
           </div>
         )}
@@ -128,13 +129,13 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       </div> */}
 
       {/* searchbar - for medium screens */}
-      <div className="hidden md:flex lg:hidden items-center h-10 w-full max-w-[200px]">
+      {/* <div className="hidden md:flex lg:hidden items-center h-10 w-full max-w-[200px]">
         <Searchbar
           onChange={(e) => setSearchValue(e.target.value)}
           value={searchValue}
           setValue={(e: any) => setSearchValue(e)}
         />
-      </div>
+      </div> */}
 
       {/* live button and connect button */}
       <div className="flex gap-[10px]">

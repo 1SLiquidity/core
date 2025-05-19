@@ -26,6 +26,7 @@ import { motion, useAnimation, Variants } from 'framer-motion'
 import { ChevronDown, RefreshCcw } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import AdvancedConfig from '../advancedConfig'
+import TradingSettings from './TradeSettings'
 
 const SELSection = () => {
   const [activeTab, setActiveTab] = useState(SEL_SECTION_TABS[0])
@@ -473,6 +474,7 @@ const SELSection = () => {
             )}
 
             {/* <SettingButton /> */}
+            <TradingSettings />
           </div>
         </div>
 
@@ -504,8 +506,8 @@ const SELSection = () => {
             onClick={handleSwap}
             className="absolute items-center flex border-[#1F1F1F] border-[2px] border-opacity-[1.5] bg-black justify-center cursor-pointer rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50"
           >
-            <div className="w-[25.3px] h-[22.8px] absolute bg-black -rotate-45 -z-30 -left-[14px] top-[50.8px]" />
-            <div className="w-[26.4px] h-[22.8px] absolute bg-black -rotate-45 -z-30 -right-[11.8px] -top-[13.2px]" />
+            <div className="w-[25.3px] h-[22.8px] absolute bg-transparent md:bg-black -rotate-45 -z-30 -left-[14px] top-[50.8px]" />
+            <div className="w-[26.4px] h-[22.8px] absolute bg-transparent md:bg-black -rotate-45 -z-30 -right-[11.8px] -top-[13.2px]" />
             <SwapBox active={sellAmount > 0 || buyAmount > 0} />
           </div>
           {swap ? (
@@ -536,10 +538,10 @@ const SELSection = () => {
         )}
 
         {/* Advanced Config */}
-        {buyAmount > 0 &&
+        {/* {buyAmount > 0 &&
           sellAmount > 0 &&
           selectedTokenFrom &&
-          selectedTokenTo && <AdvancedConfig />}
+          selectedTokenTo && <AdvancedConfig />} */}
 
         {/* Detail Section */}
         {buyAmount > 0 &&

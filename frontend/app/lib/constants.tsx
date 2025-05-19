@@ -1,11 +1,11 @@
 import { title } from 'process'
 
 export const NAV_LINKS: NAV_LINKS[] = [
-  // {
-  //   title: 'Home',
-  //   href: '/',
-  //   icon: '/icons/home.svg',
-  // },
+  {
+    title: 'Home',
+    href: '/',
+    icon: '/icons/home.svg',
+  },
   {
     title: 'Swaps',
     href: '/swaps',
