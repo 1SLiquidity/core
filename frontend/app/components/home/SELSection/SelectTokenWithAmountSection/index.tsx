@@ -3,11 +3,13 @@ import { TOKENS } from '@/app/lib/constants'
 import { useModal } from '@/app/lib/context/modalContext'
 import { useSidebar } from '@/app/lib/context/sidebarContext'
 import Image from 'next/image'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { useAppKitAccount } from '@reown/appkit/react'
 import { useWalletTokens } from '@/app/lib/hooks/useWalletTokens'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { motion, AnimatePresence } from 'framer-motion'
 
 interface InputAmountProps {
   amount: number
@@ -18,6 +20,67 @@ interface InputAmountProps {
   onInputFocus?: () => void
   disabled?: boolean
   isLoading?: boolean
+}
+
+// Top Tokens component that shows popular tokens on hover
+const TopTokens = ({
+  tokens,
+  isVisible,
+  onTokenSelect,
+}: {
+  tokens: TOKENS_TYPE[]
+  isVisible: boolean
+  onTokenSelect: (token: TOKENS_TYPE) => void
+}) => {
+  // Get only 5 tokens and reverse the array to display from right to left
+  const tokensToShow = [...tokens].slice(0, 5).reverse()
+
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          className="absolute -top-10 right-0 flex flex-row-reverse gap-1 items-center z-[100]"
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 5 }}
+          transition={{ duration: 0.2 }}
+        >
+          {tokensToShow.map((token: TOKENS_TYPE, index) => (
+            <motion.div
+              key={token.token_address || index}
+              className="cursor-pointer relative group"
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 10 }}
+              transition={{ duration: 0.3, delay: index * 0.08 }}
+              onClick={(e) => {
+                e.stopPropagation()
+                onTokenSelect(token)
+              }}
+              whileHover={{ scale: 1.1 }}
+            >
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-neutral-700 bg-[#111] shadow-lg">
+                <Image
+                  src={token.icon || '/icons/default-token.svg'}
+                  alt={token.name || ''}
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement
+                    target.src = '/icons/default-token.svg'
+                  }}
+                />
+              </div>
+              {/* <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black/90 px-2 py-1 rounded-md text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
+                {token.symbol}
+              </div> */}
+            </motion.div>
+          ))}
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 }
 
 const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
@@ -46,12 +109,58 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
     rawTokens,
   } = useWalletTokens(address, 'arbitrum')
 
+  // Get token list from useTokenList hook
+  const { tokens: allTokens, isLoading: isLoadingTokenList } = useTokenList()
+
   const [showTooltip, setShowTooltip] = useState(false)
   const [tokenBalance, setTokenBalance] = useState('0')
+  const [showTopTokens, setShowTopTokens] = useState(false)
+  const buttonRef = useRef<HTMLDivElement>(null)
 
   // Get the appropriate token based on which input field this is
   const selectedToken =
     inputField === 'from' ? selectedTokenFrom : selectedTokenTo
+
+  // Get the token from the other section to filter it out
+  const otherSectionToken =
+    inputField === 'from' ? selectedTokenTo : selectedTokenFrom
+
+  // Get top tokens sorted by popularity or market cap
+  const topTokens = useMemo(() => {
+    if (!allTokens || allTokens.length === 0) return []
+
+    // Filter out tokens that are already selected in either section
+    const filteredTokens = allTokens.filter((token: TOKENS_TYPE) => {
+      // Skip tokens selected in either section
+      if (
+        selectedTokenFrom &&
+        token.token_address === selectedTokenFrom.token_address
+      ) {
+        return false
+      }
+      if (
+        selectedTokenTo &&
+        token.token_address === selectedTokenTo.token_address
+      ) {
+        return false
+      }
+      return true
+    })
+
+    // First try to find the popular tokens
+    const popular = filteredTokens.filter((token: TOKENS_TYPE) => token.popular)
+    if (popular.length >= 5) {
+      return popular.slice(0, 5)
+    }
+
+    // If not enough popular tokens, sort by market cap (using usd_price as a proxy)
+    return [...filteredTokens]
+      .sort(
+        (a: TOKENS_TYPE, b: TOKENS_TYPE) =>
+          (b.usd_price || 0) - (a.usd_price || 0)
+      )
+      .slice(0, 5)
+  }, [allTokens, selectedTokenFrom, selectedTokenTo])
 
   // Find matching wallet token when selected token changes
   const matchingWalletToken = useMemo(() => {
@@ -104,6 +213,16 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   // Handle token selection
   const handleSelectToken = () => {
     showSelectTokenModal(true, inputField)
+  }
+
+  // Handle quick token selection
+  const handleQuickTokenSelect = (token: TOKENS_TYPE) => {
+    if (inputField === 'from') {
+      setSelectedTokenFrom(token)
+    } else {
+      setSelectedTokenTo(token)
+    }
+    setShowTopTokens(false)
   }
 
   // Handle token deselection
@@ -179,6 +298,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
                 ? ' bg-borderGradient'
                 : 'bg-[#373D3F]'
             }`}
+            ref={buttonRef}
           >
             <div
               className="min-w-[165px] overflow-hidden w-fit h-full bg-[#0D0D0D] group-hover:bg-tabsGradient transition-colors duration-300 p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold"
@@ -209,11 +329,16 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
                 height={20}
               />
             </div>
+
+            {/* We don't show top tokens when a token is already selected */}
           </div>
         ) : (
           <div
             onClick={handleSelectToken}
-            className="min-w-[165px] w-fit h-12 bg-primaryGradient hover:opacity-85 py-[13px] px-[20px] gap-[14px] flex rounded-[25px] items-center justify-between text-black cursor-pointer uppercase font-bold"
+            className="min-w-[165px] relative w-fit h-12 bg-primaryGradient hover:opacity-85 py-[13px] px-[20px] gap-[14px] flex rounded-[25px] items-center justify-between text-black cursor-pointer uppercase font-bold"
+            onMouseEnter={() => setShowTopTokens(true)}
+            onMouseLeave={() => setShowTopTokens(false)}
+            ref={buttonRef}
           >
             <p>Select Token</p>
             <Image
@@ -222,6 +347,15 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
               className="w-fit h-fit"
               width={20}
               height={20}
+            />
+
+            {/* Top tokens displayed on hover (only when no token is selected) */}
+            <TopTokens
+              tokens={topTokens}
+              isVisible={
+                showTopTokens && !isLoadingTokenList && topTokens.length > 0
+              }
+              onTokenSelect={handleQuickTokenSelect}
             />
           </div>
         )}
