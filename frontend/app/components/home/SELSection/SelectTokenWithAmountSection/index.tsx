@@ -39,10 +39,10 @@ const TopTokens = ({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          className="absolute -top-10 right-0 flex flex-row-reverse gap-1 items-center z-[100]"
+          className="absolute -top-[2.1rem] right-0 flex flex-row-reverse gap-1 items-center z-[100]"
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 5 }}
+          exit={{ opacity: 0, y: -5 }}
           transition={{ duration: 0.2 }}
         >
           {tokensToShow.map((token: TOKENS_TYPE, index) => (
