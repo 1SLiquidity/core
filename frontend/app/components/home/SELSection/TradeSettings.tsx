@@ -75,7 +75,7 @@ export default function TradingSettings() {
       {/* Dropdown Menu - Absolutely Positioned */}
       {isOpen && (
         <div ref={dropdownRef} className="absolute right-0 top-full mt-2 z-50">
-          <Card className="w-[350px] bg-[#0D0D0D] border-zinc-800 text-white rounded-xl border-2">
+          <Card className="w-[350px] bg-zinc-900 border-zinc-800 text-white rounded-xl border-2">
             {showTradeOptions ? (
               <CardContent className="p-6 space-y-5">
                 <div className="flex items-center">

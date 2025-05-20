@@ -889,7 +889,6 @@ export class UniswapV3Calculator extends BaseDexCalculator {
       console.log(`Using Uniswap V3 quoter with fee tier: ${this.feeTier}`)
 
       // Get token addresses from reserveData if available
-      // Otherwise use default addresses (this would be replaced with actual addresses in production)
       const tokenIn = reserveData.token0Address
       const tokenOut = reserveData.token1Address
 
@@ -900,7 +899,7 @@ export class UniswapV3Calculator extends BaseDexCalculator {
       // Convert to wei using appropriate decimals
       const amountInWei = ethers.utils.parseUnits(amountIn, token0Decimals)
 
-      console.log('amountInWei', amountInWei)
+      console.log('amountInWei', amountInWei.toString())
       console.log('tokenIn', tokenIn)
       console.log('tokenOut', tokenOut)
       console.log('feeTier', this.feeTier)
@@ -908,21 +907,35 @@ export class UniswapV3Calculator extends BaseDexCalculator {
       console.log('token1Decimals', token1Decimals)
 
       try {
-        // Use the V3 quoter contract
-        const amountOutWei = await this.quoter.quoteExactInputSingle(
-          tokenIn,
-          tokenOut,
-          this.feeTier, // fee tier from dex type
-          amountInWei,
-          0 // no price limit
+        // Instead of direct contract call, use encodeFunctionData and provider.call
+        const quoterAddress = getContractAddress(
+          this.chainId,
+          'UNISWAP_V3',
+          'QUOTER'
+        )
+        const data = this.quoter.interface.encodeFunctionData(
+          'quoteExactInputSingle',
+          [tokenIn, tokenOut, this.feeTier, amountInWei, 0]
         )
 
+        // Use provider.call instead of contract method call
+        const result = await this.provider.call({
+          to: quoterAddress,
+          data,
+        })
+
+        // Decode the result
+        const amountOut = this.quoter.interface.decodeFunctionResult(
+          'quoteExactInputSingle',
+          result
+        )[0]
+
         // Convert back to string with proper decimals
-        const result = this.formatOutput(amountOutWei, token1Decimals)
+        const outputResult = this.formatOutput(amountOut, token1Decimals)
 
         // Cache the result
-        calculationCache.set(cacheKey, result)
-        return result
+        calculationCache.set(cacheKey, outputResult)
+        return outputResult
       } catch (error) {
         console.error('V3 quoter error:', error)
 
@@ -980,7 +993,7 @@ export class UniswapV3Calculator extends BaseDexCalculator {
       // Convert to wei using appropriate decimals
       const amountOutWei = ethers.utils.parseUnits(amountOut, token1Decimals)
 
-      console.log('amountOutWei', amountOutWei)
+      console.log('amountOutWei', amountOutWei.toString())
       console.log('tokenIn', tokenIn)
       console.log('tokenOut', tokenOut)
       console.log('feeTier', this.feeTier)
@@ -988,21 +1001,35 @@ export class UniswapV3Calculator extends BaseDexCalculator {
       console.log('token1Decimals', token1Decimals)
 
       try {
-        // Use the V3 quoter contract for exact output calculation
-        const amountInWei = await this.quoter.quoteExactOutputSingle(
-          tokenIn,
-          tokenOut,
-          this.feeTier,
-          amountOutWei,
-          0 // no price limit
+        // Instead of direct contract call, use encodeFunctionData and provider.call
+        const quoterAddress = getContractAddress(
+          this.chainId,
+          'UNISWAP_V3',
+          'QUOTER'
+        )
+        const data = this.quoter.interface.encodeFunctionData(
+          'quoteExactOutputSingle',
+          [tokenIn, tokenOut, this.feeTier, amountOutWei, 0]
         )
 
+        // Use provider.call instead of contract method call
+        const result = await this.provider.call({
+          to: quoterAddress,
+          data,
+        })
+
+        // Decode the result
+        const amountIn = this.quoter.interface.decodeFunctionResult(
+          'quoteExactOutputSingle',
+          result
+        )[0]
+
         // Convert back to string with proper decimals
-        const result = this.formatOutput(amountInWei, token0Decimals)
+        const inputResult = this.formatOutput(amountIn, token0Decimals)
 
         // Cache the result
-        calculationCache.set(cacheKey, result)
-        return result
+        calculationCache.set(cacheKey, inputResult)
+        return inputResult
       } catch (error) {
         console.error('V3 quoter error:', error)
 
