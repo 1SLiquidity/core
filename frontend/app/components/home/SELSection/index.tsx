@@ -118,6 +118,17 @@ const SELSection = () => {
 
         setReserveData(reserveDataWithDecimals)
 
+        if (
+          !parseFloat(reserveDataWithDecimals.reserves.token0) > 0 &&
+          !parseFloat(reserveDataWithDecimals.reserves.token1) > 0
+        ) {
+          setCalculationError('No liquidity data received')
+          setReserveData(null)
+          setDexCalculator(null)
+          setIsFetchingReserves(false)
+          return
+        }
+
         // Initialize the appropriate calculator based on DEX type
         const calculator = DexCalculatorFactory.createCalculator(
           data.dex,
