@@ -105,8 +105,7 @@ function calculateSweetSpot(
 export async function testGasCalculations(
   tokenA: string,
   tokenB: string,
-  tradeVolume: string,
-  decimals: number = 18
+  tradeVolume: string
 ): Promise<GasCalculationResult> {
   try {
     // 1. Get reserves from the API endpoint
@@ -128,7 +127,7 @@ export async function testGasCalculations(
     const reserve1 = BigInt(reserves.reserves.token1);
 
     // 3. Convert trade volume to BigInt using token decimals
-    const tokenDecimals = reserves.decimals || { token0: decimals, token1: decimals };
+    const tokenDecimals = reserves.decimals || { token0: 18, token1: 18 };
     const tradeVolumeBN = DecimalUtils.normalizeAmount(tradeVolume, tokenDecimals.token0);
 
     // 4. Calculate sweet spot
