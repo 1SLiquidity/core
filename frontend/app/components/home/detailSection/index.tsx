@@ -12,8 +12,8 @@ type Props = {
   dexFee?: number | null
   botGasLimit?: bigint | null
   streamCount?: number | null
-  tokenFromSymbol: string
-  tokenToSymbol: string
+  tokenFromSymbol?: string
+  tokenToSymbol?: string
   tokenToUsdPrice?: number
   estTime?: string
 }
@@ -92,7 +92,9 @@ const DetailSection: React.FC<Props> = ({
               height={20}
             />
           )}
-          <p>{sellAmount} {tokenFromSymbol}</p>
+          <p>
+            {sellAmount} {tokenFromSymbol}
+          </p>
           {inValidAmount ? (
             <Image
               src="/icons/red-right-arrow.svg"
@@ -110,7 +112,9 @@ const DetailSection: React.FC<Props> = ({
               height={20}
             />
           )}
-          <p>{buyAmount} {tokenToSymbol} (Est)</p>
+          <p>
+            {buyAmount} {tokenToSymbol} (Est)
+          </p>
         </div>
         <div className="flex gap-2.5 items-center">
           <div className="flex gap-1.5">
@@ -156,7 +160,11 @@ const DetailSection: React.FC<Props> = ({
           /> */}
           <AmountTag
             title="Bot Gas Allowance"
-            amount={botGasLimit ? `${parseFloat(formatEther(botGasLimit)).toFixed(4)} ETH` : 'Calculating...'}
+            amount={
+              botGasLimit
+                ? `${parseFloat(formatEther(botGasLimit)).toFixed(4)} ETH`
+                : 'Calculating...'
+            }
             infoDetail="Estimated"
           />
           {/* <AmountTag
@@ -170,7 +178,11 @@ const DetailSection: React.FC<Props> = ({
             amount={calculateMinOutputCorrection()}
             infoDetail="Estimated"
           />
-          <AmountTag title="Slippage Savings" amount={'1%'} infoDetail="Estimated" />
+          <AmountTag
+            title="Slippage Savings"
+            amount={'1%'}
+            infoDetail="Estimated"
+          />
           {/* <AmountTag
             title="Price Impact"
             amount={'0.25%'}

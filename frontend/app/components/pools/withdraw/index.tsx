@@ -1,32 +1,32 @@
-'use client';
+'use client'
 
-import { isNumberValid } from '@/app/lib/helper';
-import { useEffect, useState } from 'react';
-import Button from '../../button';
-import DetailSection from '../../home/detailSection';
-import AddLiquidtySection from './addWithdrawSection';
+import { isNumberValid } from '@/app/lib/helper'
+import { useEffect, useState } from 'react'
+import Button from '../../button'
+import DetailSection from '../../home/detailSection'
+import AddLiquidtySection from './addWithdrawSection'
 
 const WithdrawSection = () => {
-  const [sellAmount, setSellAmount] = useState(0);
-  const [buyAmount, setBuyAmount] = useState(0);
+  const [sellAmount, setSellAmount] = useState(0)
+  const [buyAmount, setBuyAmount] = useState(0)
   const [isAddLiquidityAmountActive, SetIsAddLiquidityAmountActive] =
-    useState(false);
-  const [invaliSelldAmount, setInvalidSellAmount] = useState(false);
-  const [invalidBuyAmount, setInvalidBuyAmount] = useState(false);
+    useState(false)
+  const [invaliSelldAmount, setInvalidSellAmount] = useState(false)
+  const [invalidBuyAmount, setInvalidBuyAmount] = useState(false)
 
   useEffect(() => {
     if (!isNumberValid(sellAmount)) {
-      setInvalidSellAmount(true);
+      setInvalidSellAmount(true)
     } else {
-      setInvalidSellAmount(false);
+      setInvalidSellAmount(false)
     }
 
     if (!isNumberValid(buyAmount)) {
-      setInvalidBuyAmount(true);
+      setInvalidBuyAmount(true)
     } else {
-      setInvalidBuyAmount(false);
+      setInvalidBuyAmount(false)
     }
-  }, [sellAmount, buyAmount]);
+  }, [sellAmount, buyAmount])
 
   return (
     <div className="md:min-w-[500px] max-w-[500px] w-[95vw] p-2">
@@ -34,7 +34,7 @@ const WithdrawSection = () => {
         <AddLiquidtySection
           amount={sellAmount}
           setAmount={(val: any) => {
-            setSellAmount(val);
+            setSellAmount(val)
           }}
           active={isAddLiquidityAmountActive}
           inValidAmount={invaliSelldAmount}
@@ -47,13 +47,15 @@ const WithdrawSection = () => {
         sellAmount={`${sellAmount}`}
         buyAmount={`${buyAmount}`}
         inValidAmount={invaliSelldAmount || invalidBuyAmount}
+        tokenFromSymbol=""
+        tokenToSymbol=""
       />
 
       <div className="w-full my-[30px]">
         <Button theme="gradient" text="Confirm Withdrawl" />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default WithdrawSection;
+export default WithdrawSection
