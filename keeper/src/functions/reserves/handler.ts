@@ -8,7 +8,7 @@ const provider = createProvider()
 const reservesService = new ReservesAggregator(provider)
 
 // Increase cache TTL to reduce RPC calls
-const CACHE_TTL = 60 // 60 seconds
+const CACHE_TTL = 10 // 10 seconds
 
 interface ReserveRequest {
   tokenA: string

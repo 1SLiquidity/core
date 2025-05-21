@@ -9,7 +9,7 @@ const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const depthAggregator = new DepthAggregator(provider);
 
 // Cache TTL in seconds
-const CACHE_TTL = 15;
+const CACHE_TTL = 10;
 
 export const main = async (
   event: APIGatewayProxyEvent

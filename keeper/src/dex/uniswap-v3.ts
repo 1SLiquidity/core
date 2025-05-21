@@ -50,17 +50,19 @@ export class UniswapV3Service {
       ]);
 
       const sqrtPriceX96 = BigInt(slot0.sqrtPriceX96);
-
       const q96 = BigInt(2 ** 96);
-
-      const virtualToken0Reserve = (BigInt(liquidity) * q96) / sqrtPriceX96;
-      const virtualToken1Reserve = (BigInt(liquidity) * sqrtPriceX96) / q96;
       
-      // Normalize reserves by token decimals
-      // const normalizedToken0Reserve = this.normalizeTo18Decimals(virtualToken0Reserve, decimals.token0);
-      // const normalizedToken1Reserve = this.normalizeTo18Decimals(virtualToken1Reserve, decimals.token1)
+      const sqrtPrice = sqrtPriceX96 / q96;
+      const price = sqrtPrice * sqrtPrice;
 
-      console.log('Uniswap V3 (500) reserves:', {
+      const virtualToken0Reserve = BigInt(liquidity) / price;
+      const virtualToken1Reserve = BigInt(liquidity) * price;
+      // const virtualToken0Reserve = (BigInt(liquidity) * q96) / sqrtPriceX96;
+      // const virtualToken1Reserve = (BigInt(liquidity) * sqrtPriceX96) / q96;
+      
+      
+
+      console.log(`Uniswap V3 (${feeTier}) reserves:`, {
         token0: virtualToken0Reserve.toString(),
         token1: virtualToken1Reserve.toString()
       })

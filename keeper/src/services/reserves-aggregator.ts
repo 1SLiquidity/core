@@ -148,7 +148,7 @@ export class ReservesAggregator {
     )
     if (uniswapV2Reserves) {
       const meanReserves = this.calculateGeometricMean(uniswapV2Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      console.log('Uniswap V2 liquidity:', meanReserves.toString())
+      console.log('Uniswap V2 meanReserves:', meanReserves.toString())
       results.push({
         result: uniswapV2Reserves,
         meanReserves: meanReserves
@@ -165,7 +165,7 @@ export class ReservesAggregator {
     )
     if (sushiswapReserves) {
       const meanReserves = this.calculateGeometricMean(sushiswapReserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      console.log('SushiSwap liquidity:', meanReserves.toString())
+      console.log('SushiSwap meanReserves:', meanReserves.toString())
       results.push({
         result: sushiswapReserves,
         meanReserves: meanReserves
@@ -178,13 +178,10 @@ export class ReservesAggregator {
 
     // Find the result with highest liquidity
     const deepestPool = results.reduce((prev, current) => {
-      console.log('Comparing pools:')
-      console.log('Previous pool liquidity:', prev.meanReserves.toString())
-      console.log('Current pool liquidity:', current.meanReserves.toString())
       return current.meanReserves > prev.meanReserves ? current : prev
     })
 
-    console.log('Selected deepest pool with liquidity:', deepestPool.meanReserves.toString())
+    console.log('Selected deepest pool with liquidity:', deepestPool.result)
 
     // Add decimals information to the result
     return {

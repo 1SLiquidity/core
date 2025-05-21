@@ -53,7 +53,7 @@ plugins:
 
 custom:
   serverless-offline:
-    httpPort: 3000
+    httpPort: 3001
     lambdaPort: 3002
     noTimeout: true # This prevents the local server from timing out
   dotenv:

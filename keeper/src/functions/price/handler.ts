@@ -7,7 +7,7 @@ const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const priceAggregator = new PriceAggregator(provider);
 
 // Cache TTL in seconds
-const CACHE_TTL = 30;
+const CACHE_TTL = 10;
 
 interface PriceRequest {
   tokenA: string;
