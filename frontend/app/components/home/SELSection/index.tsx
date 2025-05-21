@@ -69,9 +69,6 @@ const SELSection = () => {
   const pathname = usePathname()
   const router = useRouter()
 
-  // Preload the token list when the component mounts
-  const { tokens, isLoading } = useTokenList()
-
   // Function to fetch reserves that can be called from multiple places
   const fetchReserves = useCallback(async () => {
     console.log('Fetching reserves')
