@@ -44,7 +44,7 @@ const SELSection = () => {
   // Timer related states
   const [timerActive, setTimerActive] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState(15) // 15 seconds
-  const TIMER_DURATION = 30 // constant for reset
+  const TIMER_DURATION = 10 // constant for reset
   const { addToast } = useToast()
   const { selectedTokenFrom, selectedTokenTo } = useModal()
   const { address, isConnected } = useAppKitAccount()
@@ -119,8 +119,8 @@ const SELSection = () => {
         setReserveData(reserveDataWithDecimals)
 
         if (
-          !parseFloat(reserveDataWithDecimals.reserves.token0) > 0 &&
-          !parseFloat(reserveDataWithDecimals.reserves.token1) > 0
+          !(parseFloat(reserveDataWithDecimals.reserves.token0) > 0) &&
+          !(parseFloat(reserveDataWithDecimals.reserves.token1) > 0)
         ) {
           setCalculationError('No liquidity data received')
           setReserveData(null)

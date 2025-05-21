@@ -54,22 +54,25 @@ export default function TradingSettings() {
       <div
         ref={buttonRef}
         onClick={toggleDropdown}
-        className="group w-8 h-8 bg-white hover:bg-tabsGradient bg-opacity-[12%] rounded-[12px] flex items-center justify-center cursor-pointer"
+        className="group cursor-pointer"
       >
-        <Image
-          src="/icons/settings.svg"
-          alt="settings"
-          className="w-fit h-fit block group-hover:hidden"
-          width={40}
-          height={40}
-        />
-        <Image
-          src="/icons/settings-primary.svg"
-          alt="settings"
-          className="w-fit h-fit hidden group-hover:block"
-          width={40}
-          height={40}
-        />
+        <div className="flex items-center gap-2 w-fit h-8 px-3 bg-white hover:bg-tabsGradient bg-opacity-[12%] rounded-[12px]">
+          <span className="text-sm text-zinc-400 group-hover:text-white">ADVANCED</span>
+          <Image
+            src="/icons/settings.svg"
+            alt="settings"
+            className="w-fit h-fit block group-hover:hidden"
+            width={24}
+            height={24}
+          />
+          <Image
+            src="/icons/settings-primary.svg"
+            alt="settings"
+            className="w-fit h-fit hidden group-hover:block"
+            width={24}
+            height={24}
+          />
+        </div>
       </div>
 
       {/* Dropdown Menu - Absolutely Positioned */}

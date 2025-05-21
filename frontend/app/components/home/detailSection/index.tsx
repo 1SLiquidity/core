@@ -122,54 +122,54 @@ const DetailSection: React.FC<Props> = ({
               infoDetail="Estimated"
             />
           )}
-          <AmountTag
+          {/* <AmountTag
             title="Protocol Fee (20 BPS)"
             amount={'$42.16'}
             infoDetail="Estimated"
-          />
+          /> */}
           <AmountTag
-            title="Network Fee (0.25%)"
+            title="Gas Fee"
             amount={'$19.41'}
             infoDetail="Estimated"
           />
-          <AmountTag
+          {/* <AmountTag
             error={inValidAmount}
             title="Estimated Output"
             amount={'3,300 USDC  ($3,096.69)'}
             infoDetail="Estimated"
-          />
+          /> */}
           <AmountTag
             title="Min. Estimated Output"
             amount={'3,240 USDC ($3,000.69)'}
             infoDetail="Estimated"
           />
-          <AmountTag title="Slippage" amount={'5%'} infoDetail="Estimated" />
-          <AmountTag
+          <AmountTag title="Max Slippage" amount={'1%'} infoDetail="Estimated" />
+          {/* <AmountTag
             title="Price Impact"
             amount={'0.25%'}
             infoDetail="Estimated"
-          />
+          /> */}
         </div>
         <div className="w-full flex flex-col gap-2 py-4">
-          <AmountTag
+          {/* <AmountTag
             title="Stream Volume ($)"
             amount={'$3,096.69'}
             infoDetail="Estimated"
-          />
+          /> */}
           <AmountTag
             title="Est. Stream Count"
             amount={'5'}
             infoDetail="Estimated"
           />
-          <AmountTag
+          {/* <AmountTag
             title="Est. Time"
             amount={'12 mins'}
             infoDetail="Estimated"
-          />
+          /> */}
         </div>
       </div>
 
-      {reserves && (
+      {/* {reserves && (
         <div
           className={`transition-height duration-300 ease-in-out overflow-hidden ${
             showDetails
@@ -223,7 +223,7 @@ const DetailSection: React.FC<Props> = ({
             )}
           </div>
         </div>
-      )}
+      )} */}
     </div>
   )
 }
