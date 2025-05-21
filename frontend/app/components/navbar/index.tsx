@@ -64,6 +64,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
             height={40}
           />
         </Link>
+        <span className="self-center text-2xl font-bold text-white tracking-wide ml-2">Decastream</span>
 
         {/* navlinks */}
         {isBack ? (
@@ -83,37 +84,53 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
         ) : (
           <div className="w-fit h-10 border-[2px] border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
             {NAV_LINKS.map((link) => (
-              <Link
-                key={link.title}
-                href={link.href}
-                className={`flex gap-[6px] items-center py-[10px] px-[9px] rounded-[8px] ${
-                  (
-                    link.href === '/'
-                      ? pathname === link.href
-                      : pathname.startsWith(link.href) && pathname !== '/'
-                  )
-                    ? ' bg-primaryGradient text-black'
-                    : ''
-                }`}
-              >
-                <Image
-                  src={
+              link.title === 'Instasettle' ? (
+                <span
+                  key={link.title}
+                  className="flex gap-[6px] items-center py-[10px] px-[9px] rounded-[8px] text-gray-500 cursor-not-allowed opacity-60"
+                  title="Coming soon"
+                >
+                  <Image
+                    src={link.icon}
+                    alt={link.title}
+                    className="w-fit h-fit"
+                    width={20}
+                    height={20}
+                  />
+                  <span>{link.title}</span>
+                </span>
+              ) : (
+                <Link
+                  key={link.title}
+                  href={link.href}
+                  className={`flex gap-[6px] items-center py-[10px] px-[9px] rounded-[8px] ${
                     (
                       link.href === '/'
                         ? pathname === link.href
                         : pathname.startsWith(link.href) && pathname !== '/'
                     )
-                      ? link.icon.replace('.svg', '-black.svg')
-                      : link.icon
-                  }
-                  alt={link.title}
-                  className="w-fit h-fit"
-                  width={20}
-                  height={20}
-                />
-
-                <span>{link.title}</span>
-              </Link>
+                      ? ' bg-primaryGradient text-black'
+                      : ''
+                  }`}
+                >
+                  <Image
+                    src={
+                      (
+                        link.href === '/'
+                          ? pathname === link.href
+                          : pathname.startsWith(link.href) && pathname !== '/'
+                      )
+                        ? link.icon.replace('.svg', '-black.svg')
+                        : link.icon
+                    }
+                    alt={link.title}
+                    className="w-fit h-fit"
+                    width={20}
+                    height={20}
+                  />
+                  <span>{link.title}</span>
+                </Link>
+              )
             ))}
           </div>
         )}

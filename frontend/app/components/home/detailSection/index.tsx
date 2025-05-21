@@ -2,6 +2,7 @@ import Image from 'next/image'
 import React, { useState } from 'react'
 import AmountTag from '../../amountTag'
 import { ReserveData } from '@/app/lib/dex/calculators'
+import { formatEther } from 'ethers/lib/utils'
 
 type Props = {
   sellAmount: string
@@ -9,6 +10,12 @@ type Props = {
   inValidAmount?: boolean
   reserves?: ReserveData | null
   dexFee?: number | null
+  botGasLimit?: bigint | null
+  streamCount?: number | null
+  tokenFromSymbol: string
+  tokenToSymbol: string
+  tokenToUsdPrice?: number
+  estTime?: string
 }
 
 const DetailSection: React.FC<Props> = ({
@@ -17,6 +24,12 @@ const DetailSection: React.FC<Props> = ({
   inValidAmount,
   reserves,
   dexFee,
+  botGasLimit,
+  streamCount,
+  tokenFromSymbol,
+  tokenToSymbol,
+  tokenToUsdPrice = 0,
+  estTime = '',
 }) => {
   const [showDetails, setShowDetails] = useState(true)
 
@@ -47,6 +60,20 @@ const DetailSection: React.FC<Props> = ({
     return dexFee ? `${dexFee}%` : 'Unknown'
   }
 
+  // Calculate minimum output correction based on buy amount and stream count
+  const calculateMinOutputCorrection = () => {
+    if (!buyAmount || !streamCount) return 'Calculating...'
+    const numericBuyAmount = parseFloat(buyAmount)
+    if (isNaN(numericBuyAmount)) return 'Calculating...'
+    const minOutput = numericBuyAmount / streamCount
+    let usdString = ''
+    if (tokenToUsdPrice && !isNaN(tokenToUsdPrice)) {
+      const usdValue = minOutput * tokenToUsdPrice
+      usdString = ` ($${usdValue.toFixed(2)})`
+    }
+    return `${minOutput.toFixed(4)} ${tokenToSymbol}${usdString}`
+  }
+
   return (
     <div className="w-full p-5 border-[2px] border-white12 bg-[#0D0D0D] mt-[26px] rounded-[15px]">
       <div
@@ -65,7 +92,7 @@ const DetailSection: React.FC<Props> = ({
               height={20}
             />
           )}
-          <p>{sellAmount} ETH</p>
+          <p>{sellAmount} {tokenFromSymbol}</p>
           {inValidAmount ? (
             <Image
               src="/icons/red-right-arrow.svg"
@@ -83,7 +110,7 @@ const DetailSection: React.FC<Props> = ({
               height={20}
             />
           )}
-          <p>{buyAmount} USDC (Est)</p>
+          <p>{buyAmount} {tokenToSymbol} (Est)</p>
         </div>
         <div className="flex gap-2.5 items-center">
           <div className="flex gap-1.5">
@@ -94,7 +121,7 @@ const DetailSection: React.FC<Props> = ({
               width={20}
               height={20}
             />
-            <p>9 min</p>
+            <p>{estTime || '...'}</p>
           </div>
           <Image
             src="/icons/up-arrow.svg"
@@ -128,8 +155,8 @@ const DetailSection: React.FC<Props> = ({
             infoDetail="Estimated"
           /> */}
           <AmountTag
-            title="Gas Fee"
-            amount={'$19.41'}
+            title="Bot Gas Allowance"
+            amount={botGasLimit ? `${parseFloat(formatEther(botGasLimit)).toFixed(4)} ETH` : 'Calculating...'}
             infoDetail="Estimated"
           />
           {/* <AmountTag
@@ -139,11 +166,11 @@ const DetailSection: React.FC<Props> = ({
             infoDetail="Estimated"
           /> */}
           <AmountTag
-            title="Min. Estimated Output"
-            amount={'3,240 USDC ($3,000.69)'}
+            title="Min. Output Correction"
+            amount={calculateMinOutputCorrection()}
             infoDetail="Estimated"
           />
-          <AmountTag title="Max Slippage" amount={'1%'} infoDetail="Estimated" />
+          <AmountTag title="Slippage Savings" amount={'1%'} infoDetail="Estimated" />
           {/* <AmountTag
             title="Price Impact"
             amount={'0.25%'}
@@ -158,7 +185,7 @@ const DetailSection: React.FC<Props> = ({
           /> */}
           <AmountTag
             title="Est. Stream Count"
-            amount={'5'}
+            amount={streamCount ? streamCount.toString() : 'Calculating...'}
             infoDetail="Estimated"
           />
           {/* <AmountTag

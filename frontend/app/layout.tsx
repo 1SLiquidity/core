@@ -13,7 +13,7 @@ const afacadVariable = localFont({
 })
 
 export const metadata: Metadata = {
-  title: 'Deca Swap',
+  title: 'Decastream',
   description: '',
 }
 

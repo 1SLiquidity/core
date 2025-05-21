@@ -11,6 +11,11 @@ export const NAV_LINKS: NAV_LINKS[] = [
     href: '/swaps',
     icon: '/icons/swaps.svg',
   },
+  {
+    title: 'Instasettle',
+    href: '/instasettle',
+    icon: '/icons/instasettle.svg',
+  },
   // {
   //   title: 'Pools',
   //   href: '/pools',

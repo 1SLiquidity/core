@@ -116,6 +116,7 @@ export interface ReserveData {
 
 // DEX calculator interface following the Strategy pattern
 export interface DexCalculator {
+  getProvider(): ethers.providers.Provider
   calculateOutputAmount(
     amountIn: string,
     reserveData: ReserveData
@@ -138,6 +139,10 @@ export abstract class BaseDexCalculator implements DexCalculator {
     // this.provider = getSharedProvider(chainId)
     this.provider = createAlchemyProvider()
     this.chainId = chainId
+  }
+
+  getProvider(): ethers.providers.Provider {
+    return this.provider
   }
 
   abstract calculateOutputAmount(

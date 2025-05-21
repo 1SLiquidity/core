@@ -37,44 +37,47 @@ export class UniswapV3Service {
 
   async getReserves(tokenA: string, tokenB: string, feeTier: number): Promise<ReserveResult | null> {
     try {
-
       const poolAddress = await this.factory.getPool(tokenA, tokenB, feeTier);
       if (poolAddress === COMMON.ZERO_ADDRESS) {
         return null;
       }
 
       const pool = new ethers.Contract(poolAddress, CONTRACT_ABIS.UNISWAP_V3.POOL, this.provider);
-      const [liquidity, slot0] = await Promise.all([
+      const [liquidity, slot0, token0] = await Promise.all([
         pool.liquidity(),
-        pool.slot0()
+        pool.slot0(),
+        pool.token0()
       ]);
 
       const sqrtPriceX96 = BigInt(slot0.sqrtPriceX96);
-      const q96 = BigInt(2 ** 96);
-      
-      const sqrtPrice = sqrtPriceX96 / q96;
+      const isToken0 = tokenA.toLowerCase() === token0.toLowerCase();
+
+      // Calculate virtual reserves following the Solidity implementation
+      const sqrtPrice = (sqrtPriceX96 * BigInt(1e9)) / BigInt(2 ** 96);
+      console.log('sqrtPrice', sqrtPrice.toString());
       const price = sqrtPrice * sqrtPrice;
+      console.log('price', price.toString());
+      const reserve0 = (BigInt(liquidity) * BigInt(1e18)) / sqrtPrice;
+      const reserve1 = (BigInt(liquidity) * sqrtPrice) / BigInt(1e18);
 
-      const virtualToken0Reserve = BigInt(liquidity) / price;
-      const virtualToken1Reserve = BigInt(liquidity) * price;
-      // const virtualToken0Reserve = (BigInt(liquidity) * q96) / sqrtPriceX96;
-      // const virtualToken1Reserve = (BigInt(liquidity) * sqrtPriceX96) / q96;
-      
-      
+      // Return reserves in the correct order based on token0/token1
+      const [reserveA, reserveB] = isToken0 
+        ? [reserve0, reserve1]
+        : [reserve1, reserve0];
 
-      console.log(`Uniswap V3 (${feeTier}) reserves:`, {
-        token0: virtualToken0Reserve.toString(),
-        token1: virtualToken1Reserve.toString()
+      console.log('Uniswap V3 reserves:', {
+        token0: reserveA.toString(),
+        token1: reserveB.toString()
       })
 
-        return {
-          dex: `uniswap-v3-${feeTier}`,
-          pairAddress: poolAddress,
-          reserves: {
-              token0: virtualToken0Reserve.toString(),
-              token1: virtualToken1Reserve.toString()
-            },
-            timestamp: Date.now()
+      return {
+        dex: `uniswap-v3-${feeTier}`,
+        pairAddress: poolAddress,
+        reserves: {
+          token0: reserveA.toString(),
+          token1: reserveB.toString()
+        },
+        timestamp: Date.now()
       } as ReserveResult;
     } catch (error) {
       console.error('Error fetching Uniswap V3 reserves:', error);

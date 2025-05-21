@@ -27,6 +27,9 @@ import { ChevronDown, RefreshCcw } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import AdvancedConfig from '../advancedConfig'
 import TradingSettings from './TradeSettings'
+import { calculateGasAndStreams, getAverageBlockTime } from '@/app/lib/gas-calculations'
+import { ethers } from 'ethers'
+import { formatEther } from 'ethers/lib/utils'
 
 const SELSection = () => {
   const [activeTab, setActiveTab] = useState(SEL_SECTION_TABS[0])
@@ -40,6 +43,9 @@ const SELSection = () => {
   const [isCalculating, setIsCalculating] = useState(false)
   const [calculationError, setCalculationError] = useState<string | null>(null)
   const [isFetchingReserves, setIsFetchingReserves] = useState(false)
+  const [botGasLimit, setBotGasLimit] = useState<bigint | null>(null)
+  const [streamCount, setStreamCount] = useState<number | null>(null)
+  const [estTime, setEstTime] = useState<string>('')
 
   // Timer related states
   const [timerActive, setTimerActive] = useState(false)
@@ -226,6 +232,8 @@ const SELSection = () => {
       if (sellAmount === 0 && buyAmount !== 0) {
         setBuyAmount(0)
       }
+      setBotGasLimit(null)
+      setStreamCount(null)
       return
     }
 
@@ -249,10 +257,35 @@ const SELSection = () => {
           reserveData,
         })
 
+        // Calculate buy amount
         const calculatedBuyAmount = await dexCalculator.calculateOutputAmount(
           sellAmount.toString(),
           reserveData
         )
+
+        // Calculate gas and streams
+        try {
+          const gasResult = await calculateGasAndStreams(
+            dexCalculator.getProvider(),
+            sellAmount.toString(),
+            {
+              reserves: {
+                token0: reserveData.reserves.token0,
+                token1: reserveData.reserves.token1
+              },
+              decimals: {
+                token0: reserveData.token0Decimals || 18,
+                token1: reserveData.token1Decimals || 18
+              }
+            }
+          );
+          setBotGasLimit(gasResult.botGasLimit);
+          setStreamCount(gasResult.streamCount);
+        } catch (error) {
+          console.error('Error calculating gas and streams:', error);
+          setBotGasLimit(null);
+          setStreamCount(null);
+        }
 
         console.log(
           'Calculation result for sell =',
@@ -408,16 +441,47 @@ const SELSection = () => {
     },
   }
 
+  // Calculate est. time when streamCount changes
+  useEffect(() => {
+    const fetchEstTime = async () => {
+      if (streamCount && streamCount > 0 && dexCalculator) {
+        try {
+          const avgBlockTime = await getAverageBlockTime(dexCalculator.getProvider());
+          const totalSeconds = Math.round(avgBlockTime * streamCount);
+          // Format nicely
+          let formatted = '';
+          if (totalSeconds < 60) {
+            formatted = `${totalSeconds}s`;
+          } else if (totalSeconds < 3600) {
+            formatted = `${Math.floor(totalSeconds / 60)} min`;
+          } else {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            formatted = `${h} hr${h > 1 ? 's' : ''}${m > 0 ? ' ' + m + ' min' : ''}`;
+          }
+          setEstTime(formatted);
+        } catch {
+          setEstTime('');
+        }
+      } else {
+        setEstTime('');
+      }
+    };
+    fetchEstTime();
+  }, [streamCount, dexCalculator]);
+
   return (
     <div className="w-full flex flex-col justify-center items-center">
-      <motion.h1
-        className="text-4xl md:text-6xl font-bold mb-10 sm:mb-16 text-white"
-        initial="hidden"
-        animate={controls}
-        variants={titleVariants}
-      >
-        Swap anytime, anywhere
-      </motion.h1>
+      {pathname === '/' && (
+        <motion.h1
+          className="text-4xl md:text-6xl font-bold mb-10 sm:mb-16 text-white"
+          initial="hidden"
+          animate={controls}
+          variants={titleVariants}
+        >
+          Swap anytime, anywhere
+        </motion.h1>
+      )}
       <motion.div
         className="md:min-w-[500px] max-w-[500px] w-[95vw] p-2"
         initial="hidden"
@@ -565,6 +629,12 @@ const SELSection = () => {
                 buyAmount={`${swap ? sellAmount : buyAmount}`}
                 inValidAmount={invaliSelldAmount || invalidBuyAmount}
                 reserves={reserveData}
+                botGasLimit={botGasLimit}
+                streamCount={streamCount}
+                tokenFromSymbol={selectedTokenFrom?.symbol || ''}
+                tokenToSymbol={selectedTokenTo?.symbol || ''}
+                tokenToUsdPrice={selectedTokenTo?.usd_price || 0}
+                estTime={estTime}
               />
             </>
           )}

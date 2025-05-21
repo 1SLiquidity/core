@@ -96,50 +96,50 @@ export class ReservesAggregator {
     const results: { result: ReserveResult, meanReserves: bigint }[] = []
 
     // Fetch data sequentially instead of in parallel to avoid rate limits
-    console.log('Fetching Uniswap V3 (500) reserves...')
-    const uniswapV3_500Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
-      'Uniswap V3 (500)'
-    )
-    if (uniswapV3_500Reserves) {
-      const meanReserves = this.calculateGeometricMean(uniswapV3_500Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      console.log('Uniswap V3 (500) meanReserves:', meanReserves.toString())
-      results.push({
-        result: uniswapV3_500Reserves,
-        meanReserves: meanReserves
-      })
-    }
+    // console.log('Fetching Uniswap V3 (500) reserves...')
+    // const uniswapV3_500Reserves = await this.fetchWithRetry(
+    //   () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+    //   'Uniswap V3 (500)'
+    // )
+    // if (uniswapV3_500Reserves) {
+    //   const meanReserves = this.calculateGeometricMean(uniswapV3_500Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
+    //   console.log('Uniswap V3 (500) meanReserves:', meanReserves.toString())
+    //   results.push({
+    //     result: uniswapV3_500Reserves,
+    //     meanReserves: meanReserves
+    //   })
+    // }
 
-    console.log('Fetching Uniswap V3 (3000) reserves...')
-    const uniswapV3_3000Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
-      'Uniswap V3 (3000)' 
-    )
-    if (uniswapV3_3000Reserves) {
-      const meanReserves = this.calculateGeometricMean(uniswapV3_3000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      console.log('Uniswap V3 (3000) liquidity:', meanReserves.toString())
-      results.push({
-        result: uniswapV3_3000Reserves,
-        meanReserves: meanReserves
-      })
-    }
+    // console.log('Fetching Uniswap V3 (3000) reserves...')
+    // const uniswapV3_3000Reserves = await this.fetchWithRetry(
+    //   () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+    //   'Uniswap V3 (3000)' 
+    // )
+    // if (uniswapV3_3000Reserves) {
+    //   const meanReserves = this.calculateGeometricMean(uniswapV3_3000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
+    //   console.log('Uniswap V3 (3000) liquidity:', meanReserves.toString())
+    //   results.push({
+    //     result: uniswapV3_3000Reserves,
+    //     meanReserves: meanReserves
+    //   })
+    // }
 
-    console.log('Fetching Uniswap V3 (10000) reserves...')
-    const uniswapV3_10000Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
-      'Uniswap V3 (10000)'
-    )
-    if (uniswapV3_10000Reserves) {
-      const meanReserves = this.calculateGeometricMean(uniswapV3_10000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      console.log('Uniswap V3 (10000) liquidity:', meanReserves.toString())
-      results.push({
-        result: uniswapV3_10000Reserves,
-        meanReserves: meanReserves
-      })
-    }
+    // console.log('Fetching Uniswap V3 (10000) reserves...')
+    // const uniswapV3_10000Reserves = await this.fetchWithRetry(
+    //   () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+    //   'Uniswap V3 (10000)'
+    // )
+    // if (uniswapV3_10000Reserves) {
+    //   const meanReserves = this.calculateGeometricMean(uniswapV3_10000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
+    //   console.log('Uniswap V3 (10000) liquidity:', meanReserves.toString())
+    //   results.push({
+    //     result: uniswapV3_10000Reserves,
+    //     meanReserves: meanReserves
+    //   })
+    // }
 
-    // Add short delay before making more calls to avoid rate limits
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    // // Add short delay before making more calls to avoid rate limits
+    // await new Promise((resolve) => setTimeout(resolve, 500))
 
     console.log('Fetching Uniswap V2 reserves...')
     const uniswapV2Reserves = await this.fetchWithRetry(
