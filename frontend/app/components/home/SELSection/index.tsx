@@ -27,7 +27,10 @@ import { ChevronDown, RefreshCcw } from 'lucide-react'
 import { usePathname, useRouter } from 'next/navigation'
 import AdvancedConfig from '../advancedConfig'
 import TradingSettings from './TradeSettings'
-import { calculateGasAndStreams, getAverageBlockTime } from '@/app/lib/gas-calculations'
+import {
+  calculateGasAndStreams,
+  getAverageBlockTime,
+} from '@/app/lib/gas-calculations'
 import { ethers } from 'ethers'
 import { formatEther } from 'ethers/lib/utils'
 
@@ -271,20 +274,20 @@ const SELSection = () => {
             {
               reserves: {
                 token0: reserveData.reserves.token0,
-                token1: reserveData.reserves.token1
+                token1: reserveData.reserves.token1,
               },
               decimals: {
                 token0: reserveData.token0Decimals || 18,
-                token1: reserveData.token1Decimals || 18
-              }
+                token1: reserveData.token1Decimals || 18,
+              },
             }
-          );
-          setBotGasLimit(gasResult.botGasLimit);
-          setStreamCount(gasResult.streamCount);
+          )
+          setBotGasLimit(gasResult.botGasLimit)
+          setStreamCount(gasResult.streamCount)
         } catch (error) {
-          console.error('Error calculating gas and streams:', error);
-          setBotGasLimit(null);
-          setStreamCount(null);
+          console.error('Error calculating gas and streams:', error)
+          setBotGasLimit(null)
+          setStreamCount(null)
         }
 
         console.log(
@@ -446,29 +449,33 @@ const SELSection = () => {
     const fetchEstTime = async () => {
       if (streamCount && streamCount > 0 && dexCalculator) {
         try {
-          const avgBlockTime = await getAverageBlockTime(dexCalculator.getProvider());
-          const totalSeconds = Math.round(avgBlockTime * streamCount);
+          const avgBlockTime = await getAverageBlockTime(
+            dexCalculator.getProvider()
+          )
+          const totalSeconds = Math.round(avgBlockTime * streamCount)
           // Format nicely
-          let formatted = '';
+          let formatted = ''
           if (totalSeconds < 60) {
-            formatted = `${totalSeconds}s`;
+            formatted = `${totalSeconds}s`
           } else if (totalSeconds < 3600) {
-            formatted = `${Math.floor(totalSeconds / 60)} min`;
+            formatted = `${Math.floor(totalSeconds / 60)} min`
           } else {
-            const h = Math.floor(totalSeconds / 3600);
-            const m = Math.floor((totalSeconds % 3600) / 60);
-            formatted = `${h} hr${h > 1 ? 's' : ''}${m > 0 ? ' ' + m + ' min' : ''}`;
+            const h = Math.floor(totalSeconds / 3600)
+            const m = Math.floor((totalSeconds % 3600) / 60)
+            formatted = `${h} hr${h > 1 ? 's' : ''}${
+              m > 0 ? ' ' + m + ' min' : ''
+            }`
           }
-          setEstTime(formatted);
+          setEstTime(formatted)
         } catch {
-          setEstTime('');
+          setEstTime('')
         }
       } else {
-        setEstTime('');
+        setEstTime('')
       }
-    };
-    fetchEstTime();
-  }, [streamCount, dexCalculator]);
+    }
+    fetchEstTime()
+  }, [streamCount, dexCalculator])
 
   return (
     <div className="w-full flex flex-col justify-center items-center">
