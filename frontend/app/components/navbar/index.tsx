@@ -54,17 +54,19 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       <div className="gap-[18px] w-fit h-fit md:flex hidden">
         <Link
           href="/"
-          className="w-10 h-10 bg-white rounded-[12px] flex items-center justify-center"
+          className=" bg-white rounded-[12px] flex items-center justify-center px-2"
         >
           <Image
             src="/assets/logo.svg"
             alt="logo"
-            className="w-fit h-fit"
+            className="w-10 h-10"
             width={40}
             height={40}
           />
+          <span className="self-center text-2xl font-bold text-black tracking-wide">
+            DECASTREAM
+          </span>
         </Link>
-        <span className="self-center text-2xl font-bold text-white tracking-wide ml-2">Decastream</span>
 
         {/* navlinks */}
         {isBack ? (
@@ -83,7 +85,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
           </div>
         ) : (
           <div className="w-fit h-10 border-[2px] border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
-            {NAV_LINKS.map((link) => (
+            {NAV_LINKS.map((link) =>
               link.title === 'Instasettle' ? (
                 <span
                   key={link.title}
@@ -131,7 +133,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                   <span>{link.title}</span>
                 </Link>
               )
-            ))}
+            )}
           </div>
         )}
       </div>

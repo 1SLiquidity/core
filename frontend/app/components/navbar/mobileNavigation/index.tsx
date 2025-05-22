@@ -73,15 +73,15 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 }`}
               >
                 <Image
-                  src={`${
+                  src={
                     (
                       link.href === '/'
                         ? pathname === link.href
                         : pathname.startsWith(link.href) && pathname !== '/'
                     )
-                      ? `/icons/${link.href}-black.svg`
+                      ? link.icon.replace('.svg', '-black.svg')
                       : link.icon
-                  }`}
+                  }
                   alt={link.title}
                   className="w-fit h-fit"
                   width={20}
