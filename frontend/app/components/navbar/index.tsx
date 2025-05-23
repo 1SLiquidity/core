@@ -21,7 +21,12 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
   const { isConnected, address } = useAccount()
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false)
   const pathname = usePathname()
-  const { showWalletDetailsSidebar, showGlobalStreamSidebar } = useSidebar()
+  const {
+    showWalletDetailsSidebar,
+    showGlobalStreamSidebar,
+    isWalletDetailsSidebarOpen,
+    isGlobalStreamSidebarOpen,
+  } = useSidebar()
   const [searchValue, setSearchValue] = useState('')
   const { open } = useAppKit()
   const handleConnectWallet = () => {
@@ -54,7 +59,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       <div className="gap-[18px] w-fit h-fit md:flex hidden">
         <Link
           href="/"
-          className=" bg-white rounded-[12px] flex items-center justify-center px-2"
+          className=" bg-white rounded-[12px] flex items-center hover:bg-tabsGradient hover:bg-opacity-[12%] group hover:text-white transition-all duration-300 justify-center px-2"
         >
           <Image
             src="/assets/logo.svg"
@@ -63,7 +68,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
             width={40}
             height={40}
           />
-          <span className="self-center text-2xl font-bold text-black tracking-wide">
+          <span className="self-center text-2xl font-bold text-black group-hover:text-white tracking-wide">
             DECASTREAM
           </span>
         </Link>
@@ -105,14 +110,14 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                 <Link
                   key={link.title}
                   href={link.href}
-                  className={`flex gap-[6px] items-center py-[10px] px-[9px] rounded-[8px] ${
+                  className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] rounded-[8px] ${
                     (
                       link.href === '/'
                         ? pathname === link.href
                         : pathname.startsWith(link.href) && pathname !== '/'
                     )
                       ? ' bg-primaryGradient text-black'
-                      : ''
+                      : 'hover:bg-tabsGradient'
                   }`}
                 >
                   <Image
@@ -160,7 +165,8 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       <div className="flex gap-[10px]">
         <div
           onClick={() => {
-            showGlobalStreamSidebar(true)
+            showWalletDetailsSidebar(false)
+            showGlobalStreamSidebar(!isGlobalStreamSidebarOpen)
           }}
           className="relative cursor-pointer w-12 h-10 rounded-[12px] flex items-center justify-center border-primary border-[2px]"
         >
@@ -184,7 +190,10 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
         ) : (
           <WalletButton
             address={address || ''}
-            onClick={() => showWalletDetailsSidebar(true)}
+            onClick={() => {
+              showGlobalStreamSidebar(false)
+              showWalletDetailsSidebar(!isWalletDetailsSidebarOpen)
+            }}
           />
         )}
       </div>

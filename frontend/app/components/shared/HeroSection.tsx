@@ -63,6 +63,7 @@ export default function HeroSection() {
       <div className="mt-[60px] mb-10 mx-auto w-fit relative z-10">
         <SELSection />
       </div>
+
       <div className="absolute inset-0 w-full h-full pointer-events-none">
         <Image
           src="/heros/gradient-overlay.svg"

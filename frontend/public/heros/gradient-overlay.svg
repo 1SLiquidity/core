@@ -18,9 +18,9 @@
 <g filter="url(#filter5_f_747_99)">
 <path d="M1649.35 877.034C1649.35 943.224 1628.85 1164.18 1562.66 1164.18C1496.47 1164.18 1367.38 963.422 1409.66 877.034C1409.66 810.844 1463.32 757.186 1529.51 757.186C1595.7 757.186 1649.35 810.844 1649.35 877.034Z" fill="#33F498"/>
 </g>
-<g filter="url(#filter6_f_747_99)">
+<!-- <g filter="url(#filter6_f_747_99)">
 <path d="M1704.71 1291.22C1704.71 1423.98 1653.39 1437.64 1501.25 1437.64C1349.1 1437.64 1099.91 1423.98 1099.91 1291.22C1099.91 1158.47 1073.62 1003.88 1225.77 1003.88C1377.91 1003.88 1704.71 1158.47 1704.71 1291.22Z" fill="#23DAE6"/>
-</g>
+</g> -->
 </g>
 <defs>
 <filter id="filter0_f_747_99" x="152.46" y="561.889" width="748.921" height="865.727" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
@@ -53,10 +53,10 @@
 <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
 <feGaussianBlur stdDeviation="150" result="effect1_foregroundBlur_747_99"/>
 </filter>
-<filter id="filter6_f_747_99" x="877.875" y="783.578" width="1047.14" height="874.364" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<!-- <filter id="filter6_f_747_99" x="877.875" y="783.578" width="1047.14" height="874.364" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
 <feFlood flood-opacity="0" result="BackgroundImageFix"/>
 <feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
 <feGaussianBlur stdDeviation="110.15" result="effect1_foregroundBlur_747_99"/>
-</filter>
+</filter> -->
 </defs>
 </svg>

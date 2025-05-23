@@ -368,7 +368,7 @@ const SELSection = () => {
       // When swapping, set the sell amount to the current buy amount
       setSellAmount(buyAmount)
       setBuyAmount(0) // Clear buy amount, it will be recalculated
-      setSwap(!swap)
+      // setSwap(!swap)
     }
   }
 

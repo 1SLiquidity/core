@@ -270,7 +270,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
               </div>
 
               {/* LP Positions */}
-              <div className="mt-7 bg-white005 py-4 px-3.5 rounded-[15px]">
+              {/* <div className="mt-7 bg-white005 py-4 px-3.5 rounded-[15px]">
                 <div className="flex text-white gap-1 items-center">
                   <p className="">LP Positions</p>
                   <Image
@@ -286,7 +286,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                   <p className="">Reward: </p>
                   <p className="">$22.39 </p>
                 </div>
-              </div>
+              </div> */}
 
               {/* tabs */}
               <div className="mt-[34px] w-full">

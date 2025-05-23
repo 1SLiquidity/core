@@ -1,54 +1,53 @@
-'use client';
-import GlobalStreamSidebar from '@/app/components/sidebar/globalStreamSidebar';
-import SelectTokenSidebar from '@/app/components/sidebar/selectTokenSidebar';
-import WalletDetailsSidebar from '@/app/components/sidebar/walletDetailsSidebar';
-import React, { createContext, useContext, useState } from 'react';
+'use client'
+import GlobalStreamSidebar from '@/app/components/sidebar/globalStreamSidebar'
+import SelectTokenSidebar from '@/app/components/sidebar/selectTokenSidebar'
+import WalletDetailsSidebar from '@/app/components/sidebar/walletDetailsSidebar'
+import React, { createContext, useContext, useState } from 'react'
 
 type SidebarContextType = {
-  showSelectTokenSidebar: (isOpen: boolean) => void;
-  showWalletDetailsSidebar: (isOpen: boolean) => void;
-  showGlobalStreamSidebar: (isOpen: boolean) => void;
-};
+  showSelectTokenSidebar: (isOpen: boolean) => void
+  showWalletDetailsSidebar: (isOpen: boolean) => void
+  showGlobalStreamSidebar: (isOpen: boolean) => void
+  isSelectTokenSidebarOpen: boolean
+  isWalletDetailsSidebarOpen: boolean
+  isGlobalStreamSidebarOpen: boolean
+}
 
-const SidebarContext = createContext<SidebarContextType | undefined>(
-  undefined
-);
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
 export const useSidebar = () => {
-  const context = useContext(SidebarContext);
+  const context = useContext(SidebarContext)
   if (context === undefined) {
-    throw new Error(
-      'useSidebar must be used within a SidebarProvider'
-    );
+    throw new Error('useSidebar must be used within a SidebarProvider')
   }
-  return context;
-};
+  return context
+}
 
 type SidebarProviderProps = {
-  children: React.ReactNode;
-};
+  children: React.ReactNode
+}
 
 export const SidebarProvider: React.FC<SidebarProviderProps> = ({
   children,
 }) => {
   const [isSelectTokenSidebarOpen, setIsSelectTokenSidebarOpen] =
-    useState(false);
+    useState(false)
   const [isWalletDetailsSidebarOpen, setIsWalletDetailsSidebarOpen] =
-    useState(false);
+    useState(false)
   const [isGlobalStreamSidebarOpen, setIsGlobalStreamSidebarOpen] =
-    useState(false);
+    useState(false)
 
   const showSelectTokenSidebar = (isOpen: boolean) => {
-    setIsSelectTokenSidebarOpen(true);
-  };
+    setIsSelectTokenSidebarOpen(isOpen)
+  }
 
   const showWalletDetailsSidebar = (isOpen: boolean) => {
-    setIsWalletDetailsSidebarOpen(true);
-  };
+    setIsWalletDetailsSidebarOpen(isOpen)
+  }
 
   const showGlobalStreamSidebar = (isOpen: boolean) => {
-    setIsGlobalStreamSidebarOpen(true);
-  };
+    setIsGlobalStreamSidebarOpen(isOpen)
+  }
 
   return (
     <SidebarContext.Provider
@@ -56,6 +55,9 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
         showSelectTokenSidebar,
         showWalletDetailsSidebar,
         showGlobalStreamSidebar,
+        isSelectTokenSidebarOpen,
+        isWalletDetailsSidebarOpen,
+        isGlobalStreamSidebarOpen,
       }}
     >
       {children}
@@ -78,5 +80,5 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
         />
       )}
     </SidebarContext.Provider>
-  );
-};
+  )
+}
