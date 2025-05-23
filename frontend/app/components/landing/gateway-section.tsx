@@ -190,7 +190,7 @@ const GatewaySection = () => {
               src="/ovals/ovals-bg.png"
               alt="Background ovals"
               fill
-              className="object-contain object-center"
+              className="object-center"
               priority
               sizes="100vw"
               loading="eager"
