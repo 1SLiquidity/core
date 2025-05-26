@@ -230,7 +230,7 @@ const GatewaySection = () => {
             whileHover="hover"
           >
             <Image
-              src="/ovals/horse-logo.png"
+              src="/assets/logo.svg"
               alt="DECASWAP logo"
               width={180}
               height={180}
