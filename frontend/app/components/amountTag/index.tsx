@@ -1,42 +1,52 @@
 import Image from 'next/image'
-import Popover from '../popover'
+import React from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 
-const AmountTag: React.FC<{
+type Props = {
   title: string
-  amount: string
-  infoDetail: string
+  amount?: string | null
+  infoDetail?: string
   error?: boolean
-}> = ({ title, amount, infoDetail, error }) => {
-  return (
-    <div className="w-full flex justify-between gap-1 text-[14px]">
-      <div className="flex gap-1 items-center">
-        <p className={`${error ? 'text-primaryRed' : 'text-white'}`}>{title}</p>
-        <Popover content={infoDetail} error={error}>
-          {
-            <Image
-              src={error ? '/icons/info-red.svg' : '/icons/info.svg'}
-              alt="info"
-              className="w-4 cursor-pointer"
-              width={20}
-              height={20}
-            />
-          }
-        </Popover>
-      </div>
+  isLoading?: boolean
+}
 
-      {/* amount string */}
-      <div className="flex gap-1 justify-end text-right">
-        <p className={`${error ? 'text-primaryRed' : 'text-white'}`}>
-          {amount}
-        </p>
+const AmountTag: React.FC<Props> = ({
+  title,
+  amount,
+  infoDetail,
+  error,
+  isLoading = false,
+}) => {
+  return (
+    <div className="w-full flex justify-between items-center">
+      <div className="flex gap-1.5 items-center">
         {error && (
           <Image
             src="/icons/warning.svg"
-            alt="swap"
+            alt="error"
             className="w-5"
             width={20}
             height={20}
           />
+        )}
+        <p className={`${error ? 'text-primaryRed' : ''}`}>{title}</p>
+        {infoDetail && (
+          <Image
+            src="/icons/info.svg"
+            alt="info"
+            className="w-5"
+            width={20}
+            height={20}
+          />
+        )}
+      </div>
+      <div className={`${error ? 'text-primaryRed' : ''}`}>
+        {isLoading ? (
+          <Skeleton className="h-4 w-24 bg-white/10" />
+        ) : amount ? (
+          amount
+        ) : (
+          'Calculating...'
         )}
       </div>
     </div>

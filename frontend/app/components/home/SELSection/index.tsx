@@ -273,6 +273,7 @@ const SELSection = () => {
               tokenToSymbol={selectedTokenTo?.symbol || ''}
               tokenToUsdPrice={selectedTokenTo?.usd_price || 0}
               estTime={estTime}
+              isCalculating={isCalculating}
             />
           )}
 
