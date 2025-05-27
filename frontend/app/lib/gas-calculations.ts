@@ -50,8 +50,38 @@ function calculateSweetSpot(
   // Calculate N = sqrt(alpha * V^2)
   const streamCount = Math.sqrt(alpha * volumeSquared);
 
-  // Round to nearest integer
-  return Math.round(streamCount);
+  // Round to nearest integer and ensure minimum value of 1
+  return Math.max(1, Math.round(streamCount));
+}
+
+// Cache for ETH price to avoid too many API calls
+let cachedEthPrice: bigint | null = null;
+let lastEthPriceFetch = 0;
+const ETH_PRICE_CACHE_MS = 60_000; // 1 minute
+
+async function getEthPrice(): Promise<bigint> {
+  const now = Date.now();
+  if (cachedEthPrice && now - lastEthPriceFetch < ETH_PRICE_CACHE_MS) {
+    return cachedEthPrice;
+  }
+
+  try {
+    const response = await fetch(
+      'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
+    );
+    if (!response.ok) {
+      throw new Error('Failed to fetch ETH price');
+    }
+    const data = await response.json();
+    const price = BigInt(Math.floor(data.ethereum.usd));
+    cachedEthPrice = price;
+    lastEthPriceFetch = now;
+    return price;
+  } catch (error) {
+    console.error('Error fetching ETH price:', error);
+    // Fallback to a reasonable default if API fails
+    return BigInt(2000);
+  }
 }
 
 async function calculateGasAllowance(
@@ -64,8 +94,8 @@ async function calculateGasAllowance(
     throw new Error('Failed to get gas price');
   }
 
-  // Calculate nominalGas for roughly $1 worth of gas
-  const ETH_PRICE_USD = BigInt(2527);
+  // Get current ETH price from CoinGecko
+  const ETH_PRICE_USD = await getEthPrice();
   const ONE_DOLLAR_IN_WEI = BigInt(10) ** BigInt(18) / ETH_PRICE_USD; // Convert $1 to wei
   const gasPriceBigInt = BigInt(gasPrice.gasPrice.toString());
   const nominalGas = ONE_DOLLAR_IN_WEI / gasPriceBigInt;

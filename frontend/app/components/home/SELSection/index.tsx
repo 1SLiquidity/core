@@ -83,7 +83,7 @@ const SELSection = () => {
           '0xdAC17F958D2ee523a2206206994597C13D831ec7' // Default to USDT if no address
         const toAddress =
           selectedTokenTo.token_address ||
-          '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984' // Default to UNI if no address
+          '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' // Default to WETH if no address
 
         // Fetch reserves from the backend API
         const response = await fetch(

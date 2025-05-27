@@ -98,8 +98,8 @@ function calculateSweetSpot(
   const streamCount = Math.sqrt(alpha * volumeSquared);
   console.log('streamCount', streamCount);
 
-  // Round to nearest integer
-  return Math.round(streamCount);
+  // Round to nearest integer and ensure minimum value of 1
+  return Math.max(1, Math.round(streamCount));
 }
 
 export async function testGasCalculations(

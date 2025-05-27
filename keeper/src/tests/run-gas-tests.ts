@@ -3,15 +3,25 @@ import { testGasCalculations } from './gas-calculations';
 async function runTests() {
   try {
     // Test with WETH/USDC pair
-    console.log('\nTesting WETH/USDC pair:');
-    const wethUsdcResult = await testGasCalculations(
-      '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
-      '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-      '33.0' // 33 ETH
+    // console.log('\nTesting WETH/USDC pair:');
+    // const wethUsdcResult = await testGasCalculations(
+    //   '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
+    //   '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
+    //   '33.0' // 33 ETH
+    // );
+    // console.log('WETH/USDC Results:', {
+    //   botGasLimit: wethUsdcResult.botGasLimit.toString(),
+    //   streamCount: wethUsdcResult.streamCount,
+    // });
+
+    const usdcUsdtResult = await testGasCalculations(
+      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
+      '0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT
+      '100.0' // 100 ETH
     );
-    console.log('WETH/USDC Results:', {
-      botGasLimit: wethUsdcResult.botGasLimit.toString(),
-      streamCount: wethUsdcResult.streamCount,
+    console.log('USDC/USDT Results:', {
+      botGasLimit: usdcUsdtResult.botGasLimit.toString(),
+      streamCount: usdcUsdtResult.streamCount,
     });
 
     // // Test with different trade volumes
