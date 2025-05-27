@@ -33,7 +33,11 @@ const InputAmount: React.FC<InputAmountProps> = ({
   // Handler to update the amount
   const handleValueChange = (values: any) => {
     const { floatValue } = values
-    if (setAmount) setAmount(floatValue || 0)
+    if (setAmount) {
+      // Ensure the value is non-negative
+      const validValue = floatValue && floatValue >= 0 ? floatValue : 0
+      setAmount(validValue)
+    }
   }
 
   // useOnClickOutside(inputRef, () => {
@@ -51,11 +55,13 @@ const InputAmount: React.FC<InputAmountProps> = ({
 
   return (
     <NumericFormat
-      value={amount == 0 ? '' : amount}
+      value={amount === 0 ? '' : amount}
       displayType={'input'}
       thousandSeparator={true}
-      // decimalScale={2}
-      fixedDecimalScale={true}
+      allowNegative={false}
+      allowLeadingZeros={false}
+      decimalScale={8}
+      fixedDecimalScale={false}
       onFocus={onInputFocus}
       onValueChange={handleValueChange}
       placeholder="0"

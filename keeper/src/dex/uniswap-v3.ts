@@ -52,15 +52,36 @@ export class UniswapV3Service {
       const sqrtPriceX96 = BigInt(slot0.sqrtPriceX96);
       const isToken0 = tokenA.toLowerCase() === token0.toLowerCase();
 
-      // Calculate virtual reserves following the Solidity implementation
-      const sqrtPrice = (sqrtPriceX96 * BigInt(1e9)) / BigInt(2 ** 96);
-      console.log('sqrtPrice', sqrtPrice.toString());
-      const price = sqrtPrice * sqrtPrice;
-      console.log('price', price.toString());
-      const reserve0 = (BigInt(liquidity) * BigInt(1e18)) / sqrtPrice;
-      const reserve1 = (BigInt(liquidity) * sqrtPrice) / BigInt(1e18);
+      const liquidityBigInt = BigInt(liquidity)
+      const Q96 = BigInt(2) ** BigInt(96);
+    
+      // For concentrated liquidity at current price:
+      // Virtual amount0 = L * sqrt(P) where P is the price (token1/token0)
+      // Virtual amount1 = L / sqrt(P)
+      
+      // Since sqrtPriceX96 = sqrt(P) * 2^96:
+      // amount0 = L * sqrtPriceX96 / 2^96
+      // amount1 = L * 2^96 / sqrtPriceX96
+      
+      // But we need to be more careful with the math to avoid precision issues
+      // Use the standard Uniswap V3 liquidity math:
+      
+      // Calculate the price bounds for a very tight range around current price
+      // This simulates having all liquidity concentrated at current price
+      const sqrtPriceLower = (sqrtPriceX96 * BigInt(999)) / BigInt(1000); // 0.1% below
+      const sqrtPriceUpper = (sqrtPriceX96 * BigInt(1001)) / BigInt(1000); // 0.1% above
+      
+      // Calculate virtual reserves using the liquidity formulas:
+      // amount0 = L * (sqrt(upper) - sqrt(current)) / (sqrt(current) * sqrt(upper))
+      // amount1 = L * (sqrt(current) - sqrt(lower))
+      
+      const amount0Numerator = liquidityBigInt * (sqrtPriceUpper - sqrtPriceX96);
+      const amount0Denominator = (sqrtPriceX96 * sqrtPriceUpper) / Q96;
+      const reserve0 = amount0Numerator / amount0Denominator;
+      
+      const reserve1 = (liquidityBigInt * (sqrtPriceX96 - sqrtPriceLower)) / Q96;
 
-      // Return reserves in the correct order based on token0/token1
+      // Return reserves in the correct order based on toketoken1Decimals/token1
       const [reserveA, reserveB] = isToken0 
         ? [reserve0, reserve1]
         : [reserve1, reserve0];

@@ -3,6 +3,7 @@ import React, { useState } from 'react'
 import AmountTag from '../../amountTag'
 import { ReserveData } from '@/app/lib/dex/calculators'
 import { formatEther } from 'ethers/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type Props = {
   sellAmount: string
@@ -16,6 +17,7 @@ type Props = {
   tokenToSymbol?: string
   tokenToUsdPrice?: number
   estTime?: string
+  isCalculating?: boolean
 }
 
 const DetailSection: React.FC<Props> = ({
@@ -30,6 +32,7 @@ const DetailSection: React.FC<Props> = ({
   tokenToSymbol,
   tokenToUsdPrice = 0,
   estTime = '',
+  isCalculating = false,
 }) => {
   const [showDetails, setShowDetails] = useState(true)
 
@@ -62,9 +65,9 @@ const DetailSection: React.FC<Props> = ({
 
   // Calculate minimum output correction based on buy amount and stream count
   const calculateMinOutputCorrection = () => {
-    if (!buyAmount || !streamCount) return 'Calculating...'
+    if (!buyAmount || !streamCount) return null
     const numericBuyAmount = parseFloat(buyAmount)
-    if (isNaN(numericBuyAmount)) return 'Calculating...'
+    if (isNaN(numericBuyAmount)) return null
     const minOutput = numericBuyAmount / streamCount
     let usdString = ''
     if (tokenToUsdPrice && !isNaN(tokenToUsdPrice)) {
@@ -74,6 +77,12 @@ const DetailSection: React.FC<Props> = ({
     return `${minOutput.toFixed(4)} ${tokenToSymbol}${usdString}`
   }
 
+  const LoadingSkeleton = () => (
+    <div className="flex items-center space-x-2">
+      <Skeleton className="h-4 w-24 bg-white/10" />
+    </div>
+  )
+
   return (
     <div className="w-full p-5 border-[2px] border-white12 bg-[#0D0D0D] mt-[26px] rounded-[15px]">
       <div
@@ -81,7 +90,9 @@ const DetailSection: React.FC<Props> = ({
         onClick={toggleDetails}
       >
         <div
-          className={`flex gap-1.5 ${inValidAmount ? 'text-primaryRed' : ''}`}
+          className={`flex gap-1.5 items-center ${
+            inValidAmount ? 'text-primaryRed' : ''
+          }`}
         >
           {inValidAmount && (
             <Image
@@ -113,7 +124,11 @@ const DetailSection: React.FC<Props> = ({
             />
           )}
           <p>
-            {buyAmount} {tokenToSymbol} (Est)
+            {isCalculating ? (
+              <LoadingSkeleton />
+            ) : (
+              `${buyAmount} ${tokenToSymbol} (Est)`
+            )}
           </p>
         </div>
         <div className="flex gap-2.5 items-center">
@@ -125,7 +140,7 @@ const DetailSection: React.FC<Props> = ({
               width={20}
               height={20}
             />
-            <p>{estTime || '...'}</p>
+            {isCalculating ? <LoadingSkeleton /> : <p>{estTime || '...'}</p>}
           </div>
           <Image
             src="/icons/up-arrow.svg"
@@ -149,8 +164,9 @@ const DetailSection: React.FC<Props> = ({
           {dexFee && (
             <AmountTag
               title={`DEX Fee (${dexFee}%)`}
-              amount={calculateFeeAmount()}
+              amount={isCalculating ? undefined : calculateFeeAmount()}
               infoDetail="Estimated"
+              isLoading={isCalculating}
             />
           )}
           {/* <AmountTag
@@ -161,11 +177,14 @@ const DetailSection: React.FC<Props> = ({
           <AmountTag
             title="Bot Gas Allowance"
             amount={
-              botGasLimit
+              isCalculating
+                ? undefined
+                : botGasLimit
                 ? `${parseFloat(formatEther(botGasLimit)).toFixed(4)} ETH`
-                : 'Calculating...'
+                : undefined
             }
             infoDetail="Estimated"
+            isLoading={isCalculating}
           />
           {/* <AmountTag
             error={inValidAmount}
@@ -175,13 +194,19 @@ const DetailSection: React.FC<Props> = ({
           /> */}
           <AmountTag
             title="Min. Output Correction"
-            amount={calculateMinOutputCorrection()}
+            amount={
+              isCalculating
+                ? undefined
+                : calculateMinOutputCorrection() || undefined
+            }
             infoDetail="Estimated"
+            isLoading={isCalculating}
           />
           <AmountTag
             title="Slippage Savings"
-            amount={'1%'}
+            amount={isCalculating ? undefined : '1%'}
             infoDetail="Estimated"
+            isLoading={isCalculating}
           />
           {/* <AmountTag
             title="Price Impact"
@@ -197,8 +222,9 @@ const DetailSection: React.FC<Props> = ({
           /> */}
           <AmountTag
             title="Est. Stream Count"
-            amount={streamCount ? streamCount.toString() : 'Calculating...'}
+            amount={isCalculating ? undefined : streamCount?.toString()}
             infoDetail="Estimated"
+            isLoading={isCalculating}
           />
           {/* <AmountTag
             title="Est. Time"
