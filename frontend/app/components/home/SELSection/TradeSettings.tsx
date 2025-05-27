@@ -12,9 +12,11 @@ import {
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Switch } from '@/components/ui/switch'
+import SettingsIcon from '@/app/shared/icons/Settings'
 
 export default function TradingSettings() {
   const [isOpen, setIsOpen] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
   const [showTradeOptions, setShowTradeOptions] = useState(false)
   const [defaultSelected, setDefaultSelected] = useState(true)
   const [uniswapXEnabled, setUniswapXEnabled] = useState(true)
@@ -54,24 +56,21 @@ export default function TradingSettings() {
       <div
         ref={buttonRef}
         onClick={toggleDropdown}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
         className="group cursor-pointer"
       >
         <div className="flex items-center gap-2 w-fit h-8 px-3 bg-white hover:bg-tabsGradient bg-opacity-[12%] rounded-[12px]">
-          <span className="text-sm text-zinc-400 group-hover:text-white">ADVANCED</span>
-          <Image
-            src="/icons/settings.svg"
-            alt="settings"
-            className="w-fit h-fit block group-hover:hidden"
-            width={24}
-            height={24}
-          />
-          <Image
-            src="/icons/settings-primary.svg"
-            alt="settings"
-            className="w-fit h-fit hidden group-hover:block"
-            width={24}
-            height={24}
-          />
+          <span className="text-sm text-zinc-400 group-hover:text-white">
+            ADVANCED
+          </span>
+          <div
+            className={`transition-transform duration-300 ease-in-out transform ${
+              isOpen || isHovered ? 'rotate-90' : 'rotate-0'
+            }`}
+          >
+            <SettingsIcon className="w-fit h-fit block text-[#666666] group-hover:text-[#40F798] transition-colors duration-300" />
+          </div>
         </div>
       </div>
 
