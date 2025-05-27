@@ -45,19 +45,33 @@ export const useRefreshTimer = ({
 
       timerIntervalRef.current = setInterval(() => {
         setTimeRemaining((prev) => {
-          // Only trigger refresh exactly at 0
+          // If we're calculating and timer hits zero, just stay at zero
+          // without triggering a refresh
+          if (prev === 0 && isCalculating) {
+            return 0
+          }
+
+          // Only trigger refresh at zero if we're not calculating
           if (prev === 0) {
             if (!isCalculating && !isRefreshingRef.current) {
               isRefreshingRef.current = true
               onRefresh()
-              // Reset after a short delay to ensure smooth transition
+              // Reset after refresh is done
               setTimeout(() => {
                 isRefreshingRef.current = false
-                setTimeRemaining(duration)
+                if (!isCalculating) {
+                  setTimeRemaining(duration)
+                }
               }, 100)
             }
             return 0
           }
+
+          // If we're calculating, pause the countdown
+          if (isCalculating) {
+            return prev
+          }
+
           return prev - 1
         })
       }, 1000)
@@ -86,7 +100,7 @@ export const useRefreshTimer = ({
   }, [sellAmount, duration, isActive, isCalculating])
 
   const resetTimer = () => {
-    if (!isRefreshingRef.current) {
+    if (!isRefreshingRef.current && !isCalculating) {
       setTimeRemaining(duration)
       onRefresh()
     }
