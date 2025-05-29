@@ -13,7 +13,7 @@ const StreamDetails = ({
 }) => {
   return (
     <>
-      <div className="flex justify-between gap-2 h-full sticky bg-black top-0 p-6 rounded-2xl z-40">
+      <div className="flex justify-between gap-2 h-full sticky bg-black top-0 p-6 z-40">
         <div className="flex gap-1 text-white cursor-pointer" onClick={onBack}>
           <Image
             src={'/icons/right-arrow.svg'}
@@ -29,7 +29,7 @@ const StreamDetails = ({
         </p>
       </div>
 
-      <div className="px-6 pb-6">
+      <div className="pb-6">
         <div className="p-4 rounded-[15px] bg-white005">
           <TokenBar sellToken="ETH" buyToken="USDC" />
           <div className="flex gap-2 justify-between py-4 border-b border-borderBottom">
@@ -92,7 +92,7 @@ const StreamDetails = ({
           </div>
         </div>
         <div className="mt-7">
-          <p className="text-[20px] pb-3.5">Streams</p>
+          <p className="text-[20px] pb-1.5">Streams</p>
 
           <StreamCard
             status="ongoing"
