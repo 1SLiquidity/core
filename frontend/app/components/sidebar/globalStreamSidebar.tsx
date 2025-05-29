@@ -19,7 +19,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
       {/* close icon */}
       <div
         onClick={onClose}
-        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-3 z-50"
+        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-[0.7rem] z-50"
       >
         <Image
           src={'/icons/close.svg'}
@@ -32,7 +32,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
       </div>
 
       {/* main content */}
-      <div className="relative max-h-[88vh] overflow-hidden overflow-y-auto scroll-hidden">
+      <div className="relative max-h-[90vh] overflow-hidden overflow-y-auto scroll-hidden">
         {isStreamSelected ? (
           <>
             <StreamDetails
@@ -42,7 +42,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
           </>
         ) : (
           <>
-            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 p-6 rounded-2xl z-40">
+            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 py-6 px-4 z-40">
               <>
                 <div className="flex gap-3 items-center">
                   <div className="relative cursor-pointer w-10 h-10 rounded-full flex items-center justify-center border-primary border-[2px]">
@@ -62,7 +62,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
               </>
             </div>
 
-            <div className="px-6 pb-6 mt-4">
+            <div className="pb-6 mt-4">
               <div className="p-4 rounded-[15px] bg-white005">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col leading-tight gap-0.5 items-start">

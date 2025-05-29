@@ -140,7 +140,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
       {/* close icon */}
       <div
         onClick={onClose}
-        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-3 z-50"
+        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-[0.7rem] z-50"
       >
         <Image
           src={'/icons/close.svg'}
@@ -153,7 +153,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
       </div>
 
       {/* main content */}
-      <div className="relative max-h-[88vh] overflow-hidden overflow-y-auto">
+      <div className="relative max-h-[90vh] overflow-hidden overflow-y-auto">
         {isStreamDetailsOpen ? (
           <>
             <StreamDetails
@@ -163,7 +163,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
           </>
         ) : (
           <>
-            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 p-6 rounded-2xl z-40">
+            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 py-6 px-4 z-40">
               <div className="flex gap-3 items-center">
                 <div className="relative h-fit">
                   <Image
@@ -196,7 +196,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
             </div>
 
             {/* Chain Indicator */}
-            <div className="px-6 mt-4 flex justify-between items-center">
+            <div className="mt-4 flex justify-between items-center">
               <div className="flex items-center">
                 <div className="text-sm text-white px-2 py-1 bg-neutral-800 rounded-full flex items-center">
                   <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
@@ -223,7 +223,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
             </div>
 
             {/* wallet amount details */}
-            <div className="px-6 pb-6">
+            <div className="pb-6">
               <div className="mt-4">
                 {isLoadingTokens || isFetching ? (
                   <p className="text-[24px] font-bold">Loading balance...</p>

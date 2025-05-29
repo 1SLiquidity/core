@@ -3,7 +3,6 @@
 import { SEL_SECTION_TABS } from '@/app/lib/constants'
 import { useToast } from '@/app/lib/context/toastProvider'
 import { isNumberValid } from '@/app/lib/helper'
-import Image from 'next/image'
 import { useEffect, useState } from 'react'
 import Button from '../../button'
 import NotifiSwapStream from '../../toasts/notifiSwapStream'

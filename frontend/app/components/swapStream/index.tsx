@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge'
 import Image from 'next/image'
 import React from 'react'
 
@@ -61,18 +62,38 @@ const SwapStream: React.FC<Props> = ({ limit, limitContent, onClick }) => {
           />
         </div>
 
-        <div className="mt-[3px] flex justify-between items-center gap-2 text-white52">
+        <div className="mt-1.5 flex justify-between items-center gap-2 text-white52">
           <p className="">1/2 completed</p>
-          <div className="flex gap-1">
-            {' '}
-            <Image
-              src="/icons/time.svg"
-              alt="clock"
-              className="w-5"
-              width={20}
-              height={20}
-            />
-            <p>9 min</p>
+          <div className="flex gap-2">
+            <div className="flex items-center">
+              <Image
+                src="/icons/time.svg"
+                alt="clock"
+                className="w-5"
+                width={20}
+                height={20}
+              />
+              <p>9 min</p>
+            </div>
+            <div className="flex items-center text-sm gap-1 bg-zinc-900 pl-1 pr-1.5 text-primary rounded-full leading-none">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4 sm:w-5 sm:h-5"
+              >
+                <path
+                  d="M13 2L6 14H11V22L18 10H13V2Z"
+                  fill="#40f798"
+                  fillOpacity="0.72"
+                />
+              </svg>
+              <span className="text-xs sm:inline-block hidden">
+                Instasettle
+              </span>
+            </div>
           </div>
         </div>
 

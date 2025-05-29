@@ -20,17 +20,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
   // }, [isOpen]);
   return (
     <div
-      className={`fixed bottom-0 right-0 h-[90vh] w-[96vw] md:w-96 bg-black z-50 rounded-[13px] border-[2px] border-white14 shadow-lg transition-transform transform ${
+      className={`fixed top-[4.5rem] right-4 sm:right-5 h-[90vh] w-[86vw] sm:w-96 z-50 shadow-lg transition-transform transform ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}
     >
-      <button
+      {/* <button
         className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
         onClick={onClose}
       >
         Close
-      </button>
-      <div className="p-4">{children}</div>
+      </button> */}
+      <div className="px-4 pt-0 rounded-[13px] border-[2px] border-white14 shadow-lg h-full overflow-hidden bg-black">
+        {children}
+      </div>
     </div>
   )
 }
