@@ -10,6 +10,12 @@ import Tabs from '../tabs'
 import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
 import { useWalletTokens, TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { calculateWalletBalance } from '@/app/lib/moralis'
+import { Stream } from '../../lib/types/stream'
+import {
+  MOCK_STREAMS,
+  getOngoingStreams,
+  getCompletedStreams,
+} from '../../lib/constants/streams'
 
 type WalletDetailsSidebarProps = {
   isOpen: boolean
@@ -40,6 +46,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState(WALLET_TABS[0])
   const [isStreamDetailsOpen, setIsStreamDetailsOpen] = useState(false)
+  const [selectedStream, setSelectedStream] = useState<Stream | null>(null)
   const [totalBalance, setTotalBalance] = useState<number | null>(null)
   // Track average percentage change across tokens
   const [averagePercentChange, setAveragePercentChange] = useState<
@@ -135,6 +142,10 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   console.log('rawTokens', rawTokens)
   console.log('displayTokens', displayTokens)
 
+  // Get streams for this wallet
+  const ongoingStreams = getOngoingStreams()
+  const completedStreams = getCompletedStreams()
+
   return (
     <Sidebar isOpen={isOpen} onClose={onClose}>
       {/* close icon */}
@@ -155,12 +166,11 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
       {/* main content */}
       <div className="relative max-h-[90vh] overflow-hidden overflow-y-auto">
         {isStreamDetailsOpen ? (
-          <>
-            <StreamDetails
-              onBack={() => setIsStreamDetailsOpen(false)}
-              walletAddress={address || 'GY68234nasmd234asfKT21'}
-            />
-          </>
+          <StreamDetails
+            onBack={() => setIsStreamDetailsOpen(false)}
+            selectedStream={selectedStream}
+            walletAddress={address}
+          />
         ) : (
           <>
             <div className="flex justify-between gap-2 h-full sticky bg-black top-0 py-6 px-4 z-40">
@@ -300,221 +310,40 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
               </div>
 
               {/* ongoing streams */}
-              {activeTab == WALLET_TABS[0] ? (
+              {activeTab === WALLET_TABS[0] && (
                 <div>
                   <div className="mt-4">
                     <p className="text-[20px]">Ongoing Streams</p>
                     <div className="flex flex-col gap-2.5 mt-4">
-                      <SwapStream
-                        onClick={() => setIsStreamDetailsOpen(true)}
-                      />
-                      <SwapStream
-                        onClick={() => setIsStreamDetailsOpen(true)}
-                      />
+                      {ongoingStreams.map((stream) => (
+                        <SwapStream
+                          key={stream.id}
+                          stream={stream}
+                          onClick={(selectedStream: Stream) => {
+                            setSelectedStream(selectedStream)
+                            setIsStreamDetailsOpen(true)
+                          }}
+                        />
+                      ))}
                     </div>
                   </div>
 
                   {/* Past Streams */}
                   <div className="mt-4">
                     <p className="text-[20px]">Past Streams</p>
-                    {/* ongoing streams */}
                     <div className="flex flex-col gap-2.5 mt-4">
-                      <SwapStream
-                        onClick={() => setIsStreamDetailsOpen(true)}
-                        limit={true}
-                        limitContent={'1 ETH = 0.1111545 USDC'}
-                      />
-                      <SwapStream
-                        onClick={() => setIsStreamDetailsOpen(true)}
-                        limit={true}
-                        limitContent={'1 ETH = 0.1111545 USDC'}
-                      />
+                      {completedStreams.map((stream) => (
+                        <SwapStream
+                          key={stream.id}
+                          stream={stream}
+                          onClick={(selectedStream: Stream) => {
+                            setSelectedStream(selectedStream)
+                            setIsStreamDetailsOpen(true)
+                          }}
+                        />
+                      ))}
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2.5 my-[13px]">
-                  {isLoadingTokens || isFetching ? (
-                    <div className="text-center p-4">
-                      {isFetching
-                        ? 'Refreshing tokens...'
-                        : 'Loading tokens...'}
-                    </div>
-                  ) : tokensError ? (
-                    <div className="text-center p-4 text-primaryRed">
-                      Error loading tokens: {tokensError.message}
-                    </div>
-                  ) : walletTokens.length === 0 ? (
-                    <div className="text-center p-4 text-white">
-                      No tokens found on {chainName}
-                    </div>
-                  ) : (
-                    displayTokens
-                      .map((token, ind) => {
-                        // Skip tokens with no price data or insufficient liquidity
-                        if (!isShowingRealTokens && ind > 5) {
-                          return null // Limit fallback tokens to 5
-                        }
-
-                        // Only show tokens that have price data or are native tokens
-                        const hasValidPriceData =
-                          ((token as TOKENS_TYPE)?.usd_price ?? 0) > 0 ||
-                          ((token as TOKENS_TYPE)?.token_address ?? '') ===
-                            '0x0000000000000000000000000000000000000000' ||
-                          parseFloat((token as TOKENS_TYPE)?.balance ?? '0') > 0 // Show tokens with balance
-
-                        if (isShowingRealTokens && !hasValidPriceData) {
-                          return null
-                        }
-
-                        return (
-                          <div
-                            key={ind}
-                            className="w-full flex items-center justify-between border border-white14 bg-white005 hover:bg-neutral-800 p-4 rounded-[15px] cursor-pointer"
-                          >
-                            <div className="flex gap-[12px]">
-                              <div className="relative h-fit">
-                                <Image
-                                  src={token.icon}
-                                  alt={token.name}
-                                  className="w-[40px] h-[40px]"
-                                  width={1000}
-                                  height={1000}
-                                />
-                              </div>
-                              <div>
-                                <p className="text-[18px] p-0 leading-tight">
-                                  {token.symbol}
-                                </p>
-                                <p className="text-[14px] uppercase text-gray p-0 leading-tight">
-                                  {typeof token.value === 'number'
-                                    ? token.value.toFixed(6)
-                                    : (
-                                        parseFloat(
-                                          (token as TOKENS_TYPE)?.balance ?? '0'
-                                        ) /
-                                        Math.pow(
-                                          10,
-                                          (token as TOKENS_TYPE)?.decimals ?? 18
-                                        )
-                                      ).toFixed(6)}
-                                </p>
-                              </div>
-                            </div>
-
-                            <div className="flex flex-col items-end">
-                              {isShowingRealTokens &&
-                              'usd_price' in token &&
-                              ((token as TOKENS_TYPE)?.usd_price ?? 0) > 0 ? (
-                                <p
-                                  className={`text-[16px] p-0 leading-tight ${
-                                    token.status == 'increase'
-                                      ? 'text-primary'
-                                      : 'text-primaryRed'
-                                  }`}
-                                >
-                                  {`${token.status == 'increase' ? '+' : '-'}${(
-                                    token.statusAmount || 0
-                                  ).toFixed(2)}`}
-                                </p>
-                              ) : (
-                                <p className="text-[16px] p-0 leading-tight text-white text-right">
-                                  {'token_address' in token &&
-                                  ((token as TOKENS_TYPE)?.token_address ??
-                                    '') ===
-                                    '0x0000000000000000000000000000000000000000'
-                                    ? 'usd_price' in token &&
-                                      ((token as TOKENS_TYPE)?.usd_price ?? 0) >
-                                        0
-                                      ? `${
-                                          token.status == 'increase' ? '+' : '-'
-                                        }${(token.statusAmount || 0).toFixed(
-                                          2
-                                        )}`
-                                      : 'Native token'
-                                    : parseFloat(
-                                        (token as TOKENS_TYPE)?.balance ?? '0'
-                                      ) > 0
-                                    ? `Balance: ${(
-                                        parseFloat(
-                                          (token as TOKENS_TYPE)?.balance ?? '0'
-                                        ) /
-                                        Math.pow(
-                                          10,
-                                          (token as TOKENS_TYPE)?.decimals ?? 18
-                                        )
-                                      ).toFixed(4)}`
-                                    : 'No price data'}
-                                </p>
-                              )}
-                              {isShowingRealTokens &&
-                              'usd_price' in token &&
-                              ((token as TOKENS_TYPE)?.usd_price ?? 0) > 0 ? (
-                                <div className="flex gap-1 items-center">
-                                  <Image
-                                    src={
-                                      token.status == 'increase'
-                                        ? '/icons/progress-up.svg'
-                                        : '/icons/progress-down.svg'
-                                    }
-                                    alt="progress"
-                                    className="w-2"
-                                    width={1000}
-                                    height={1000}
-                                  />
-                                  <p className="text-[14px]">
-                                    {`${(token.statusAmount || 0).toFixed(2)}%`}
-                                  </p>
-                                </div>
-                              ) : (
-                                <div className="flex gap-1 items-center">
-                                  <p className="text-[14px] text-white text-right">
-                                    {'token_address' in token &&
-                                    ((token as TOKENS_TYPE)?.token_address ??
-                                      '') ===
-                                      '0x0000000000000000000000000000000000000000' ? (
-                                      'usd_price' in token &&
-                                      ((token as TOKENS_TYPE)?.usd_price ?? 0) >
-                                        0 ? (
-                                        <span className="flex gap-1 items-center">
-                                          <Image
-                                            src={
-                                              token.status == 'increase'
-                                                ? '/icons/progress-up.svg'
-                                                : '/icons/progress-down.svg'
-                                            }
-                                            alt="progress"
-                                            className="w-2"
-                                            width={1000}
-                                            height={1000}
-                                          />
-                                          {`${(token.statusAmount || 0).toFixed(
-                                            2
-                                          )}%`}
-                                        </span>
-                                      ) : (
-                                        'Native token'
-                                      )
-                                    ) : token.symbol === 'ZONE' ? (
-                                      'No price data available'
-                                    ) : parseFloat(
-                                        (token as TOKENS_TYPE)?.balance ?? '0'
-                                      ) > 0 ? (
-                                      'No price data'
-                                    ) : isShowingRealTokens ? (
-                                      'Insufficient liquidity'
-                                    ) : (
-                                      'Demo data'
-                                    )}
-                                  </p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )
-                      })
-                      .filter(Boolean) // Filter out null values
-                  )}
                 </div>
               )}
             </div>

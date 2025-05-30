@@ -4,23 +4,14 @@ import AmountTag from '../amountTag'
 import StreamCard from '../streamCard'
 import TokenBar from '../tokenBar'
 import Button from '../button'
-import { Stream } from '../../lib/types/stream'
 
-type StreamDetailsProps = {
-  onBack: () => void
-  selectedStream: Stream | null
-  walletAddress?: string
-}
-
-const StreamDetails: React.FC<StreamDetailsProps> = ({
+const StreamDetails = ({
   onBack,
-  selectedStream,
-  walletAddress = 'GY68234nasmd234asfKT21',
+  walletAddress,
+}: {
+  onBack: () => void
+  walletAddress: string
 }) => {
-  if (!selectedStream) {
-    return null
-  }
-
   return (
     <>
       <div className="flex justify-between gap-2 h-full sticky bg-black top-0 p-6 z-40">
@@ -41,76 +32,14 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
 
       <div className="pb-6">
         <div className="p-4 rounded-[15px] bg-white005">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Image
-                src={selectedStream.fromToken.icon}
-                width={32}
-                height={32}
-                alt={selectedStream.fromToken.symbol}
-              />
-              <div>
-                <p className="text-white">
-                  {selectedStream.fromToken.amount}{' '}
-                  {selectedStream.fromToken.symbol}
-                </p>
-                <p className="text-white52">From</p>
-              </div>
-            </div>
-            <Image
-              src="/icons/right-arrow.svg"
-              width={24}
-              height={24}
-              alt="to"
-            />
-            <div className="flex items-center gap-2">
-              <Image
-                src={selectedStream.toToken.icon}
-                width={32}
-                height={32}
-                alt={selectedStream.toToken.symbol}
-              />
-              <div>
-                <p className="text-white">
-                  {selectedStream.toToken.estimatedAmount}{' '}
-                  {selectedStream.toToken.symbol}
-                </p>
-                <p className="text-white52">To (Estimated)</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-full h-[3px] bg-white005 relative mb-4">
-            <div
-              className="h-[3px] bg-primary absolute top-0 left-0"
-              style={{
-                width: `${
-                  (selectedStream.progress.completed /
-                    selectedStream.progress.total) *
-                  100
-                }%`,
-              }}
-            />
-          </div>
-
-          <TokenBar
-            sellToken={selectedStream.fromToken.symbol}
-            buyToken={selectedStream.toToken.symbol}
-          />
-
+          <TokenBar sellToken="ETH" buyToken="USDC" />
           <div className="flex gap-2 justify-between py-4 border-b border-borderBottom">
             <div className="flex flex-col leading-tight gap-0.5 items-start">
-              <p className="text-white">
-                {selectedStream.fromToken.amount}{' '}
-                {selectedStream.fromToken.symbol}
-              </p>
+              <p className="text-white">1 ETH</p>
               <p className="text-white52 text-[14px]">$3,395</p>
             </div>
             <div className="flex flex-col leading-tight gap-0.5 items-end">
-              <p className="text-white">
-                ~ {selectedStream.toToken.estimatedAmount}{' '}
-                {selectedStream.toToken.symbol}
-              </p>
+              <p className="text-white">~ 3,300 USDC</p>
               <p className="text-white52 text-[14px]">$3,301</p>
             </div>
           </div>
@@ -118,10 +47,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
           <div className="flex gap-2 justify-between py-4 border-b border-borderBottom">
             <div className="flex flex-col leading-tight gap-0.5 items-start">
               <p className="text-[14px] text-white">Swapped Input</p>
-              <p className="">
-                {selectedStream.fromToken.amount}{' '}
-                {selectedStream.fromToken.symbol}
-              </p>
+              <p className="">1 ETH</p>
               <p className="text-white52 text-[14px]">$3,395</p>
             </div>
             <Image
@@ -133,30 +59,25 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             />
             <div className="flex flex-col leading-tight gap-0.5 items-end">
               <p className="text-[14px] text-white">Output</p>
-              <p className="">
-                ${selectedStream.toToken.estimatedAmount}{' '}
-                {selectedStream.toToken.symbol}
-              </p>
+              <p className="">$1,550 USDC</p>
               <p className="text-white52 text-[14px]">$1,551</p>
             </div>
           </div>
 
           <div className="flex flex-col gap-2 py-4 border-b border-borderBottom">
-            {selectedStream.limit && (
-              <AmountTag
-                title="Limit"
-                amount={`1 ${selectedStream.fromToken.symbol} = ${selectedStream.limit.price} ${selectedStream.limit.token}`}
-                infoDetail="Estimated"
-              />
-            )}
+            <AmountTag
+              title="Limit"
+              amount={'1 ETH = 0.0000 USDC'}
+              infoDetail="Estimated"
+            />
             <AmountTag
               title="Streams Completed"
-              amount={`${selectedStream.progress.completed}/${selectedStream.progress.total}`}
+              amount={'4/6'}
               infoDetail="Estimated"
             />
             <AmountTag
               title="Est time"
-              amount={`${selectedStream.timeRemaining} min`}
+              amount={'19min 2 sec'}
               infoDetail="Estimated"
             />
             <AmountTag
@@ -166,17 +87,14 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             />
             <AmountTag
               title="Wallet Address"
-              amount={formatWalletAddress(walletAddress)}
+              amount={formatWalletAddress('0X2A324324324642F')}
               infoDetail="Estimated"
             />
           </div>
-          {selectedStream.isInstasettle && (
-            <div className="mt-4">
-              <Button text="Execute Instasettle" />
-            </div>
-          )}
+          <div className="mt-4">
+            <Button text="Execute Instasettle" />
+          </div>
         </div>
-
         <div className="mt-7">
           <p className="text-[20px] pb-1.5">Streams</p>
 
@@ -185,17 +103,17 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             stream={[
               {
                 sell: {
-                  amount: selectedStream.fromToken.amount,
-                  token: selectedStream.fromToken.symbol,
+                  amount: 1,
+                  token: 'ETH',
                 },
                 buy: {
-                  amount: selectedStream.toToken.estimatedAmount,
-                  token: selectedStream.toToken.symbol,
+                  amount: 3300,
+                  token: 'USDC',
                 },
               },
             ]}
             date={new Date()}
-            walletAddress={walletAddress}
+            walletAddress="0X2A324324324642F"
           />
           <StreamCard
             status="scheduled"
@@ -268,7 +186,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               },
             ]}
             date={new Date()}
-            walletAddress={walletAddress}
+            walletAddress="0X2A324324324642F"
           />
         </div>
       </div>

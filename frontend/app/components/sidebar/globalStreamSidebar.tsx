@@ -3,6 +3,8 @@ import { useState } from 'react'
 import Sidebar from '.'
 import StreamDetails from '../streamDetails'
 import SwapStream from '../swapStream'
+import { MOCK_STREAMS } from '@/app/lib/constants/streams'
+import { Stream } from '@/app/lib/types/stream'
 
 type GlobalStreamSidebarProps = {
   isOpen: boolean
@@ -14,6 +16,8 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   onClose,
 }) => {
   const [isStreamSelected, setIsStreamSelected] = useState(false)
+  const [selectedStream, setSelectedStream] = useState<Stream | null>(null)
+
   return (
     <Sidebar isOpen={isOpen} onClose={onClose}>
       {/* close icon */}
@@ -33,10 +37,11 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
 
       {/* main content */}
       <div className="relative max-h-[90vh] overflow-hidden overflow-y-auto scroll-hidden">
-        {isStreamSelected ? (
+        {selectedStream ? (
           <>
             <StreamDetails
-              onBack={() => setIsStreamSelected(false)}
+              onBack={() => setSelectedStream(null)}
+              selectedStream={selectedStream}
               walletAddress="GY68234nasmd234asfKT21"
             />
           </>
@@ -82,12 +87,16 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                 <p className="text-[20px] pb-3.5">Global Streams</p>
 
                 <div className="flex flex-col gap-2">
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  {MOCK_STREAMS.map((stream, index) => (
+                    <SwapStream
+                      key={index}
+                      onClick={() => {
+                        setIsStreamSelected(true)
+                        setSelectedStream(stream)
+                      }}
+                      stream={stream}
+                    />
+                  ))}
                 </div>
               </div>
             </div>

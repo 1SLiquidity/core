@@ -5,7 +5,14 @@ type Props = {
   onClick?: () => void
   error?: boolean
   disabled?: boolean
-  theme?: 'gradient' | 'primary' | 'secondary' | 'white' | 'black' | 'success'
+  theme?:
+    | 'gradient'
+    | 'primary'
+    | 'secondary'
+    | 'white'
+    | 'black'
+    | 'success'
+    | 'destructive'
   loading?: boolean
 }
 
@@ -30,6 +37,8 @@ const Button: React.FC<Props> = ({
           ? 'bg-gray text-white opacity-50 cursor-not-allowed'
           : theme == 'gradient'
           ? 'bg-primaryGradient text-black'
+          : theme == 'destructive'
+          ? 'bg-primaryRed text-red-300'
           : 'bg-secondary text-primary'
       }`}
     >
