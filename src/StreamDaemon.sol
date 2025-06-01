@@ -11,29 +11,34 @@ import {IERC20Metadata} from "lib/openzeppelin-contracts/contracts/token/ERC20/e
 contract StreamDaemon is Ownable {
     IUniversalDexInterface public universalDexInterface;
     address[] public dexs; // goes to Core.sol
+    mapping(address => address) public dexToRouters; // goes to Core.sol
 
     // temporarily efine a constant for minimum effective gas in dollars
     uint256 public constant MIN_EFFECTIVE_GAS_DOLLARS = 1; // i.e $1 minimum @audit this should be valuated against TOKEN-USDC value during execution in production
 
-    constructor(address _dexInterface, address[] memory _dexs) Ownable(msg.sender) {
-        universalDexInterface = IUniversalDexInterface(_dexInterface);
+    constructor(address[] memory _dexs, address[] memory _routers) Ownable(msg.sender) {
         for (uint256 i = 0; i < _dexs.length; i++) {
             dexs.push(_dexs[i]);
         }
+        for (uint256 i = 0; i < _routers.length; i++) {
+            dexToRouters[_dexs[i]] = _routers[i];
+        } // @audit make sure to pass the routers in the appropriate order wrt how the dex's are inputted on deployment
     }
 
     function registerDex(address _fetcher) external onlyOwner {
-        dexs.push(_fetcher);
+        dexs.push(_fetcher); // @audit this storage allocation has multiple dependancies in order to actually function, including deployments of appropriate fetchers and configuration of the relevant dex's interface
     }
 
     function evaluateSweetSpotAndDex(address tokenIn, address tokenOut, uint256 volume, uint256 effectiveGas)
         public
         view
-        returns (uint256 sweetSpot, address bestFetcher)
+        returns (uint256 sweetSpot, address bestFetcher, address router)
     {
+        console.log("evaluating sweet spot and dex");
         (address identifiedFetcher, uint256 maxReserveIn, uint256 maxReserveOut) =
             findHighestReservesForTokenPair(tokenIn, tokenOut);
         bestFetcher = identifiedFetcher;
+        router = dexToRouters[bestFetcher];
         console.log("bestFetcher", bestFetcher);
 
         // Ensure effective gas is at least the minimum
@@ -53,16 +58,35 @@ contract StreamDaemon is Ownable {
         view
         returns (address bestFetcher, uint256 maxReserveIn, uint256 maxReserveOut)
     {
+        console.log("finding highest reserves for token pair");
+        console.log("tokenIn", tokenIn);
+        console.log("tokenOut", tokenOut);
+        console.log("number of dexs", dexs.length);
+        
         for (uint256 i = 0; i < dexs.length; i++) {
             IUniversalDexInterface fetcher = IUniversalDexInterface(dexs[i]);
-            (uint256 reserveTokenIn, uint256 reserveTokenOut) = fetcher.getReserves(tokenIn, tokenOut);
+            console.log("fetcher", address(fetcher));
+            try fetcher.getReserves(tokenIn, tokenOut) returns (uint256 reserveTokenIn, uint256 reserveTokenOut) {
+                console.log("reserveTokenIn", reserveTokenIn);
+                console.log("reserveTokenOut", reserveTokenOut);
 
-            if (reserveTokenIn > maxReserveIn && reserveTokenIn > 0) {
-                maxReserveIn = reserveTokenIn;
-                maxReserveOut = reserveTokenOut;
-                bestFetcher = address(fetcher);
-            }
+                if (reserveTokenIn > maxReserveIn && reserveTokenIn > 0) {
+                    maxReserveIn = reserveTokenIn;
+                    maxReserveOut = reserveTokenOut;
+                    bestFetcher = address(fetcher);
+                }
+            } catch Error(string memory reason) {
+                console.log("Error getting reserves:", reason);
+            } 
+            // catch (bytes memory lowLevelData) {
+            // }
         }
+        console.log("bestFetcher", bestFetcher);
+        console.log("maxReserveIn", maxReserveIn);
+        console.log("maxReserveOut", maxReserveOut);
+
+        // Revert if no valid DEX was found
+        require(bestFetcher != address(0), "No DEX found for token pair");
     }
 
     /**
@@ -91,9 +115,7 @@ contract StreamDaemon is Ownable {
         if (reserveIn == 0 || reserveOut == 0 || effectiveGas == 0) {
             revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
         }
-        console.log("Start |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||\n                        ||||||||");
-
-        console.log("reserveIn", reserveIn);
+        console.log("Start |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
         console.log("reserveOut", reserveOut);
         console.log("effectiveGas", effectiveGas);
         console.log("volume", volume);
@@ -131,14 +153,18 @@ contract StreamDaemon is Ownable {
         
         sweetSpot = sqrt(numerator / denominator);
         console.log("calculated sweetSpot", sweetSpot);
-        require(sweetSpot > 0, "Invalid sqrt calculation");
+        // require(sweetSpot > 0, "Invalid sqrt calculation");
 
-        if (sweetSpot < 2) {
-            sweetSpot = 2;
+        if (sweetSpot == 0) {
+            sweetSpot = 4;
+        } else if (sweetSpot < 4) {
+            sweetSpot = 4;
         }
         if (sweetSpot > 500) {
             sweetSpot = 500;
         }
+        // need to add a case for volume < 0.001 pool depth whereby sweetspot = 1
+        console.log("final sweetSpot", sweetSpot);
     }
 
     // babylonian

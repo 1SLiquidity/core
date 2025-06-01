@@ -8,10 +8,14 @@ import "./Executor.sol";
 import "./Utils.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "forge-std/console.sol";
+
 contract Core is Ownable /*, UUPSUpgradeable */ {
     // @audit must be able to recieve and transfer tokens
     StreamDaemon public streamDaemon;
     Executor public executor;
+
+    error ToxicTrade(uint256 tradeId);
 
     // dexs
     address public immutable uniswapV2Router;
@@ -43,7 +47,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         address _sushiswapRouter,
         address _uniswapV3Router,
         address _balancerVault,
-        address _curvePool
+        address _curvePool,
+        uint256 _lastGasUsed
     ) Ownable(msg.sender) {
         streamDaemon = StreamDaemon(_streamDaemon);
         executor = Executor(_executor);
@@ -53,6 +58,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         curvePool = _curvePool;
         sushiswapRouter = _sushiswapRouter;
         // @audit initialise TWAP_GAS_COST here
+        TWAP_GAS_COST.push(_lastGasUsed);
+        lastGasUsed = _lastGasUsed;
     }
 
     // function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
@@ -64,26 +71,38 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     function closeGasRecord() public {
         uint256 gasUsed = startGas - gasleft();
         lastGasUsed = gasUsed;
-        lastGasPrice = tx.gasprice;
-        lastGasCost = gasUsed * tx.gasprice;
-        TWAP_GAS_COST.push(lastGasCost);
+        // lastGasPrice = tx.gasprice;
+        // lastGasCost = lastGasUsed * tx.gasprice;
+        // TWAP_GAS_COST.push(lastGasCost);
     }
 
     function readTWAPGasCost(uint256 delta) public view returns (uint256) {
-        if (TWAP_GAS_COST.length < delta) {
+        console.log("Reading TWAP gas cost");
+        console.log("TWAP length: %s", TWAP_GAS_COST.length);
+        if (TWAP_GAS_COST.length == 0) {
+            delta = 1;
+        } else if (TWAP_GAS_COST.length < delta) {
             delta = TWAP_GAS_COST.length;
         }
         uint256 totalGasCost = 0;
         for (uint256 i = 0; i < delta; i++) {
             totalGasCost += TWAP_GAS_COST[i];
         }
-        return totalGasCost / TWAP_GAS_COST.length;
+        totalGasCost = totalGasCost > 0 ? totalGasCost / delta : lastGasCost;
+        return totalGasCost > lastGasUsed ? totalGasCost / TWAP_GAS_COST.length : 100000;
     }
 
-    function placeTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, /*address owner, */bool isInstasettlable, uint256 botGasAllowance)
+    function placeTrade(bytes calldata tradeData)
         public
         payable
     {
+        (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, bool isInstasettlable, uint256 botGasAllowance) = abi.decode(tradeData, (address, address, uint256, uint256, bool, uint256));
+        // @audit may be better to abstract sweetSpot algo to here and pass the value along, since small (<0.001% pool depth) trades shouldn't be split at all and would save hefty logic 
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+
+        // store trade
+        uint256 tradeId = lastTradeId++;
+        bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut)); //@audit optimise this 
 
         /**
          * this should:
@@ -114,51 +133,45 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          *
          */
 
-        // letstransfer funds
-        IERC20 token = IERC20(tokenIn);
-        require(token.transferFrom(msg.sender, address(this), amountIn), "Transfer failed"); // no balances are required since they are tracked in trade struct
+        
+        // tore directly in storage
+        // @audit needs attention for small trades - these hsouldn't be entered in the orderbook
+        trades[tradeId] = Utils.Trade({
+            owner: msg.sender,
+            cumulativeGasEntailed: 0,
+            attempts: 1,
+            tokenIn: tokenIn,
+            tokenOut: tokenOut,
+            amountIn: amountIn,
+            amountRemaining: amountIn,
+            targetAmountOut: amountOutMin,
+            realisedAmountOut: 0,
+            tradeId: tradeId,
+            botGasAllowance: botGasAllowance,
+            instasettleBps: 100,
+            lastSweetSpot: 4,
+            isInstasettlable: isInstasettlable
+        });
 
-        // generate trade
-        Utils.Trade memory trade;
+        pairIdTradeIds[pairId].push(tradeId);
+        console.log("trade created in memory");
 
-        trade.owner = msg.sender; // @audit this will need updating when we have a router
-        trade.tradeId = lastTradeId;
-        trade.tokenIn = tokenIn;
-        trade.tokenOut = tokenOut;
-        trade.amountIn = msg.value;
-        trade.amountRemaining = msg.value;
-        trade.targetAmountOut = amountOutMin;
-        trade.isInstasettlable = isInstasettlable;
-        trade.botGasAllowance = botGasAllowance;
-        trade.attempts = 1; // yes, we initialise to 1 as we are going to execute a stream here
-        bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut));
-        trade.pairId = pairId;
+        Utils.Trade storage trade = trades[tradeId];
+        _executeStream(trade);
 
-        // now, we store the trade in contract storage;
-        pairIdTradeIds[pairId].push(lastTradeId);
-        trades[lastTradeId] = trade;
-        lastTradeId++;
-
-        // now, we execute a single stream;
-        // (uint256 realisedAmountIn, uint256 executedAmountOut, uint256 sweetSpot) = _executeStream(tokenIn, tokenOut, amountIn, amountOutMin, address(this));
-
-        // lets rather pass a trade object into the executeStrram function, and we can correct the rebalancing action inside that function in a second
-        Utils.Trade memory updatedTrade = _executeStream(trade);
-
-        // note that this transfer should be deterministically sent to the owner of the trade
-        if (updatedTrade.lastSweetSpot == 1) {
-            // we execute the stream AND transfer assets out
-            IERC20(tokenOut).transfer(updatedTrade.owner, updatedTrade.realisedAmountOut);
-            // no need to update or even store the trade's metadata. the above logic can be optimised @audit since caching in memory s gonna cost
-        }
-
-        // lastly, we update the trade in storage
-        trades[lastTradeId - 1] = updatedTrade;
+        // the following is no longer required since all is handled in executeTrades (executeStram only ever being called internally)
+        // if (trade.lastSweetSpot == 1) {
+        //     IERC20(tokenOut).transfer(trade.owner, trade.realisedAmountOut);
+        //     // ensure it cannot be passed again
+        //     trade.amountRemaining == 0;
+        // }
     }
 
+    // function _executeStreamAndUpdateTrade(Utils.Trade storage trade) internal {
+    //     _executeStream(trade);
+    // }
 
-
-    function cancelTrade(uint256 tradeId)
+    function _cancelTrade(uint256 tradeId)
         public
         returns
         (bool)
@@ -174,7 +187,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // @audit It is essential that this authority may be granted by a bot, therefore meaning if the msg.sender is Core. 
         // @audit Similarly, when the Router is implemented, we mnust forward the msg.sdner in the function call
         Utils.Trade memory trade = trades[tradeId];
-        if (trade.owner == msg.sender) {
+        if (trade.owner == msg.sender || msg.sender == address(this)) {
             // Delete the trade from storage
             delete trades[tradeId];
             // Transfer out the appropriate assets
@@ -187,7 +200,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         }
     }
 
-    function executeTrades(address tokenIn, address tokenOut) public {
+    function executeTrades(bytes32 pairId) public {
         /**
          * this should take trades stored in the queue,
          * executing stream volumes 1 by 1 via executeStream(), returning the amount settled
@@ -206,138 +219,185 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
          * and ultimately, integrate fees...
          */
 
-        bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut));
-        uint256[] memory tradeIds = pairIdTradeIds[pairId];
+        // bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut));
+        
+        uint256[] storage tradeIds = pairIdTradeIds[pairId];
 
         for (uint256 i = 0; i < tradeIds.length; i++) {
-            Utils.Trade memory trade = trades[tradeIds[i]];
+            initiateGasRecord();
+            Utils.Trade storage trade = trades[tradeIds[i]];
 
-            if (trade.attempts >= 3) {
+            if (trade.attempts >= 3 || trade.botGasAllowance == 0) {
                 // we delete the trade from storage
-                delete trades[tradeIds[i]];
-                continue;
+                _cancelTrade(trade.tradeId);
             } else {
-            try this._executeStream(trade) returns (Utils.Trade memory updatedTrade) {
-                if (updatedTrade.lastSweetSpot == 1) {
-                    IERC20(trade.tokenOut).transfer(updatedTrade.owner, updatedTrade.realisedAmountOut);
-                    delete trades[tradeIds[i]];
-                } else {
-                    trades[tradeIds[i]] = updatedTrade;
+                try this._executeStream(trade) returns (Utils.Trade memory updatedTrade) {
+                    if (updatedTrade.lastSweetSpot == 0) {
+                        IERC20(trade.tokenOut).transfer(trade.owner, trade.realisedAmountOut);
+                        delete trades[tradeIds[i]];
+                    }
+                } catch {
+                    //increment attempts and keep the trade in the queue
+                    trade.attempts++;
+                    // Emit FailedTrade(attemptsNumber);
                 }
-            } catch {
-                //increment attempts and keep the trade in the queue
-                trades[tradeIds[i]].attempts++;
-                // Emit FailedTrade(attemptsNumber);
-            }
             }  
+            closeGasRecord();
         }
+        lastGasPrice = tx.gasprice;
+        lastGasCost = lastGasUsed * tx.gasprice;
+        TWAP_GAS_COST.push(lastGasCost);
+    }
+
+    // function _buildTrade(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, bool isInstasettlable, uint256 botGasAllowance)
+    //     internal
+    //     view
+    //     returns (Utils.Trade memory trade)
+    // {
+    //     trade.owner = msg.sender; // @audit this will need updating when we have a router
+    //     trade.tradeId = lastTradeId;
+    //     trade.tokenIn = tokenIn;
+    //     trade.tokenOut = tokenOut;
+    //     trade.amountIn = amountIn;
+    //     trade.amountRemaining = amountIn;
+    //     trade.targetAmountOut = amountOutMin;
+    //     trade.isInstasettlable = isInstasettlable;
+    //     trade.botGasAllowance = botGasAllowance;
+    //     trade.attempts = 1; // yes, we initialise to 1 as we are going to execute a stream here
+    //     // bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut));
+    //     // trade.pairId = pairId;
+    // }
+
+    function _executeDexTrade(
+        address dex,
+        bytes4 selector,
+        bytes memory params
+    ) internal returns (uint256 amountOut) {
+        (bool success, bytes memory result) = address(executor).delegatecall(
+            abi.encodeWithSelector(selector, dex, params)
+        );
+        require(success, "DEX trade failed");
+        return abi.decode(result, (uint256));
     }
 
     function _executeStream(Utils.Trade memory trade)
         public
         returns (Utils.Trade memory updatedTrade)
     {
-        initiateGasRecord();
+        console.log("Executing stream for trade %s", trade.tradeId);
+        uint256 latestGasAverage = readTWAPGasCost(10); // converting this after to uint96 @audit check consistency
+        console.log("Latest gas average: %s", latestGasAverage);
+        if (trade.cumulativeGasEntailed + latestGasAverage > trade.botGasAllowance) {
+            _cancelTrade(trade.tradeId);
+        }
+        // security measure @audit may need review
+        if (trade.realisedAmountOut > trade.targetAmountOut) 
+            revert ToxicTrade(trade.tradeId);
 
-        (uint256 sweetSpot, address bestDex) = streamDaemon.evaluateSweetSpotAndDex(
+        console.log("about to evaluate sweet spot");
+
+        (uint256 sweetSpot, address bestDex, address router) = streamDaemon.evaluateSweetSpotAndDex(
             trade.tokenIn,
             trade.tokenOut,
-            trade.amountIn,
-            readTWAPGasCost(10) // no longer need this parameter being passed in @audit
+            trade.amountRemaining,
+            latestGasAverage
         );
-        if (trade.lastSweetSpot == 1) { // ensure we have scaled that sweet spot well @audit
-            sweetSpot = 1;
-        } else if (sweetSpot <= 1) {
-            sweetSpot = 2;
-        } else if (sweetSpot > 500) {
-            sweetSpot = 500; // this is an arbitrary value once more
-        }
-        uint256 streamVolume = trade.amountIn / sweetSpot;
+        console.log("Sweet spot: %s", sweetSpot);
+        console.log("Best dex: %s", bestDex);
+        console.log("Router: %s", router);
         
+        if (trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3) {
+            sweetSpot = trade.lastSweetSpot;
+        } 
+        if (sweetSpot > 500) {
+            sweetSpot = 500; // this is an arbitrary value once more @audit needs revision
+        }
+        require(sweetSpot > 0, "Invalid sweet spot");
+        
+        uint256 streamVolume = trade.amountIn / sweetSpot;
+        uint256 targetAmountOut = trade.targetAmountOut / sweetSpot;
 
-        if (bestDex == uniswapV2Router) {
-            (bool success, bytes memory result) = address(executor).delegatecall(
-                abi.encodeWithSelector(
-                    Executor.executeUniswapV2Trade.selector,
-                    uniswapV2Router,
-                    trade.tokenIn,
-                    trade.tokenOut,
-                    streamVolume,
-                    trade.targetAmountOut / sweetSpot,
-                    address(this)
-                )
+        if (router == uniswapV2Router) {
+            bytes memory params = abi.encode(
+                trade.tokenIn,
+                trade.tokenOut,
+                streamVolume,
+                targetAmountOut,
+                address(this)
             );
-            require(success, "UniswapV2 trade failed");
-            trade.realisedAmountOut += abi.decode(result, (uint256));
-        } else if (bestDex == uniswapV3Router) {
-            (bool success, bytes memory result) = address(executor).delegatecall(
-                abi.encodeWithSelector(
-                    Executor.executeUniswapV3Trade.selector,
-                    uniswapV3Router,
-                    trade.tokenIn,
-                    trade.tokenOut,
-                    streamVolume,
-                    trade.targetAmountOut / sweetSpot,
-                    address(this),
-                    3000 // default fee tier
-                )
+            trade.realisedAmountOut += _executeDexTrade(
+                uniswapV2Router,
+                Executor.executeUniswapV2Trade.selector,
+                params
             );
-            require(success, "UniswapV3 trade failed");
-            trade.realisedAmountOut += abi.decode(result, (uint256));
-        } else if (bestDex == balancerVault) {
-            // TODO: get poolId from StreamDaemon or registry
-            bytes32 poolId = bytes32(0);
-            (bool success, bytes memory result) = address(executor).delegatecall(
-                abi.encodeWithSelector(
-                    Executor.executeBalancerTrade.selector,
-                    balancerVault,
-                    trade.tokenIn,
-                    trade.tokenOut,
-                    streamVolume,
-                    trade.targetAmountOut / sweetSpot,
-                    address(this),
-                    poolId
-                )
+        } else if (router == uniswapV3Router) {
+            bytes memory params = abi.encode(
+                trade.tokenIn,
+                trade.tokenOut,
+                streamVolume,
+                targetAmountOut,
+                address(this),
+                3000 // default fee tier
             );
-            require(success, "Balancer trade failed");
-            trade.realisedAmountOut += abi.decode(result, (uint256));
-        } else if (bestDex == sushiswapRouter) {
-            (bool success, bytes memory result) = address(executor).delegatecall(
-                abi.encodeWithSelector(
-                    Executor.executeUniswapV2Trade.selector, // Sushiswap uses the same interface as UniswapV2
-                    sushiswapRouter,
-                    trade.tokenIn,
-                    trade.tokenOut,
-                    streamVolume,
-                    trade.targetAmountOut / sweetSpot,
-                    address(this)
-                )
+            trade.realisedAmountOut += _executeDexTrade(
+                uniswapV3Router,
+                Executor.executeUniswapV3Trade.selector,
+                params
             );
-            require(success, "Sushiswap trade failed");
-            trade.realisedAmountOut += abi.decode(result, (uint256));
-        } else if (bestDex == curvePool) {
-            (bool success, bytes memory result) = address(executor).delegatecall(
-                abi.encodeWithSelector(
-                    Executor.executeCurveTrade.selector,
-                    curvePool,
-                    trade.tokenIn,
-                    trade.tokenOut,
-                    streamVolume,
-                    trade.targetAmountOut / sweetSpot,
-                    address(this)
-                )
+        } else if (router == balancerVault) {
+            bytes32 poolId = bytes32(0); // TODO: get poolId from StreamDaemon or registry
+            bytes memory params = abi.encode(
+                trade.tokenIn,
+                trade.tokenOut,
+                streamVolume,
+                targetAmountOut,
+                address(this),
+                poolId
             );
-            require(success, "Curve trade failed");
-            trade.realisedAmountOut += abi.decode(result, (uint256));
+            trade.realisedAmountOut += _executeDexTrade(
+                balancerVault,
+                Executor.executeBalancerTrade.selector,
+                params
+            );
+        } else if (router == sushiswapRouter) {
+            bytes memory params = abi.encode(
+                trade.tokenIn,
+                trade.tokenOut,
+                streamVolume,
+                targetAmountOut,
+                address(this)
+            );
+            trade.realisedAmountOut += _executeDexTrade(
+                sushiswapRouter,
+                Executor.executeUniswapV2Trade.selector,
+                params
+            );
+        } else if (router == curvePool) {
+            bytes memory params = abi.encode(
+                trade.tokenIn,
+                trade.tokenOut,
+                streamVolume,
+                targetAmountOut,
+                address(this)
+            );
+            trade.realisedAmountOut += _executeDexTrade(
+                curvePool,
+                Executor.executeCurveTrade.selector,
+                params
+            );
         }
 
-        uint256 realisedGas = readTWAPGasCost(10); // using an arbitrary delta here
-        trade.cumulativeGasEntailed = uint96(realisedGas);
-        trade.lastSweetSpot = sweetSpot == 2 ? 1 : sweetSpot; // Store the number of streams as the last sweet spot
+        // Fix the sweetSpot decrement logic
+        if (sweetSpot == 1 ||sweetSpot == 2 || sweetSpot == 3 || sweetSpot == 4) {
+            sweetSpot--;
+        }
+
+        trade.cumulativeGasEntailed += uint96(latestGasAverage);
+        trade.lastSweetSpot = sweetSpot; // Store the number of streams as the last sweet spot
         trade.amountRemaining = trade.amountRemaining - streamVolume;
+        trade.botGasAllowance -= latestGasAverage;
         updatedTrade = trade;
 
-        closeGasRecord();
         return updatedTrade;
     }
 
@@ -371,5 +431,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         //then, we transfer the remaining amount of tokenIn to the purchaser
         (bool statusOut) = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining); // @audit we pass msg.sender here for testing without a Router, but we should have auth for Router access set up and the caller's address passed as a parameter from Router on this function call
         return statusIn == statusOut ? true : false;
+    }
+
+    function getPairIdTradeIds(bytes32 pairId) external view returns (uint256[] memory) {
+        return pairIdTradeIds[pairId];
     }
 }
