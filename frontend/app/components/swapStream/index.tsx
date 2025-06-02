@@ -6,9 +6,10 @@ import React from 'react'
 type Props = {
   stream: Stream
   onClick?: (stream: Stream) => void
+  isUser?: boolean
 }
 
-const SwapStream: React.FC<Props> = ({ stream, onClick }) => {
+const SwapStream: React.FC<Props> = ({ stream, onClick, isUser }) => {
   return (
     <div
       className="w-full border border-white14 relative bg-white005 p-4 rounded-[15px] cursor-pointer"

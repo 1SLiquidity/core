@@ -1,21 +1,26 @@
 import Image from 'next/image'
 import { formatWalletAddress } from '@/app/lib/helper'
 import AmountTag from '../amountTag'
-import StreamCard from '../streamCard'
+import StreamCard from './StreamCard'
 import TokenBar from '../tokenBar'
 import Button from '../button'
 import { Stream } from '../../lib/types/stream'
+import ConfigTrade from './ConfigTrade'
 
 type StreamDetailsProps = {
   onBack: () => void
   selectedStream: Stream | null
   walletAddress?: string
+  isUser?: boolean
 }
+
+const TIMER_DURATION = 10 // 10 seconds
 
 const StreamDetails: React.FC<StreamDetailsProps> = ({
   onBack,
   selectedStream,
   walletAddress = 'GY68234nasmd234asfKT21',
+  isUser = false,
 }) => {
   if (!selectedStream) {
     return null
@@ -23,8 +28,8 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
 
   return (
     <>
-      <div className="flex justify-between gap-2 h-full sticky bg-black top-0 p-6 z-40">
-        <div className="flex gap-1 text-white cursor-pointer" onClick={onBack}>
+      <div className="flex justify-between items-end gap-2 h-full sticky bg-black top-0 p-6 px-2 z-40">
+        {/* <div className="flex gap-1 text-white cursor-pointer" onClick={onBack}>
           <Image
             src={'/icons/right-arrow.svg'}
             alt="back"
@@ -33,15 +38,71 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             height={1000}
           />
           <p>Back</p>
+        </div> */}
+        <div className="text-white52 leading-none">Stream ID</div>
+
+        <div className="flex items-center gap-2">
+          {/* <p className="text-white52">Stream ID:</p> */}
+          <p className="underline text-primary">
+            {formatWalletAddress(walletAddress)}
+          </p>
         </div>
-        <p className="underline text-primary">
-          {formatWalletAddress(walletAddress)}
-        </p>
       </div>
 
+      <div className="flex items-center justify-end pb-2">
+        {selectedStream.isInstasettle && (
+          <div className="flex items-center py-1 text-sm gap-1 bg-zinc-900 pl-1 pr-1.5 text-primary rounded-full leading-none">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-4 h-4"
+            >
+              <path
+                d="M13 2L6 14H11V22L18 10H13V2Z"
+                fill="#40f798"
+                fillOpacity="0.72"
+              />
+            </svg>
+            <span className="text-xs sm:inline-block hidden">Instasettle</span>
+          </div>
+        )}
+        <div className="flex bg-white005 items-center gap-2 px-2 py-1 rounded-full">
+          <div className="text-xs text-white/70">Auto refresh in</div>
+          <div className="relative">
+            <svg className="w-4 h-4 transform -rotate-90">
+              <circle
+                cx="8"
+                cy="8"
+                r="7"
+                stroke="currentColor"
+                strokeWidth="2"
+                fill="transparent"
+                className="text-white/10"
+              />
+              <circle
+                cx="8"
+                cy="8"
+                r="7"
+                stroke="currentColor"
+                strokeWidth="2"
+                fill="transparent"
+                strokeDasharray="44"
+                strokeDashoffset={44 * (1 - 8 / TIMER_DURATION)}
+                className="text-primary transition-all duration-1000 ease-linear"
+              />
+            </svg>
+            <div className="absolute inset-0 flex items-center justify-center leading-none text-[0.65rem] font-medium">
+              {4}
+            </div>
+          </div>
+        </div>
+      </div>
       <div className="pb-6">
         <div className="p-4 rounded-[15px] bg-white005">
-          <div className="flex items-center justify-between mb-4">
+          {/* <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Image
                 src={selectedStream.fromToken.icon}
@@ -91,7 +152,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
                 }%`,
               }}
             />
-          </div>
+          </div> */}
 
           <TokenBar
             sellToken={selectedStream.fromToken.symbol}
@@ -116,8 +177,8 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
           </div>
 
           <div className="flex gap-2 justify-between py-4 border-b border-borderBottom">
-            <div className="flex flex-col leading-tight gap-0.5 items-start">
-              <p className="text-[14px] text-white">Swapped Input</p>
+            <div className="flex flex-col leading-tight gap-2 items-start">
+              <p className="text-[14px] text-white52">Swapped Input</p>
               <p className="">
                 {selectedStream.fromToken.amount}{' '}
                 {selectedStream.fromToken.symbol}
@@ -131,8 +192,8 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               width={1000}
               height={1000}
             />
-            <div className="flex flex-col leading-tight gap-0.5 items-end">
-              <p className="text-[14px] text-white">Output</p>
+            <div className="flex flex-col leading-tight gap-2 items-end">
+              <p className="text-[14px] text-white52">Output</p>
               <p className="">
                 ${selectedStream.toToken.estimatedAmount}{' '}
                 {selectedStream.toToken.symbol}
@@ -142,39 +203,72 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
           </div>
 
           <div className="flex flex-col gap-2 py-4 border-b border-borderBottom">
+            <AmountTag
+              title="BPS Savings"
+              amount={selectedStream.isInstasettle ? '20 BPS ($190.54)' : 'N/A'}
+              infoDetail="Estimated"
+              titleClassName="text-white52"
+              amountClassName="text-white52"
+              showInstaIcon={selectedStream.isInstasettle}
+            />
             {selectedStream.limit && (
               <AmountTag
                 title="Limit"
                 amount={`1 ${selectedStream.fromToken.symbol} = ${selectedStream.limit.price} ${selectedStream.limit.token}`}
                 infoDetail="Estimated"
+                titleClassName="text-white52"
               />
             )}
             <AmountTag
               title="Streams Completed"
-              amount={`${selectedStream.progress.completed}/${selectedStream.progress.total}`}
+              // amount={`${selectedStream.progress.completed}/${selectedStream.progress.total}`}
+              amount="4"
               infoDetail="Estimated"
+              titleClassName="text-white52"
+            />
+            <AmountTag
+              title="Trade Volume Executed"
+              // amount={`${selectedStream.progress.completed}/${selectedStream.progress.total}`}
+              amount="50%"
+              infoDetail="Estimated"
+              titleClassName="text-white52"
             />
             <AmountTag
               title="Est time"
               amount={`${selectedStream.timeRemaining} min`}
               infoDetail="Estimated"
+              titleClassName="text-white52"
             />
             <AmountTag
               title="Output Fee"
               amount={'$190.54'}
               infoDetail="Estimated"
+              titleClassName="text-white52"
+            />
+            <AmountTag
+              title="Network Fee"
+              amount={'20 BPS ($190.54)'}
+              infoDetail="Estimated"
+              titleClassName="text-white52"
             />
             <AmountTag
               title="Wallet Address"
               amount={formatWalletAddress(walletAddress)}
               infoDetail="Estimated"
+              titleClassName="text-white52"
             />
           </div>
-          {selectedStream.isInstasettle && (
+          {/* {selectedStream.isInstasettle && (
             <div className="mt-4">
               <Button text="Execute Instasettle" />
             </div>
-          )}
+          )} */}
+          <ConfigTrade
+            amountReceived={'$1,551'}
+            fee={'$190.54'}
+            isEnabled={selectedStream.isInstasettle}
+            isUser={isUser}
+          />
         </div>
 
         <div className="mt-7">
@@ -194,10 +288,12 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
                 },
               },
             ]}
+            isInstasettle={true}
             date={new Date()}
+            timeRemaining={10}
             walletAddress={walletAddress}
           />
-          <StreamCard
+          {/* <StreamCard
             status="scheduled"
             stream={[
               {
@@ -252,7 +348,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               },
             ]}
             date={new Date()}
-          />
+          /> */}
           <StreamCard
             status="completed"
             stream={[
@@ -268,6 +364,25 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               },
             ]}
             date={new Date()}
+            timeRemaining={5}
+            walletAddress={walletAddress}
+          />
+          <StreamCard
+            status="completed"
+            stream={[
+              {
+                sell: {
+                  amount: 2,
+                  token: 'ETH',
+                },
+                buy: {
+                  amount: 3000,
+                  token: 'USDC',
+                },
+              },
+            ]}
+            date={new Date()}
+            timeRemaining={2}
             walletAddress={walletAddress}
           />
         </div>

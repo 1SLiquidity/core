@@ -1,11 +1,11 @@
-import Image from 'next/image';
+import Image from 'next/image'
 
 const TokenBar: React.FC<{ sellToken: string; buyToken: string }> = ({
   sellToken,
   buyToken,
 }) => {
   const getTokenImagePath = (token: string) =>
-    `/tokens/${token.toLowerCase()}.svg`;
+    `/tokens/${token.toLowerCase()}.svg`
 
   return (
     <div className="flex items-center justify-center relative">
@@ -26,7 +26,7 @@ const TokenBar: React.FC<{ sellToken: string; buyToken: string }> = ({
       <div className="flex-auto border-t-2 border-green-200 relative">
         <div className="bg-gray rounded-full p-0.5 absolute -top-4 left-1/2 transform -translate-x-1/2">
           <Image
-            src={'/icons/unicorn.svg'}
+            src={'/assets/logo.svg'}
             alt={sellToken}
             width={40}
             height={40}
@@ -48,7 +48,7 @@ const TokenBar: React.FC<{ sellToken: string; buyToken: string }> = ({
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default TokenBar;
+export default TokenBar

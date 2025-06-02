@@ -19,10 +19,10 @@ export const MOCK_STREAMS: Stream[] = [
     },
     timeRemaining: 9,
     isInstasettle: true,
-    limit: {
-      price: 3300,
-      token: 'USDC',
-    },
+    // limit: {
+    //   price: 3300,
+    //   token: 'USDC',
+    // },
   },
   {
     id: '2',
@@ -80,10 +80,10 @@ export const MOCK_STREAMS: Stream[] = [
     },
     timeRemaining: 30,
     isInstasettle: false,
-    limit: {
-      price: 1650,
-      token: 'USDC',
-    },
+    // limit: {
+    //   price: 1650,
+    //   token: 'USDC',
+    // },
   },
   {
     id: '5',
@@ -122,10 +122,10 @@ export const MOCK_STREAMS: Stream[] = [
     },
     timeRemaining: 0,
     isInstasettle: true,
-    limit: {
-      price: 3300,
-      token: 'USDC',
-    },
+    // limit: {
+    //   price: 3300,
+    //   token: 'USDC',
+    // },
   },
   {
     id: '7',
@@ -164,10 +164,10 @@ export const MOCK_STREAMS: Stream[] = [
     },
     timeRemaining: 35,
     isInstasettle: true,
-    limit: {
-      price: 3300,
-      token: 'USDC',
-    },
+    // limit: {
+    //   price: 3300,
+    //   token: 'USDC',
+    // },
   },
   {
     id: '9',
@@ -206,10 +206,10 @@ export const MOCK_STREAMS: Stream[] = [
     },
     timeRemaining: 12,
     isInstasettle: true,
-    limit: {
-      price: 3300,
-      token: 'USDC',
-    },
+    // limit: {
+    //   price: 3300,
+    //   token: 'USDC',
+    // },
   },
 ]
 

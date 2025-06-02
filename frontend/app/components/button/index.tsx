@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils'
 import { Loader2 } from 'lucide-react'
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
     | 'success'
     | 'destructive'
   loading?: boolean
+  className?: string
 }
 
 const Button: React.FC<Props> = ({
@@ -23,6 +25,7 @@ const Button: React.FC<Props> = ({
   disabled,
   theme,
   loading,
+  className,
 }) => {
   console.log('error', error)
 
@@ -30,17 +33,20 @@ const Button: React.FC<Props> = ({
     <button
       onClick={onClick}
       disabled={error || disabled}
-      className={`min-w-[130px] w-full p-2 h-10 bg-opacity-[23%] rounded-[12px] flex items-center justify-center uppercase ${
-        error
-          ? 'text-primaryRed border-error border-[2px]'
-          : disabled
-          ? 'bg-gray text-white opacity-50 cursor-not-allowed'
-          : theme == 'gradient'
-          ? 'bg-primaryGradient text-black'
-          : theme == 'destructive'
-          ? 'bg-primaryRed text-red-300'
-          : 'bg-secondary text-primary'
-      }`}
+      className={cn(
+        `min-w-[130px] w-full p-2 h-10 rounded-[12px] flex items-center justify-center uppercase ${
+          error
+            ? 'text-primaryRed border-error border-[2px] bg-opacity-[23%]'
+            : disabled
+            ? 'bg-gray text-white opacity-50 cursor-not-allowed bg-opacity-[23%]'
+            : theme == 'gradient'
+            ? 'bg-primaryGradient text-black bg-opacity-[23%]'
+            : theme == 'destructive'
+            ? 'bg-red-700 text-red-200 hover:bg-red-600'
+            : 'bg-secondary text-primary'
+        }`,
+        className
+      )}
     >
       {`${error ? 'Error Also Here' : text}`}
       {loading && <Loader2 className="ml-2 w-4 h-4 animate-spin" />}
