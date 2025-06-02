@@ -43,13 +43,16 @@ contract TestReservesScript is Script {
         dexAddresses[0] = address(uniswapV2Fetcher);
         dexAddresses[1] = address(uniswapV3Fetcher);
 
-        StreamDaemon streamDaemon = new StreamDaemon(address(uniswapV2Fetcher), dexAddresses);
+        address[] memory routers = new address[](2);
+
+        StreamDaemon streamDaemon = new StreamDaemon(dexAddresses, routers);
         console.log("\n=== Testing StreamDaemon's findHighestReservesForTokenPair ===");
         for (uint256 i = 0; i < tokenPairs.length; i++) {
             address token0 = tokenPairs[i][0];
             address token1 = tokenPairs[i][1];
 
-            (address bestDex, uint256 maxReserveIn, uint256 maxReserveOut) = streamDaemon.findHighestReservesForTokenPair(token0, token1);
+            (address bestDex, uint256 maxReserveIn, uint256 maxReserveOut) =
+                streamDaemon.findHighestReservesForTokenPair(token0, token1);
 
             maxReserveOut;
 
@@ -81,7 +84,7 @@ contract TestReservesScript is Script {
             address token0 = tokenPairs[i][0];
             address token1 = tokenPairs[i][1];
 
-            (uint256 sweetSpot, address bestFetcher) =
+            (uint256 sweetSpot, address bestFetcher, address router) =
                 streamDaemon.evaluateSweetSpotAndDex(token0, token1, testVolume, effectiveGasInDollars);
 
             console.log(string(abi.encodePacked("Token Pair: ", getTokenSymbol(token0), "-", getTokenSymbol(token1))));
