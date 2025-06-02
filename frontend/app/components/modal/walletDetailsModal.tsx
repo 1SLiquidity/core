@@ -6,6 +6,8 @@ import Modal from '.'
 import StreamDetails from '../streamDetails'
 import SwapStream from '../swapStream'
 import Tabs from '../tabs'
+import { MOCK_STREAMS } from '@/app/lib/constants/streams'
+import { Stream } from '@/app/lib/types/stream'
 
 type WalletDetailsModalProps = {
   isOpen: boolean
@@ -18,6 +20,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState(WALLET_TABS[0])
   const [isStreamDetailsOpen, setIsStreamDetailsOpen] = useState(false)
+  const [selectedStream, setSelectedStream] = useState<Stream | null>(null)
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -38,11 +41,12 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
 
       {/* main content */}
       <div className="relative max-h-[95vh] overflow-hidden overflow-y-auto">
-        {isStreamDetailsOpen ? (
+        {selectedStream ? (
           <>
             <StreamDetails
               onBack={() => setIsStreamDetailsOpen(false)}
               walletAddress="GY68234nasmd234asfKT21"
+              selectedStream={selectedStream}
             />
           </>
         ) : (
@@ -134,10 +138,18 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                     <p className="text-[20px]">Ongoing Streams</p>
                     <div className="flex flex-col gap-2.5 mt-4">
                       <SwapStream
-                        onClick={() => setIsStreamDetailsOpen(true)}
+                        onClick={() => {
+                          setIsStreamDetailsOpen(true)
+                          setSelectedStream(MOCK_STREAMS[0])
+                        }}
+                        stream={MOCK_STREAMS[0]}
                       />
                       <SwapStream
-                        onClick={() => setIsStreamDetailsOpen(true)}
+                        onClick={() => {
+                          setIsStreamDetailsOpen(true)
+                          setSelectedStream(MOCK_STREAMS[0])
+                        }}
+                        stream={MOCK_STREAMS[0]}
                       />
                     </div>
                   </div>
@@ -148,14 +160,18 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                     {/* ongoing streams */}
                     <div className="flex flex-col gap-2.5 mt-4">
                       <SwapStream
-                        onClick={() => setIsStreamDetailsOpen(true)}
-                        limit={true}
-                        limitContent={'1 ETH = 0.1111545 USDC'}
+                        onClick={() => {
+                          setIsStreamDetailsOpen(true)
+                          setSelectedStream(MOCK_STREAMS[0])
+                        }}
+                        stream={MOCK_STREAMS[0]}
                       />
                       <SwapStream
-                        onClick={() => setIsStreamDetailsOpen(true)}
-                        limit={true}
-                        limitContent={'1 ETH = 0.1111545 USDC'}
+                        onClick={() => {
+                          setIsStreamDetailsOpen(true)
+                          setSelectedStream(MOCK_STREAMS[0])
+                        }}
+                        stream={MOCK_STREAMS[0]}
                       />
                     </div>
                   </div>

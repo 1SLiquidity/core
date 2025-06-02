@@ -4,6 +4,8 @@ import Modal from '.'
 import SwapStream from '../swapStream'
 import { useState } from 'react'
 import StreamDetails from '../streamDetails'
+import { Stream } from '@/app/lib/types/stream'
+import { MOCK_STREAMS } from '@/app/lib/constants/streams'
 
 type GlobalStreamModalProps = {
   isOpen: boolean
@@ -15,6 +17,8 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
   onClose,
 }) => {
   const [isStreamSelected, setIsStreamSelected] = useState(false)
+  const [selectedStream, setSelectedStream] = useState<Stream | null>(null)
+
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
       {/* close icon */}
@@ -39,6 +43,7 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
             <StreamDetails
               onBack={() => setIsStreamSelected(false)}
               walletAddress="GY68234nasmd234asfKT21"
+              selectedStream={selectedStream}
             />
           </>
         ) : (
@@ -83,12 +88,16 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
                 <p className="text-[20px] pb-3.5">Global Streams</p>
 
                 <div className="flex flex-col gap-2">
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
-                  <SwapStream onClick={() => setIsStreamSelected(true)} />
+                  {MOCK_STREAMS.map((stream, index) => (
+                    <SwapStream
+                      key={index}
+                      onClick={() => {
+                        setIsStreamSelected(true)
+                        setSelectedStream(stream)
+                      }}
+                      stream={stream}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
