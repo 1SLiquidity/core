@@ -19,7 +19,7 @@ event TradeCreated(
     uint256 minAmountOut,
     uint256 realisedAmountOut,
     bool isInstasettlable,
-    uint256 instasettleBps, // required initially?
+    uint256 instasettleBps,
     uint256 botGasAllowance,
     uint96 cumulativeGasEntailed,
     uint256 lastSweetSpot, // or streamCount
@@ -29,7 +29,7 @@ event TradeCreated(
 
 ```solidity
 event TradeStreamExecuted(
-    bytes32 indexed tradeId,
+    uint256 indexed tradeId,
     // address indexed executor, // who executed the stream, not essential really
     uint256 amountIn,
     uint256 realisedAmountOut,
@@ -43,7 +43,7 @@ event TradeStreamExecuted(
 #### TradeCancelled
 ```solidity
 event TradeCancelled(
-    bytes32 indexed tradeId,
+    uint256 indexed tradeId,
     // address indexed user, //not required
     uint256 amountRemaining,
     uint256 realisedAmountOut,
@@ -54,8 +54,8 @@ event TradeCancelled(
 #### TradeSettled
 ```solidity
 event TradeSettled(
-    bytes32 indexed tradeId,
-    address indexed user, // required? can be derived from tradeId
+    uint256 indexed tradeId,
+    // address indexed user, // required? can be derived from tradeId
     address indexed settler,
     uint256 totalAmountIn, // amountRemaining
     uint256 totalAmountOut, // instaSettleAmount
@@ -70,8 +70,8 @@ Entry point for all user and bot interactions.
 #### InstaSettleConfigured
 ```solidity
 event InstaSettleConfigured(
-    bytes32 indexed tradeId,
-    address indexed user,
+    uint256 indexed tradeId,
+    // address indexed user, // not essential
     bool enabled,
     uint256 instasettleBps
 );
