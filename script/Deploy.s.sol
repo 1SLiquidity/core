@@ -12,9 +12,12 @@ import {UniswapV3Fetcher} from "../src/adapters/UniswapV3Fetcher.sol";
 // import {BalancerFetcher} from "../src/adapters/BalancerFetcher.sol";
 
 contract DeployScript is Script {
-    address constant UNISWAP_V2_FACTORY = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
     address constant SUSHISWAP_FACTORY = 0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac;
+    address constant UNISWAP_V2_FACTORY = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
     address constant UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+    address constant SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
+    address constant UNISWAP_V2_ROUTER = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
+    address constant UNISWAP_V3_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address constant CURVE_REGISTRY = 0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5;
     address constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -42,9 +45,14 @@ contract DeployScript is Script {
         // dexAddresses[3] = address(curveFetcher);
         // dexAddresses[4] = address(balancerFetcher);
 
+        address[] memory routerAddresses = new address[](3);
+        routerAddresses[0] = UNISWAP_V2_ROUTER;
+        routerAddresses[1] = SUSHISWAP_ROUTER;
+        routerAddresses[2] = UNISWAP_V3_ROUTER;
+
         // Deploy StreamDaemon with the first fetcher as the primary interface
         // and all fetchers in the dexAddresses array
-        StreamDaemon streamDaemon = new StreamDaemon(address(uniswapV2Fetcher), dexAddresses);
+        StreamDaemon streamDaemon = new StreamDaemon(dexAddresses, routerAddresses);
 
         // Deploy Executor
         Executor executor = new Executor();
@@ -58,7 +66,8 @@ contract DeployScript is Script {
         console.log("Executor deployed at:", address(executor));
 
         console.log("\n=== Testing Reserve Fetching ===");
-        (address bestDex, uint256 maxReserveIn, uint256 maxReserveOut) = streamDaemon.findHighestReservesForTokenPair(WETH, USDC);
+        (address bestDex, uint256 maxReserveIn, uint256 maxReserveOut) =
+            streamDaemon.findHighestReservesForTokenPair(WETH, USDC);
         console.log("Best DEX for WETH/USDC:", bestDex);
         console.log("Max reserve in:", maxReserveIn);
         console.log("Max reserve out:", maxReserveOut);
@@ -88,20 +97,22 @@ contract DeployScript is Script {
         uint256 effectiveGasInDollars = gasPriceInDollars > 0.1 ether ? gasPriceInDollars : 0.1 ether;
 
         // Test sweet spot for WETH-USDC
-        (uint256 sweetSpot, address sweetSpotDex) =
+        (uint256 sweetSpot, address sweetSpotDex, address router) =
             streamDaemon.evaluateSweetSpotAndDex(WETH, USDC, testVolume, effectiveGasInDollars);
         console.log("WETH-USDC Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);
         console.log("Sweet Spot Value:", sweetSpot);
 
         // Test sweet spot for WETH-WBTC
-        (sweetSpot, sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(WETH, WBTC, testVolume, effectiveGasInDollars);
+        (sweetSpot, sweetSpotDex, router) =
+            streamDaemon.evaluateSweetSpotAndDex(WETH, WBTC, testVolume, effectiveGasInDollars);
         console.log("WETH-WBTC Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);
         console.log("Sweet Spot Value:", sweetSpot);
 
         // Test sweet spot for WETH-DAI
-        (sweetSpot, sweetSpotDex) = streamDaemon.evaluateSweetSpotAndDex(WETH, DAI, testVolume, effectiveGasInDollars);
+        (sweetSpot, sweetSpotDex, router) =
+            streamDaemon.evaluateSweetSpotAndDex(WETH, DAI, testVolume, effectiveGasInDollars);
         console.log("WETH-DAI Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);
         console.log("Sweet Spot Value:", sweetSpot);
