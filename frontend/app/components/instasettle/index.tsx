@@ -3,6 +3,9 @@ import { motion } from 'framer-motion'
 import Navbar from '../navbar'
 import SELSection from '../home/SELSection'
 import TradesTable from './TradesTable'
+import { TradesChart } from './TradesChart'
+import { TradesChart2 } from './TradesChart2'
+import TradesChartv2 from './TradesChartv2'
 
 const Instasettle = () => {
   return <HeroSection />
@@ -16,6 +19,8 @@ function HeroSection() {
       {/* Navbar and SELSection */}
       <Navbar />
       <div className="mt-[60px] mb-10 mx-auto relative z-10 max-w-4xl">
+        {/* <TradesChart /> */}
+        <TradesChartv2 />
         <TradesTable />
       </div>
 

@@ -100,7 +100,7 @@ const TradesTable = () => {
   }
 
   return (
-    <div>
+    <div className="mt-10">
       <div className="flex justify-between">
         <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
           <div
