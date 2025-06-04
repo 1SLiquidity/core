@@ -29,9 +29,7 @@ contract UniswapV2Fetcher is IUniversalDexInterface {
         address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
 
         // @audit revert or throw error
-        if (pair == address(0)) {
-            return (0, 0);
-        }
+        require(pair != address(0), "Pair does not exist");
         (uint112 reserve0, uint112 reserve1,) = IUniswapV2Pair(pair).getReserves();
         address token0 = IUniswapV2Pair(pair).token0();
 

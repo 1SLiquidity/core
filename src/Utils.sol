@@ -4,21 +4,40 @@ pragma solidity ^0.8.0;
 
 library Utils {
     struct Trade {
-        address owner;
-        uint256 tradeId;
-        address tokenIn;
-        address tokenOut;
-        uint256 amountIn;
-        uint256 amountRemaining;
-        uint256 targetAmountOut;
-        uint256 realisedAmountOut;
-        bool isInstasettlable;
-        uint256 instasettleBps;
-        uint256 botGasAllowance;
-        uint96 cumulativeGasEntailed;
-        uint8 attempts;
-        bytes32 pairId; //keccak hash of tokenIn, tokenOut. questionable if needed here but in for good measure as it stands @audit
-        uint256 lastSweetSpot;
-        uint64 slippage; // set to 0 if no custom slippage
+        address owner; //c
+        uint96 cumulativeGasEntailed; //v
+        uint8 attempts; //v
+        address tokenIn; //c
+        address tokenOut; //c
+        uint256 amountIn; //c
+        uint256 amountRemaining; //v
+        uint256 targetAmountOut; //c
+        uint256 realisedAmountOut; //v
+        uint256 tradeId; //c
+        uint256 instasettleBps; //c
+        uint256 botGasAllowance; //v
+        uint256 lastSweetSpot; //v
+        bool isInstasettlable; //c
     }
+
+    // struct TradeDynamics {
+    //     uint256 tradeId;//c
+    //     uint96 cumulativeGasEntailed;//v
+    //     uint8 attempts;//v
+    //     uint256 amountRemaining;//v
+    //     uint256 realisedAmountOut;//v
+    //     uint256 botGasAllowance; //v
+    //     uint256 lastSweetSpot; //v
+    // }
+
+    // struct TradeConstants {
+    //     address owner;//c
+    //     address tokenIn;//c
+    //     address tokenOut;//c
+    //     uint256 amountIn;//c
+    //     uint256 targetAmountOut;//c
+    //     uint256 tradeId;//c
+    //     uint256 instasettleBps; //c
+    //     bool isInstasettlable; //c
+    // }
 }

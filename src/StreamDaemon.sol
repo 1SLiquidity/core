@@ -62,7 +62,7 @@ contract StreamDaemon is Ownable {
         console.log("tokenIn", tokenIn);
         console.log("tokenOut", tokenOut);
         console.log("number of dexs", dexs.length);
-        
+
         for (uint256 i = 0; i < dexs.length; i++) {
             IUniversalDexInterface fetcher = IUniversalDexInterface(dexs[i]);
             console.log("fetcher", address(fetcher));
@@ -77,7 +77,7 @@ contract StreamDaemon is Ownable {
                 }
             } catch Error(string memory reason) {
                 console.log("Error getting reserves:", reason);
-            } 
+            }
             // catch (bytes memory lowLevelData) {
             // }
         }
@@ -98,7 +98,7 @@ contract StreamDaemon is Ownable {
         // alpha = reserveOut / (reserveIn^2)
         require(numerator > 0, "Invalid reserve");
         require(denominator > 0, "Invalid reserve");
-        
+
         // scale by 1e24 to maintain precision in division
         return ((numerator * 1e24) / (denominator * denominator));
     }
@@ -142,15 +142,15 @@ contract StreamDaemon is Ownable {
         }
 
         console.log("alpha", alpha);
-        
+
         // N = sqrt(a*V^2)
         uint256 numerator = alpha * scaledVolume * scaledVolume;
         console.log("numerator", numerator);
         uint256 denominator = 1e24;
         console.log("denominator", denominator);
-        
+
         require(denominator > 0, "Invalid effective gas");
-        
+
         sweetSpot = sqrt(numerator / denominator);
         console.log("calculated sweetSpot", sweetSpot);
         // require(sweetSpot > 0, "Invalid sqrt calculation");
