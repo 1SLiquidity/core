@@ -10,7 +10,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import Button from '../button'
+import { MOCK_STREAMS } from '@/app/lib/constants/streams'
 import Image from 'next/image'
+import GlobalStreamSidebar from '../sidebar/globalStreamSidebar'
+import { Stream } from '@/app/lib/types/stream'
 
 const tableData = [
   {
@@ -66,6 +69,35 @@ const TradesTable = () => {
   const tabs = ['ALL', 'MY INSTASETTLES']
   const [activeTimeframe, setActiveTimeframe] = useState('1D')
   const [searchQuery, setSearchQuery] = useState('')
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [initialStream, setInitialStream] = useState<Stream | undefined>(
+    undefined
+  )
+
+  const handleStreamClick = (item: (typeof tableData)[0]) => {
+    // Create a dummy stream from the table data
+    const dummyStream: Stream = {
+      id: item.invoice,
+      fromToken: {
+        symbol: 'ETH',
+        amount: parseFloat(item.amount1.replace('$', '')),
+        icon: '/tokens/eth.svg',
+      },
+      toToken: {
+        symbol: 'USDC',
+        estimatedAmount: parseFloat(item.amount2.replace('$', '')),
+        icon: '/tokens/usdc.svg',
+      },
+      progress: {
+        completed: 0,
+        total: parseInt(item.quantity),
+      },
+      timeRemaining: parseInt(item.duration.split(' ')[0]), // Extract number from "4 mins"
+      isInstasettle: item.action === 'INSTASETTLE',
+    }
+    setInitialStream(MOCK_STREAMS[0])
+    setIsSidebarOpen(true)
+  }
 
   return (
     <div>
@@ -194,12 +226,26 @@ const TradesTable = () => {
               <TableCell className="text-center">{item.duration}</TableCell>
               <TableCell className="text-center">{item.value}</TableCell>
               <TableCell className="text-center group">
-                <ArrowRight className="h-5 w-5 text-zinc-400 group-hover:text-white cursor-pointer" />
+                <ArrowRight
+                  className="h-5 w-5 text-zinc-400 group-hover:text-white cursor-pointer"
+                  onClick={() => handleStreamClick(item)}
+                />
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+
+      {initialStream && (
+        <GlobalStreamSidebar
+          isOpen={isSidebarOpen}
+          onClose={() => {
+            setIsSidebarOpen(false)
+            setInitialStream(undefined)
+          }}
+          initialStream={initialStream}
+        />
+      )}
     </div>
   )
 }

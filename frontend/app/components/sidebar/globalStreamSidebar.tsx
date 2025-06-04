@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Sidebar from '.'
 import StreamDetails from '../streamDetails'
 import SwapStream from '../swapStream'
@@ -9,14 +9,26 @@ import { Stream } from '@/app/lib/types/stream'
 type GlobalStreamSidebarProps = {
   isOpen: boolean
   onClose: () => void
+  initialStream?: Stream
 }
 
 const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   isOpen,
   onClose,
+  initialStream,
 }) => {
   const [isStreamSelected, setIsStreamSelected] = useState(false)
-  const [selectedStream, setSelectedStream] = useState<Stream | null>(null)
+  const [selectedStream, setSelectedStream] = useState<Stream | null>(
+    initialStream || null
+  )
+
+  // Update selectedStream when initialStream changes
+  useEffect(() => {
+    if (initialStream) {
+      setSelectedStream(initialStream)
+      setIsStreamSelected(true)
+    }
+  }, [initialStream])
 
   return (
     <Sidebar isOpen={isOpen} onClose={onClose}>
