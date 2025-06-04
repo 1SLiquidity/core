@@ -91,7 +91,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
         ) : (
           <div className="w-fit h-10 border-[2px] border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
             {NAV_LINKS.map((link) =>
-              link.title === 'Instasettle' ? (
+              link.title === '!' ? (
                 <span
                   key={link.title}
                   className="flex gap-[6px] items-center py-[10px] px-[9px] rounded-[8px] text-gray-500 cursor-not-allowed opacity-60"

@@ -1,0 +1,207 @@
+import { useState } from 'react'
+import { Search, ArrowRight } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import Button from '../button'
+import Image from 'next/image'
+
+const tableData = [
+  {
+    invoice: 'INV001',
+    action: 'INSTASETTLE',
+    amount1: '$4.56',
+    amount2: '$56.78',
+    quantity: '40',
+    duration: '4 mins',
+    value: '$1,551',
+  },
+  {
+    invoice: 'INV002',
+    action: 'INSTASETTLE',
+    amount1: '$3.21',
+    amount2: '$47.65',
+    quantity: '30',
+    duration: '6 mins',
+    value: '$1,200',
+  },
+  {
+    invoice: 'INV003',
+    action: 'INSTASETTLE',
+    amount1: '$3.21',
+    amount2: '$47.65',
+    quantity: '30',
+    duration: '6 mins',
+    value: '$2,200',
+  },
+  {
+    invoice: 'INV004',
+    action: 'INSTASETTLE',
+    amount1: '$3.21',
+    amount2: '$47.65',
+    quantity: '30',
+    duration: '6 mins',
+    value: '$3,200',
+  },
+  {
+    invoice: 'INV005',
+    action: 'INSTASETTLE',
+    amount1: '$3.21',
+    amount2: '$47.65',
+    quantity: '30',
+    duration: '6 mins',
+    value: '$4,200',
+  },
+]
+
+const TradesTable = () => {
+  const [activeTab, setActiveTab] = useState('all')
+  const timeframes = ['1D', '1W', '1M', '1Y', 'ALL']
+  const tabs = ['ALL', 'MY INSTASETTLES']
+  const [activeTimeframe, setActiveTimeframe] = useState('1D')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  return (
+    <div>
+      <div className="flex justify-between">
+        <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
+          <div
+            className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] rounded-[8px] ${
+              activeTab === 'all'
+                ? ' bg-primaryGradient text-black'
+                : 'hover:bg-tabsGradient'
+            }`}
+            onClick={() => setActiveTab('all')}
+          >
+            ALL
+          </div>
+          <div
+            className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] rounded-[8px] ${
+              activeTab === 'myInstasettles'
+                ? ' bg-primaryGradient text-black'
+                : 'hover:bg-tabsGradient'
+            }`}
+            onClick={() => setActiveTab('myInstasettles')}
+          >
+            MY INSTASETTLES
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex justify-between items-center mb-6 h-10">
+          <div className="flex items-center gap-2">
+            {/* Timeframe Buttons */}
+            <div className="flex rounded-lg p-1 border border-primary h-10">
+              {timeframes.map((timeframe, index) => (
+                <button
+                  key={`${timeframe}-${index}`}
+                  onClick={() => setActiveTimeframe(timeframe)}
+                  className={`px-3 py-1.5 rounded-md h-full text-xs transition-colors ${
+                    activeTimeframe === timeframe
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {timeframe}
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative h-10">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent border border-primary h-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-zinc-600 w-64"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-center">Token Pair</TableHead>
+            <TableHead></TableHead>
+            <TableHead className="text-center">Input</TableHead>
+            <TableHead className="text-center">Output</TableHead>
+            <TableHead className="text-center">Streams</TableHead>
+            <TableHead className="text-center">EST. Time</TableHead>
+            <TableHead className="text-center">Swap Volume</TableHead>
+            <TableHead className="text-center"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {tableData.map((item, index) => (
+            <TableRow key={index}>
+              <TableCell className="font-medium text-center">
+                {/* {item.invoice} */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src="/tokens/eth.svg"
+                      width={32}
+                      height={32}
+                      className="w-6 h-6"
+                      alt="eth"
+                    />
+                    <div>
+                      <p className="text-white">ETH</p>
+                      <p className="text-white52">{item.amount1}</p>
+                    </div>
+                  </div>
+                  <Image
+                    src="/icons/right-arrow.svg"
+                    width={24}
+                    height={24}
+                    alt="to"
+                    className="w-4 h-4"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Image
+                      src="/tokens/usdc.svg"
+                      width={32}
+                      height={32}
+                      alt="usdc"
+                      className="w-6 h-6"
+                    />
+                    <div>
+                      <p className="text-white">USDC</p>
+                      <p className="text-white52">{item.amount2}</p>
+                    </div>
+                  </div>
+                </div>
+              </TableCell>
+              <TableCell>
+                <Button
+                  text={item.action}
+                  className="h-[2.15rem] hover:bg-tabsGradient"
+                />
+              </TableCell>
+              <TableCell className="text-center">{item.amount1}</TableCell>
+              <TableCell className="text-center">{item.amount2}</TableCell>
+              <TableCell className="text-center">{item.quantity}</TableCell>
+              <TableCell className="text-center">{item.duration}</TableCell>
+              <TableCell className="text-center">{item.value}</TableCell>
+              <TableCell className="text-center group">
+                <ArrowRight className="h-5 w-5 text-zinc-400 group-hover:text-white cursor-pointer" />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
+export default TradesTable
