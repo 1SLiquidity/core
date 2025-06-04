@@ -1,4 +1,5 @@
 'use client'
+
 import { NAV_LINKS } from '@/app/lib/constants'
 import { useSidebar } from '@/app/lib/context/sidebarContext'
 import { useAppKit } from '@reown/appkit/react'

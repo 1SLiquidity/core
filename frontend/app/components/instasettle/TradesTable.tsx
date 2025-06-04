@@ -24,6 +24,7 @@ const tableData = [
     quantity: '40',
     duration: '4 mins',
     value: '$1,551',
+    isOwner: true,
   },
   {
     invoice: 'INV002',
@@ -33,6 +34,7 @@ const tableData = [
     quantity: '30',
     duration: '6 mins',
     value: '$1,200',
+    isOwner: false,
   },
   {
     invoice: 'INV003',
@@ -42,6 +44,7 @@ const tableData = [
     quantity: '30',
     duration: '6 mins',
     value: '$2,200',
+    isOwner: true,
   },
   {
     invoice: 'INV004',
@@ -51,6 +54,7 @@ const tableData = [
     quantity: '30',
     duration: '6 mins',
     value: '$3,200',
+    isOwner: true,
   },
   {
     invoice: 'INV005',
@@ -60,6 +64,7 @@ const tableData = [
     quantity: '30',
     duration: '6 mins',
     value: '$4,200',
+    isOwner: false,
   },
 ]
 
@@ -73,6 +78,7 @@ const TradesTable = () => {
   const [initialStream, setInitialStream] = useState<Stream | undefined>(
     undefined
   )
+  const [tradesData, setTradesData] = useState<any[]>(tableData)
 
   const handleStreamClick = (item: (typeof tableData)[0]) => {
     // Create a dummy stream from the table data
@@ -100,26 +106,32 @@ const TradesTable = () => {
   }
 
   return (
-    <div className="mt-10">
+    <div className="mt-16">
       <div className="flex justify-between">
         <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
           <div
-            className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] rounded-[8px] ${
+            className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] cursor-pointer rounded-[8px] ${
               activeTab === 'all'
                 ? ' bg-primaryGradient text-black'
                 : 'hover:bg-tabsGradient'
             }`}
-            onClick={() => setActiveTab('all')}
+            onClick={() => {
+              setActiveTab('all')
+              setTradesData(tableData)
+            }}
           >
             ALL
           </div>
           <div
-            className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] rounded-[8px] ${
+            className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] cursor-pointer rounded-[8px] ${
               activeTab === 'myInstasettles'
                 ? ' bg-primaryGradient text-black'
                 : 'hover:bg-tabsGradient'
             }`}
-            onClick={() => setActiveTab('myInstasettles')}
+            onClick={() => {
+              setActiveTab('myInstasettles')
+              setTradesData(tableData.filter((item) => item.isOwner))
+            }}
           >
             MY INSTASETTLES
           </div>
@@ -174,7 +186,7 @@ const TradesTable = () => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {tableData.map((item, index) => (
+          {tradesData.map((item, index) => (
             <TableRow key={index}>
               <TableCell className="font-medium text-center">
                 {/* {item.invoice} */}
@@ -244,6 +256,7 @@ const TradesTable = () => {
             setInitialStream(undefined)
           }}
           initialStream={initialStream}
+          //   className="top-[1rem] max-h-[95vh]"
         />
       )}
     </div>

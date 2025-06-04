@@ -5,17 +5,20 @@ import StreamDetails from '../streamDetails'
 import SwapStream from '../swapStream'
 import { MOCK_STREAMS } from '@/app/lib/constants/streams'
 import { Stream } from '@/app/lib/types/stream'
+import { cn } from '@/lib/utils'
 
 type GlobalStreamSidebarProps = {
   isOpen: boolean
   onClose: () => void
   initialStream?: Stream
+  className?: string
 }
 
 const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   isOpen,
   onClose,
   initialStream,
+  className,
 }) => {
   const [isStreamSelected, setIsStreamSelected] = useState(false)
   const [selectedStream, setSelectedStream] = useState<Stream | null>(
@@ -31,11 +34,14 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   }, [initialStream])
 
   return (
-    <Sidebar isOpen={isOpen} onClose={onClose}>
+    <Sidebar isOpen={isOpen} onClose={onClose} className={className}>
       {/* close icon */}
       <div
         onClick={onClose}
-        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-[0.7rem] z-50"
+        className={cn(
+          'bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-[0.7rem] z-50',
+          className
+        )}
       >
         <Image
           src={'/icons/close.svg'}

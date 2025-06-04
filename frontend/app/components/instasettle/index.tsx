@@ -6,6 +6,7 @@ import TradesTable from './TradesTable'
 import { TradesChart } from './TradesChart'
 import { TradesChart2 } from './TradesChart2'
 import TradesChartv2 from './TradesChartv2'
+import TokenSelector from './TokenSelector'
 
 const Instasettle = () => {
   return <HeroSection />
@@ -19,7 +20,10 @@ function HeroSection() {
       {/* Navbar and SELSection */}
       <Navbar />
       <div className="mt-[60px] mb-10 mx-auto relative z-10 max-w-4xl">
-        {/* <TradesChart /> */}
+        <h1 className="text-4xl md:text-6xl font-bold mb-6 sm:mb-16 text-white text-center">
+          Instasettle
+        </h1>
+        <TokenSelector />
         <TradesChartv2 />
         <TradesTable />
       </div>

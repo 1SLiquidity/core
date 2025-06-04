@@ -1,12 +1,19 @@
+import { cn } from '@/lib/utils'
 import React, { useEffect } from 'react'
 
 type SidebarProps = {
   isOpen: boolean
   onClose: () => void
   children: React.ReactNode
+  className?: string
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  isOpen,
+  onClose,
+  children,
+  className,
+}) => {
   // useEffect(() => {
   //   if (isOpen) {
   //     document.body.style.overflow = 'hidden';
@@ -20,9 +27,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, children }) => {
   // }, [isOpen]);
   return (
     <div
-      className={`fixed top-[4.5rem] right-4 sm:right-5 h-[90vh] w-[86vw] sm:w-96 z-50 shadow-lg transition-transform transform ${
-        isOpen ? 'translate-x-0' : 'translate-x-full'
-      }`}
+      className={cn(
+        `fixed top-[4.5rem] right-4 sm:right-5 h-[90vh] w-[86vw] sm:w-96 z-50 shadow-lg transition-transform transform ${
+          isOpen ? 'translate-x-0' : 'translate-x-full'
+        }`,
+        className
+      )}
     >
       {/* <button
         className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
