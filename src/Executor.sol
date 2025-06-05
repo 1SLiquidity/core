@@ -15,23 +15,6 @@ contract Executor {
 
     using SafeERC20 for IERC20;
 
-    // StreamDaemon public streamDaemon;
-    // DEX router addresses
-    // address public immutable uniswapV2Router;
-    // address public immutable uniswapV3Router;
-    // address public immutable balancerVault;
-
-    // constructor(
-    //     address _uniswapV2Router,
-    //     address _uniswapV3Router,
-    //     address _balancerVault
-    // ) {
-    //     uniswapV2Router = _uniswapV2Router;
-    //     uniswapV3Router = _uniswapV3Router;
-    //     balancerVault = _balancerVault;
-    //     // streamDaemon = StreamDaemon(_streamDaemon);
-    // }
-
     function executeUniswapV2Trade( 
         address core,
         address tokenIn,
@@ -41,7 +24,6 @@ contract Executor {
         address recipient,
         address router
     ) external returns (uint256) {
-        console.log("Executing UniswapV2 trade");
         IERC20(tokenIn).approve(router, amountIn);
 
         address[] memory path = new address[](2);
@@ -52,8 +34,6 @@ contract Executor {
             amountIn, amountOutMin, path, address(this), block.timestamp + 300
         );
 
-        // No need to transfer tokens since we're using delegatecall
-        // The tokens will already be in Core's context
         return IERC20(tokenOut).balanceOf(address(this));
     }
 
@@ -61,29 +41,24 @@ contract Executor {
         address dex,
         bytes memory params
     ) external returns (uint256) {
-        // Decode parameters
         (address tokenIn, address tokenOut, uint256 amountIn,,,,, address router) = abi.decode(
             params,
             (address, address, uint256, uint256, address, uint24, uint160, address)
         );
 
-        // Execute the trade
         IUniswapV3Router.ExactInputSingleParams memory swapParams = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,
             tokenOut: tokenOut,
-            fee: 3000, // Default to 0.3%
-            recipient: address(this), // Send to Core (since we're in Core's context via delegatecall)
+            fee: 3000, // @audit for now defaults to 0.3% but needs user input on production
+            recipient: address(this), // (we're in Core's context via delegatecall so sends to Core)
             deadline: block.timestamp,
             amountIn: amountIn,
-            amountOutMinimum: 0, // No slippage check in test
+            amountOutMinimum: 0, // @audit no slippage check in test. we should aim for 0.1% max slippage
             sqrtPriceLimitX96: 0
         });
 
-        // Execute swap and return output amount
         IUniswapV3Router(router).exactInputSingle(swapParams);
         
-        // No need to transfer tokens since we're using delegatecall
-        // The tokens will already be in Core's context
         return IERC20(tokenOut).balanceOf(address(this));
     }
 
@@ -102,7 +77,7 @@ contract Executor {
 
         IBalancerVault.SingleSwap memory singleSwap = IBalancerVault.SingleSwap({
             poolId: poolId,
-            kind: 0, // GIVEN_IN
+            kind: 0, // GIVEN_IN @audit check param
             assetIn: tokenIn,
             assetOut: tokenOut,
             amount: amountIn,
@@ -117,9 +92,7 @@ contract Executor {
         });
         
         IBalancerVault(router).swap(singleSwap, funds, amountOutMin, block.timestamp + 300);
-        
-        // No need to transfer tokens since we're using delegatecall
-        // The tokens will already be in Core's context
+
         return IERC20(tokenOut).balanceOf(address(this));
     }
 
@@ -136,8 +109,6 @@ contract Executor {
         IERC20(pool).approve(router, amountIn);
         ICurvePool(router).exchange(i, j, amountIn, amountOutMin);
         
-        // No need to transfer tokens since we're using delegatecall
-        // The tokens will already be in Core's context
         return IERC20(pool).balanceOf(address(this));
     }
 }
