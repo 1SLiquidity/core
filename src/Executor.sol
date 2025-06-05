@@ -9,7 +9,6 @@ import "./interfaces/dex/IUniswapV2Router.sol";
 import "./interfaces/dex/IUniswapV3Router.sol";
 import "./interfaces/dex/IBalancerVault.sol";
 import "./interfaces/dex/ICurvePool.sol";
-import "forge-std/console.sol";
 
 contract Executor {
 
@@ -24,6 +23,8 @@ contract Executor {
         address recipient,
         address router
     ) external returns (uint256) {
+        core;
+        recipient; // @audit check reason for passing these parameters
         IERC20(tokenIn).approve(router, amountIn);
 
         address[] memory path = new address[](2);
@@ -34,6 +35,8 @@ contract Executor {
             amountIn, amountOutMin, path, address(this), block.timestamp + 300
         );
 
+        amounts; // @audit check reason for passing this parameter
+
         return IERC20(tokenOut).balanceOf(address(this));
     }
 
@@ -41,6 +44,7 @@ contract Executor {
         address dex,
         bytes memory params
     ) external returns (uint256) {
+        dex; // @audit check reason for passing this param - canwe not derive it from the router here?
         (address tokenIn, address tokenOut, uint256 amountIn,,,,, address router) = abi.decode(
             params,
             (address, address, uint256, uint256, address, uint24, uint160, address)
@@ -72,7 +76,8 @@ contract Executor {
         bytes32 poolId,
         address router
     ) external returns (uint256) {
-        console.log("Executing Balancer trade");
+        vault;
+        recipient; // @audit check reason for passing these parameters
         IERC20(tokenIn).approve(router, amountIn);
 
         IBalancerVault.SingleSwap memory singleSwap = IBalancerVault.SingleSwap({
@@ -105,7 +110,7 @@ contract Executor {
         address recipient,
         address router
     ) external returns (uint256) {
-        console.log("Executing Curve trade");
+        recipient; // @audit check reason for passing these parameters
         IERC20(pool).approve(router, amountIn);
         ICurvePool(router).exchange(i, j, amountIn, amountOutMin);
         
