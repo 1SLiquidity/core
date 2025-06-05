@@ -1,7 +1,6 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-/// elts use console.log to debug
 import "forge-std/console.sol";
 
 import {IUniversalDexInterface} from "./interfaces/IUniversalDexInterface.sol";
@@ -58,17 +57,10 @@ contract StreamDaemon is Ownable {
         view
         returns (address bestFetcher, uint256 maxReserveIn, uint256 maxReserveOut)
     {
-        console.log("finding highest reserves for token pair");
-        console.log("tokenIn", tokenIn);
-        console.log("tokenOut", tokenOut);
-        console.log("number of dexs", dexs.length);
 
         for (uint256 i = 0; i < dexs.length; i++) {
             IUniversalDexInterface fetcher = IUniversalDexInterface(dexs[i]);
-            console.log("fetcher", address(fetcher));
             try fetcher.getReserves(tokenIn, tokenOut) returns (uint256 reserveTokenIn, uint256 reserveTokenOut) {
-                console.log("reserveTokenIn", reserveTokenIn);
-                console.log("reserveTokenOut", reserveTokenOut);
 
                 if (reserveTokenIn > maxReserveIn && reserveTokenIn > 0) {
                     maxReserveIn = reserveTokenIn;
@@ -76,16 +68,11 @@ contract StreamDaemon is Ownable {
                     bestFetcher = address(fetcher);
                 }
             } catch Error(string memory reason) {
-                console.log("Error getting reserves:", reason);
+                reason;
             }
             // catch (bytes memory lowLevelData) {
             // }
         }
-        console.log("bestFetcher", bestFetcher);
-        console.log("maxReserveIn", maxReserveIn);
-        console.log("maxReserveOut", maxReserveOut);
-
-        // Revert if no valid DEX was found
         require(bestFetcher != address(0), "No DEX found for token pair");
     }
 
@@ -125,7 +112,7 @@ contract StreamDaemon is Ownable {
         uint8 decimalsOut = IERC20Metadata(tokenOut).decimals();
         console.log("decimalsOut", decimalsOut);
 
-        // Scale all to 18 decimals
+        // scale tokrns to 18 decimals
         uint256 scaledVolume = volume / (10 ** decimalsIn);
         console.log("scaledVolume", scaledVolume);
         uint256 scaledReserveIn = reserveIn / (10 ** decimalsIn);
@@ -143,7 +130,7 @@ contract StreamDaemon is Ownable {
 
         console.log("alpha", alpha);
 
-        // N = sqrt(a*V^2)
+        // N = sqrt(alpha * V^2)
         uint256 numerator = alpha * scaledVolume * scaledVolume;
         console.log("numerator", numerator);
         uint256 denominator = 1e24;
@@ -153,7 +140,6 @@ contract StreamDaemon is Ownable {
 
         sweetSpot = sqrt(numerator / denominator);
         console.log("calculated sweetSpot", sweetSpot);
-        // require(sweetSpot > 0, "Invalid sqrt calculation");
 
         if (sweetSpot == 0) {
             sweetSpot = 4;
@@ -163,8 +149,7 @@ contract StreamDaemon is Ownable {
         if (sweetSpot > 500) {
             sweetSpot = 500;
         }
-        // need to add a case for volume < 0.001 pool depth whereby sweetspot = 1
-        console.log("final sweetSpot", sweetSpot);
+        // @audit need to add a case for volume < 0.001 pool depth whereby sweetspot = 1
     }
 
     // babylonian
@@ -180,31 +165,4 @@ contract StreamDaemon is Ownable {
             z = 1;
         }
     }
-
-    /**
-     * DEPRECATED
-     */
-    // function _sweetSpotAlgoOld(
-    //     address tokenIn,
-    //     address tokenOut,
-    //     uint256 volume,
-    //     uint256 reserves,
-    //     uint256 effectiveGas
-    // ) public view returns (uint256 sweetSpot) {
-    //     if (reserves == 0 || effectiveGas == 0) {
-    //         revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
-    //     }
-
-    //     uint8 decimalsIn = IERC20Metadata(tokenIn).decimals();
-    //     uint256 scaledVolume = volume / (10 ** decimalsIn);
-    //     uint256 scaledReserves = reserves / (10 ** decimalsIn);
-
-    //     // Original equation: volume / (sqrt(reserves * effectiveGas))
-    //     sweetSpot = scaledVolume / (sqrt(scaledReserves * effectiveGas));
-
-    //     // Ensure minimum of 2 splits
-    //     if (sweetSpot < 2) {
-    //         sweetSpot = 2;
-    //     }
-    // }
 }
