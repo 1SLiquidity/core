@@ -112,7 +112,7 @@ contract StreamDaemon is Ownable {
         uint8 decimalsOut = IERC20Metadata(tokenOut).decimals();
         console.log("decimalsOut", decimalsOut);
 
-        // scale tokrns to 18 decimals
+        // scale tokens to decimal zero
         uint256 scaledVolume = volume / (10 ** decimalsIn);
         console.log("scaledVolume", scaledVolume);
         uint256 scaledReserveIn = reserveIn / (10 ** decimalsIn);

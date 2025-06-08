@@ -200,15 +200,22 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function _executeDexTrade(address dex, bytes4 selector, bytes memory params) internal returns (uint256 amountOut) {
-        (address tokenIn, address tokenOut, uint256 amountIn,,,,, address router) = abi.decode(params, (address, address, uint256, uint256, address, uint24, uint160, address));
-        
-        IERC20(tokenIn).approve(router, amountIn);
-        (bool success,) = address(executor).delegatecall(abi.encodeWithSelector(selector, dex, params));
-        require(success, "DEX trade failed");
-        
-        amountOut = IERC20(tokenOut).balanceOf(address(this));
+        if (selector == Executor.executeUniswapV2Trade.selector) {
+            (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient, address router) = abi.decode(params, (address, address, uint256, uint256, address, address));
+            IERC20(tokenIn).approve(router, amountIn);
+            (bool success,) = address(executor).delegatecall(abi.encodeWithSelector(selector, dex, tokenIn, tokenOut, amountIn, amountOutMin, recipient, router));
+            require(success, "DEX trade failed");
+            amountOut = IERC20(tokenOut).balanceOf(address(this));
+        } else if (selector == Executor.executeUniswapV3Trade.selector) {
+            (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient, uint24 fee, uint160 sqrtPriceLimitX96, address router) = abi.decode(params, (address, address, uint256, uint256, address, uint24, uint160, address));
+            IERC20(tokenIn).approve(router, amountIn);
+            (bool success,) = address(executor).delegatecall(abi.encodeWithSelector(selector, dex, params));
+            require(success, "DEX trade failed");
+            amountOut = IERC20(tokenOut).balanceOf(address(this));
+        } else {
+            revert("Unsupported DEX");
+        }
         require(amountOut > 0, "No tokens received from swap");
-        
         return amountOut;
     }
 
@@ -229,7 +236,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             revert ToxicTrade(trade.tradeId);
         }
 
-        (uint256 sweetSpot,, address router) =
+        (uint256 sweetSpot, address fetcher, address router) =
             streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, latestGasAverage);
 
         if (trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3) {
@@ -244,60 +251,66 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 targetAmountOut = trade.targetAmountOut / sweetSpot;
         uint256 amountOut;
 
-        if (router == uniswapV2Router) {
-            IERC20(trade.tokenIn).approve(uniswapV2Router, trade.amountIn);
-            bytes memory params =
-                abi.encode(trade.tokenIn, trade.tokenOut, streamVolume, targetAmountOut, address(this), router);
-            amountOut = _executeDexTrade(uniswapV2Router, Executor.executeUniswapV2Trade.selector, params);
-        } else if (router == uniswapV3Router) {
-            IERC20(trade.tokenIn).approve(uniswapV3Router, trade.amountIn);
-            
-                bytes memory params = abi.encode(
+        // Approve the router to spend our tokens
+        IERC20(trade.tokenIn).approve(router, streamVolume);
+
+        if (router == uniswapV2Router || router == sushiswapRouter) {
+            bytes memory params = abi.encode(
                 trade.tokenIn,
                 trade.tokenOut,
-                streamVolume,         // amountIn
-                targetAmountOut,      // amountOutMinimum
-                address(this),        // recipient
-                uint24(3000),         // fee
-                uint160(0),           // sqrtPriceLimitX96
-                router                // router
+                streamVolume,
+                targetAmountOut,
+                address(this),
+                router
             );
-            amountOut = _executeDexTrade(uniswapV3Router, Executor.executeUniswapV3Trade.selector, params);
+            amountOut = _executeDexTrade(fetcher, Executor.executeUniswapV2Trade.selector, params);
+        } else if (router == uniswapV3Router) {
+            bytes memory params = abi.encode(
+                trade.tokenIn,
+                trade.tokenOut,
+                streamVolume,
+                targetAmountOut,
+                address(this),
+                uint24(3000),
+                uint160(0),
+                router
+            );
+            amountOut = _executeDexTrade(fetcher, Executor.executeUniswapV3Trade.selector, params);
         } else if (router == balancerVault) {
-            IERC20(trade.tokenIn).approve(balancerVault, trade.amountIn);
             bytes32 poolId = bytes32(0); // TODO: get poolId from StreamDaemon or registry
-            bytes memory params =
-                abi.encode(trade.tokenIn, trade.tokenOut, streamVolume, targetAmountOut, address(this), poolId, router);
-            amountOut = _executeDexTrade(balancerVault, Executor.executeBalancerTrade.selector, params);
-        } else if (router == sushiswapRouter) {
-            IERC20(trade.tokenIn).approve(sushiswapRouter, trade.amountIn);
-            bytes memory params =
-                abi.encode(trade.tokenIn, trade.tokenOut, streamVolume, targetAmountOut, address(this));
-            amountOut = _executeDexTrade(sushiswapRouter, Executor.executeUniswapV2Trade.selector, params);
+            bytes memory params = abi.encode(
+                trade.tokenIn,
+                trade.tokenOut,
+                streamVolume,
+                targetAmountOut,
+                address(this),
+                poolId,
+                router
+            );
+            amountOut = _executeDexTrade(fetcher, Executor.executeBalancerTrade.selector, params);
         } else if (router == curvePool) {
-            bytes memory params =
-                abi.encode(trade.tokenIn, trade.tokenOut, streamVolume, targetAmountOut, address(this), router);
-            amountOut = _executeDexTrade(curvePool, Executor.executeCurveTrade.selector, params);
+            bytes memory params = abi.encode(
+                trade.tokenIn,
+                trade.tokenOut,
+                streamVolume,
+                targetAmountOut,
+                address(this),
+                router
+            );
+            amountOut = _executeDexTrade(fetcher, Executor.executeCurveTrade.selector, params);
         }
 
         if (sweetSpot == 1 || sweetSpot == 2 || sweetSpot == 3 || sweetSpot == 4) {
             sweetSpot--;
         }
 
-        storageTrade.cumulativeGasEntailed += uint96(gasCostInWei);
-        storageTrade.lastSweetSpot = sweetSpot; 
+        // Update trade state
         storageTrade.amountRemaining = trade.amountRemaining - streamVolume;
-        storageTrade.botGasAllowance -= gasCostInWei;
         storageTrade.realisedAmountOut += amountOut;
+        storageTrade.lastSweetSpot = sweetSpot;
+        storageTrade.cumulativeGasEntailed += uint96(gasCostInWei);
 
-        trade.cumulativeGasEntailed = storageTrade.cumulativeGasEntailed;
-        trade.lastSweetSpot = storageTrade.lastSweetSpot;
-        trade.amountRemaining = storageTrade.amountRemaining;
-        trade.botGasAllowance = storageTrade.botGasAllowance;
-        trade.realisedAmountOut = storageTrade.realisedAmountOut;
-        
-        updatedTrade = trade;
-        return updatedTrade; // @audit do we need to return this trade here? seems to be written into storage appropriately, and placement of trade // 
+        return storageTrade;
     }
 
     function instasettle(uint256 tradeId) public payable {
