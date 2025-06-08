@@ -84,7 +84,7 @@ contract TestReservesScript is Script {
             address token0 = tokenPairs[i][0];
             address token1 = tokenPairs[i][1];
 
-            (uint256 sweetSpot, address bestFetcher, address router) =
+            (uint256 sweetSpot, address bestFetcher,) =
                 streamDaemon.evaluateSweetSpotAndDex(token0, token1, testVolume, effectiveGasInDollars);
 
             console.log(string(abi.encodePacked("Token Pair: ", getTokenSymbol(token0), "-", getTokenSymbol(token1))));
