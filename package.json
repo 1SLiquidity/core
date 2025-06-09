@@ -8,7 +8,28 @@
     "test": "test"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "go": "forge test && forge build",
+    "rpc": "forge test --rpc-url base-sepolia --rpc-chain-id 84532",
+    "deploy-fork": "forge script ForkDeployer.s.sol --rpc-url buildbear",
+    "# DEX Tests": "# Tests for individual DEXs",
+    "test:uniswap-v2": "forge script script/processes/UniswapV2TradePlacement.s.sol:UniswapV2TradePlacement -vvvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --via-ir --broadcast",
+    "test:sushiswap": "forge script script/processes/SushiswapTradePlacement.s.sol:SushiswapTradePlacement -vvvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --via-ir --broadcast",
+    "test:uniswap-v3": "forge script script/processes/UniswapV3TradePlacement.s.sol:UniswapV3TradePlacement -vvvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --via-ir --broadcast",
+    "test:dexs": "npm run test:uniswap-v2 && npm run test:sushiswap && npm run test:uniswap-v3",
+    "# Process Tests": "# Tests for individual processes",
+    "test:protocol": "forge script script/Protocol.s.sol:Protocol --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
+    "test:trade-placement": "forge test --match-path script/processes/TradePlacement.s.sol --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --via-ir && forge script script/TestSingleReserves.s.sol:TestReservesScript --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec",
+    "test:trade-cancel": "forge script script/processes/TradeCancel.s.sol:TradeCancel --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
+    "test:instasettle": "forge script script/processes/Instasettle.s.sol:Instasettle --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
+    "test:gas-caching": "forge script script/processes/GasCaching.s.sol:GasCaching --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
+    "test:processes": "npm run test:protocol && npm run test:trade-placement",
+    "test-advanced": "npm run test:trade-cancel && npm run test:instasettle && npm run test:gas-caching",
+    "# Utility Tests": "# Tests for utilities and reserves",
+    "test:reserves": "forge script script/TestSingleReserves.s.sol:TestReservesScript --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
+    "# Combined Test Commands": "# Commands to run multiple test suites",
+    "test:all": "npm run test:dexs && npm run test:processes && npm run test:reserves",
+    "test:quick": "npm run test:uniswap-v2 && npm run test:trade-placement",
+    "test:verbose": "FOUNDRY_PROFILE=via_ir forge script script/processes/*.s.sol -vvvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --broadcast"
   },
   "repository": {
     "type": "git",
@@ -20,8 +41,5 @@
   "bugs": {
     "url": "https://github.com/1SLiquidity/core/issues"
   },
-  "homepage": "https://github.com/1SLiquidity/core#readme",
-  "dependencies": {
-    "@openzeppelin/contracts": "^5.3.0"
-  }
+  "homepage": "https://github.com/1SLiquidity/core#readme"
 }

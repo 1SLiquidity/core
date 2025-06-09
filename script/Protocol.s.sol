@@ -160,4 +160,9 @@ contract Protocol is Test {
         console.log("WETH Balance: %s", wethBalance);
         console.log("USDC Balance: %s", usdcBalance);
     }
+
+    function run() virtual external {
+        setUp();
+        testSetup();
+    }
 }

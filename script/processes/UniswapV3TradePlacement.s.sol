@@ -22,7 +22,7 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
     function testPlaceTradeWETHUSDC() public {
         console.log("Starting UniswapV3 trade test");
         
-        uint256 amountIn = formatTokenAmount(WETH, 1); // 1 WETH
+        uint256 amountIn = formatTokenAmount(WETH, 33); // 1 WETH
         uint256 amountOutMin = formatTokenAmount(USDC, 1800); // 1800 USDC
         uint256 botGasAllowance = 0.0005 ether;
 

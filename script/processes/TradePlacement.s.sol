@@ -10,7 +10,7 @@ contract TradePlacement is Protocol {
         super.setUp();
     }
 
-    function run() external {
+    function run() override external {
         testPlaceTradeWETHUSDC();
         test_RevertWhen_InsufficientAllowance();
         test_RevertWhen_InsufficientBalance();
@@ -35,6 +35,7 @@ contract TradePlacement is Protocol {
         approveToken(WETH, address(core), amountIn);
         
         uint256 allowanceAfter = IERC20(WETH).allowance(address(this), address(core));
+        allowanceAfter;
 
 
         // Record initial balances
@@ -79,6 +80,9 @@ contract TradePlacement is Protocol {
             uint256 lastSweetSpot,
             bool isInstasettlable
         ) = core.trades(tradeId);
+
+        targetAmountOut;
+        botGasAllowance_;
 
         // Verify trade struct values
         assertEq(owner, address(this), "Trade owner should be this contract");
