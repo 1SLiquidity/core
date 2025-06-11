@@ -173,10 +173,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function _cancelTrade(uint256 tradeId) public returns (bool) {
-
         // @audit It is essential that this authority may be granted by a bot, therefore meaning if the msg.sender is Core.
         // @audit Similarly, when the Router is implemented, we mnust forward the msg.sender in the function call / veridy signed message
         Utils.Trade memory trade = trades[tradeId];
+        if (trade.owner == address(0)) {
+            revert("Trade does not exist");
+        }
         if (trade.owner == msg.sender || msg.sender == address(this)) {
             delete trades[tradeId];
             IERC20(trade.tokenOut).transfer(msg.sender, trade.realisedAmountOut);
@@ -190,7 +192,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             
             return true;
         } else {
-            return false;
+            revert("Only trade owner can cancel");
         }
     }
 

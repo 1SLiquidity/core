@@ -20,6 +20,7 @@
     "test:protocol": "forge script script/Protocol.s.sol:Protocol --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
     "test:trade-placement": "forge test --match-path script/processes/TradePlacement.s.sol --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --via-ir && forge script script/TestSingleReserves.s.sol:TestReservesScript --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec",
     "test:trade-cancel": "forge script script/processes/TradeCancel.s.sol:TradeCancel --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
+    "test:trade-cancel-test": "FOUNDRY_PROFILE=via_ir forge test --match-path script/processes/TradeCancel.s.sol -vvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec",
     "test:instasettle": "forge script script/processes/Instasettle.s.sol:Instasettle --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
     "test:gas-caching": "forge script script/processes/GasCaching.s.sol:GasCaching --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
     "test:processes": "npm run test:protocol && npm run test:trade-placement",
@@ -27,7 +28,7 @@
     "# Utility Tests": "# Tests for utilities and reserves",
     "test:reserves": "forge script script/TestSingleReserves.s.sol:TestReservesScript --via-ir --rpc-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec -vvvv",
     "# Combined Test Commands": "# Commands to run multiple test suites",
-    "test:all": "npm run test:dexs && npm run test:processes && npm run test:reserves",
+    "test:all": "npm run test:dexs && npm run test:processes && npm run test:reserves && npm run test:trade-cancel-test",
     "test:quick": "npm run test:uniswap-v2 && npm run test:trade-placement",
     "test:verbose": "FOUNDRY_PROFILE=via_ir forge script script/processes/*.s.sol -vvvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --broadcast"
   },

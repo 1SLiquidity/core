@@ -10,7 +10,7 @@ contract TradePlacement is Protocol {
         super.setUp();
     }
 
-    function run() override external {
+    function run() virtual override external {
         testPlaceTradeWETHUSDC();
         test_RevertWhen_InsufficientAllowance();
         test_RevertWhen_InsufficientBalance();
