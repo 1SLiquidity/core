@@ -19,6 +19,44 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
     error ToxicTrade(uint256 tradeId);
 
+    event TradeCreated(
+        uint256 indexed tradeId,
+        address indexed user,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 amountRemaining,
+        uint256 minAmountOut,
+        uint256 realisedAmountOut,
+        bool isInstasettlable,
+        uint256 instasettleBps,
+        uint256 botGasAllowance,
+        uint96 cumulativeGasEntailed,
+        uint256 lastSweetSpot
+    );
+
+    event TradeStreamExecuted(
+        uint256 indexed tradeId,
+        uint256 amountIn,
+        uint256 realisedAmountOut,
+        uint256 cumulativeGasEntailed,
+        uint256 lastSweetSpot
+    );
+
+    event TradeCancelled(
+        uint256 indexed tradeId,
+        uint256 amountRemaining,
+        uint256 realisedAmountOut
+    );
+
+    event TradeSettled(
+        uint256 indexed tradeId,
+        address indexed settler,
+        uint256 totalAmountIn,
+        uint256 totalAmountOut,
+        uint256 totalFees
+    );
+
     // gas / TWAP
     uint256 private startGas;
     uint256 public lastGasUsed;
@@ -114,6 +152,22 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         pairIdTradeIds[pairId].push(tradeId);
         console.log("trade created in memory");
 
+        emit TradeCreated(
+            tradeId,
+            msg.sender,
+            tokenIn,
+            tokenOut,
+            amountIn,
+            amountIn, // amountRemaining starts as full amountIn
+            amountOutMin,
+            0, // realisedAmountOut starts at 0
+            isInstasettlable,
+            100, // instasettleBps default
+            botGasAllowance,
+            0, // cumulativeGasEntailed starts at 0
+            4 // lastSweetSpot default
+        );
+
         Utils.Trade storage trade = trades[tradeId];
         _executeStream(trade);
     }
@@ -127,6 +181,13 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             delete trades[tradeId];
             IERC20(trade.tokenOut).transfer(msg.sender, trade.realisedAmountOut);
             IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
+            
+            emit TradeCancelled(
+                tradeId,
+                trade.amountRemaining,
+                trade.realisedAmountOut
+            );
+            
             return true;
         } else {
             return false;
@@ -134,25 +195,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function executeTrades(bytes32 pairId) public {
-        /**
-         * this should take trades stored in the queue,
-         * executing stream volumes 1 by 1 via executeStream(), returning the amount settled
-         * and thereafter update the trade's metadata.
-         *
-         * rightful considerations must be given to:
-         * - the number of attempts! TICK
-         * - the trade's realised slippage TICK
-         * - the trade's realised gas cost TICK
-         * - the trade's target amountOut vs realised amountOut @audit 
-         * - if streamCount = 1 || 2, we execute the stream AND transfer assets out
-         * - update the number of attempts
-         * - update the latest stream count
-         *
-         *
-         * and ultimately, integrate fees...
-         */
-
-        // bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut));
 
         uint256[] storage tradeIds = pairIdTradeIds[pairId];
 
@@ -170,9 +212,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                         delete trades[tradeIds[i]];
                     }
                 } catch {
-                    //increment attempts and keep the trade in the queue
                     trade.attempts++;
-                    // Emit FailedTrade(attemptsNumber);
                 }
             }
             closeGasRecord();
@@ -213,7 +253,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 streamVolume = trade.amountIn / sweetSpot;
         uint256 targetAmountOut = trade.targetAmountOut / sweetSpot;
 
-        // Get trade data from registry
         IRegistry.TradeData memory tradeData = registry.prepareTradeData(
             bestDex,
             trade.tokenIn,
@@ -224,32 +263,18 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         );
         console.log("Core: Trade data prepared");
 
-        // Approve router to spend tokens
         IERC20(trade.tokenIn).approve(tradeData.router, streamVolume);
         console.log("Core: Router approved");
 
-        // Decode parameters
-        // (
-        //     address decodedTokenIn,
-        //     address decodedTokenOut,
-        //     uint256 decodedAmountIn,
-        //     uint256 decodedAmountOutMin,
-        //     address decodedRecipient,
-        //     address decodedRouter
-        // ) = abi.decode(tradeData.params, (address, address, uint256, uint256, address, address));
-        // console.log("Core: Decoded parameters");
-
-        // Execute trade
         (bool success, bytes memory returnData) = address(executor).delegatecall(
             abi.encodeWithSelector(
                 tradeData.selector,
-                tradeData.params  // Pass the encoded params directly for UniswapV3
+                tradeData.params  
             )
         );
         console.log("Core: Delegatecall success:", success);
         require(success, "DEX trade failed");
         
-        // Decode returned amount
         uint256 amountOut = abi.decode(returnData, (uint256));
         require(amountOut > 0, "No tokens received from swap");
 
@@ -257,11 +282,18 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             sweetSpot--;
         }
 
-        // Update trade state
         storageTrade.amountRemaining = trade.amountRemaining - streamVolume;
         storageTrade.realisedAmountOut += amountOut;
         storageTrade.lastSweetSpot = sweetSpot;
         storageTrade.cumulativeGasEntailed += uint96(gasCostInWei);
+
+        emit TradeStreamExecuted(
+            trade.tradeId,
+            streamVolume,
+            amountOut,
+            storageTrade.cumulativeGasEntailed,
+            sweetSpot
+        );
 
         return storageTrade;
     }
@@ -307,6 +339,15 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         (bool statusIn) = tokenOut.transferFrom(msg.sender, trade.owner, instasettleAmount);
         //then, we transfer the remaining amount of tokenIn to the purchaser
         (bool statusOut) = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining); // @audit we pass msg.sender here for testing without a Router, but we should have auth for Router access set up and the caller's address passed as a parameter from Router on this function call
+
+        emit TradeSettled(
+            trade.tradeId,
+            msg.sender,
+            trade.amountRemaining,
+            instasettleAmount,
+            trade.amountRemaining - instasettleAmount // totalFees is the difference
+        );
+
         return statusIn == statusOut ? true : false;
     }
 

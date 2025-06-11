@@ -12,6 +12,14 @@ contract StreamDaemon is Ownable {
     address[] public dexs; // goes to Core.sol
     mapping(address => address) public dexToRouters; // goes to Core.sol
 
+    event DEXRouteAdded(
+        address indexed dex
+    );
+
+    event DEXRouteRemoved(
+        address indexed dex
+    );
+
     // temporarily efine a constant for minimum effective gas in dollars
     uint256 public constant MIN_EFFECTIVE_GAS_DOLLARS = 1; // i.e $1 minimum @audit this should be valuated against TOKEN-USDC value during execution in production
 
@@ -26,6 +34,19 @@ contract StreamDaemon is Ownable {
 
     function registerDex(address _fetcher) external onlyOwner {
         dexs.push(_fetcher); // @audit this storage allocation has multiple dependancies in order to actually function, including deployments of appropriate fetchers and configuration of the relevant dex's interface
+        emit DEXRouteAdded(_fetcher);
+    }
+
+    function removeDex(address _fetcher) external onlyOwner {
+        for (uint256 i = 0; i < dexs.length; i++) {
+            if (dexs[i] == _fetcher) {
+                dexs[i] = dexs[dexs.length - 1];
+                dexs.pop();
+                delete dexToRouters[_fetcher];
+                emit DEXRouteRemoved(_fetcher);
+                break;
+            }
+        }
     }
 
     function evaluateSweetSpotAndDex(address tokenIn, address tokenOut, uint256 volume, uint256 effectiveGas)

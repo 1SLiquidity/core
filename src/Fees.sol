@@ -7,6 +7,12 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract Fees is Ownable {
     constructor() Ownable(msg.sender) {}
 
+    event FeesClaimed(
+        address indexed bot,
+        address indexed feeToken,
+        uint256 amount
+    );
+
     uint256 public BOT_FEE = 10; // 10 BPS
     uint256 public PROTOCOL_FEE = 20; // 20 BPS
 
@@ -25,7 +31,9 @@ contract Fees is Ownable {
     }
 
     function withdrawFees(address bot, address feeToken) public {
-        botTokenBalance[bot][feeToken] -= botTokenBalance[bot][feeToken];
-        IERC20(feeToken).transfer(bot, botTokenBalance[bot][feeToken]);
+        uint256 amount = botTokenBalance[bot][feeToken];
+        botTokenBalance[bot][feeToken] = 0;
+        IERC20(feeToken).transfer(bot, amount);
+        emit FeesClaimed(bot, feeToken, amount);
     }
 }
