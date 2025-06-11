@@ -222,14 +222,31 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             targetAmountOut,
             address(this)
         );
+        console.log("Core: Trade data prepared");
 
         // Approve router to spend tokens
         IERC20(trade.tokenIn).approve(tradeData.router, streamVolume);
+        console.log("Core: Router approved");
+
+        // Decode parameters
+        // (
+        //     address decodedTokenIn,
+        //     address decodedTokenOut,
+        //     uint256 decodedAmountIn,
+        //     uint256 decodedAmountOutMin,
+        //     address decodedRecipient,
+        //     address decodedRouter
+        // ) = abi.decode(tradeData.params, (address, address, uint256, uint256, address, address));
+        // console.log("Core: Decoded parameters");
 
         // Execute trade
         (bool success, bytes memory returnData) = address(executor).delegatecall(
-            abi.encodeWithSelector(tradeData.selector, bestDex, tradeData.params)
+            abi.encodeWithSelector(
+                tradeData.selector,
+                tradeData.params  // Pass the encoded params directly for UniswapV3
+            )
         );
+        console.log("Core: Delegatecall success:", success);
         require(success, "DEX trade failed");
         
         // Decode returned amount

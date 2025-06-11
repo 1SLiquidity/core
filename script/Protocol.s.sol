@@ -10,12 +10,14 @@ import "../src/adapters/UniswapV3Fetcher.sol";
 import "../src/adapters/SushiswapFetcher.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "../src/Registry.sol";
 
 contract Protocol is Test {
     // Core protocol contracts
     Core public core;
     StreamDaemon public streamDaemon;
     Executor public executor;
+    Registry public registry;
 
     // DEX addresses on mainnet
     address constant UNISWAP_V2_FACTORY = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
@@ -69,17 +71,24 @@ contract Protocol is Test {
         // Deploy Executor
         executor = new Executor();
 
+        console.log("Deploying Registry...");
+        // Deploy Registry and configure routers
+        registry = new Registry();
+        
+        // Configure all DEX routers
+        registry.setRouter("UniswapV2", UNISWAP_V2_ROUTER);
+        registry.setRouter("UniswapV3", UNISWAP_V3_ROUTER);
+        registry.setRouter("Sushiswap", SUSHISWAP_ROUTER);
+        registry.setRouter("Balancer", BALANCER_VAULT);
+        registry.setRouter("Curve", CURVE_POOL);
+
         console.log("Deploying Core...");
         // Deploy Core with all dependencies
         core = new Core(
-            address(streamDaemon), // _streamDaemon
-            address(executor), // _executor
-            UNISWAP_V2_ROUTER, // _uniswapV2Router
-            SUSHISWAP_ROUTER, // _sushiswapRouter
-            UNISWAP_V3_ROUTER, // _uniswapV3Router
-            BALANCER_VAULT, // _balancerVault
-            CURVE_POOL, // _curvePool
-            100000
+            address(streamDaemon),
+            address(executor),
+            address(registry),
+            100000  // Initial gas estimate
         );
 
         // Log deployment addresses

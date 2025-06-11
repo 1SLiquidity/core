@@ -9,6 +9,7 @@ import "./interfaces/dex/IUniswapV2Router.sol";
 import "./interfaces/dex/IUniswapV3Router.sol";
 import "./interfaces/dex/IBalancerVault.sol";
 import "./interfaces/dex/ICurvePool.sol";
+import "forge-std/console.sol";
 
 contract Executor {
     using SafeERC20 for IERC20;
@@ -24,125 +25,200 @@ contract Executor {
     );
 
     function executeUniswapV2Trade(
-        address core,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address recipient,
-        address router
+        bytes memory params // @audit consider adding validation for params length
     ) external returns (uint256) {
-        core;
-        recipient; // @audit check reason for passing these parameters
+        console.log("Executor: Executing UniswapV2 || Sushiswap trade");
+        
+        // Decode all parameters
+        (
+            address tokenIn,
+            address tokenOut,
+            uint256 amountIn,
+            uint256 amountOutMin,
+            address recipient,
+            address router
+        ) = abi.decode(params, (address, address, uint256, uint256, address, address));
+        
+        console.log("Executor: Token in:", tokenIn);
+        console.log("Executor: Token out:", tokenOut);
+        console.log("Executor: Amount in:", amountIn);
+        console.log("Executor: Min amount out:", amountOutMin);
+        console.log("Executor: Recipient:", recipient); // @audit verify recipient is not zero address
+        console.log("Executor: Router:", router);
+
         if (amountIn == 0) revert ZeroAmount();
         
-        IERC20(tokenIn).approve(router, amountIn);
+        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        console.log("Executor: Router approved for amount", amountIn);
 
         address[] memory path = new address[](2);
         path[0] = tokenIn;
         path[1] = tokenOut;
 
+        console.log("Executor: Executing swap on router:", router);
         uint256[] memory amounts = IUniswapV2Router(router).swapExactTokensForTokens(
             amountIn,
             amountOutMin,
             path,
-            address(this),
-            block.timestamp + 300
+            recipient,
+            block.timestamp + 300 // @audit standardize deadline across all DEXes
         );
+        console.log("Executor: Swap executed, amount out:", amounts[amounts.length - 1]);
 
-        amounts; // @audit check reason for passing this parameter
-
-        uint256 amountOut = IERC20(tokenOut).balanceOf(address(this));
-        emit TradeExecuted(tokenIn, tokenOut, amountIn, amountOut);
-        return amountOut;
+        // @audit consider additional validation on amountOut
+        emit TradeExecuted(tokenIn, tokenOut, amountIn, amounts[amounts.length - 1]); // @audit consider adding more event data
+        return amounts[amounts.length - 1];
     }
 
     function executeUniswapV3Trade(
-        address dex,
-        bytes memory params
+        bytes memory params // @audit consider adding validation for params length
     ) external returns (uint256) {
-        dex; // @audit check reason for passing this param - canwe not derive it from the router here?
-        (address tokenIn, address tokenOut, uint256 amountIn,,,,, address router) = abi.decode(
+        console.log("Executor: Executing UniswapV3 trade");
+        console.log("Executor: Decoding params");
+        
+        // Decode all parameters
+        (
+            address tokenIn,
+            address tokenOut,
+            uint256 amountIn,
+            uint256 amountOutMin,
+            address recipient,
+            uint24 fee,
+            uint160 sqrtPriceLimitX96,
+            address router
+        ) = abi.decode(
             params,
             (address, address, uint256, uint256, address, uint24, uint160, address)
         );
 
+        console.log("Executor: Token in:", tokenIn);
+        console.log("Executor: Token out:", tokenOut);
+        console.log("Executor: Amount in:", amountIn);
+        console.log("Executor: Min amount out:", amountOutMin);
+        console.log("Executor: Recipient:", recipient);
+        console.log("Executor: Fee:", fee);
+        console.log("Executor: Router:", router);
+
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(tokenIn).approve(router, amountIn);
+        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        console.log("Executor: Router approved for amount", amountIn);
 
         IUniswapV3Router.ExactInputSingleParams memory swapParams = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,
             tokenOut: tokenOut,
-            fee: 3000, // @audit for now defaults to 0.3% but needs user input on production
-            recipient: address(this), // (we're in Core's context via delegatecall so sends to Core)
-            deadline: block.timestamp + 300,
+            fee: fee,
+            recipient: recipient, // @audit verify recipient is not zero address
+            deadline: block.timestamp + 300, // @audit standardize deadline across all DEXes
             amountIn: amountIn,
-            amountOutMinimum: 0, // @audit no slippage check in test. we should aim for 0.1% max slippage
-            sqrtPriceLimitX96: 0
+            amountOutMinimum: amountOutMin, // @audit consider minimum slippage threshold
+            sqrtPriceLimitX96: sqrtPriceLimitX96 // @audit document impact of this parameter
         });
+        console.log("Executor: Swap params prepared");
+        console.log("Executor: Deadline set to:", block.timestamp + 300);
 
+        console.log("Executor: Executing swap on router:", router);
         uint256 amountOut = IUniswapV3Router(router).exactInputSingle(swapParams);
-        emit TradeExecuted(tokenIn, tokenOut, amountIn, amountOut);
+        console.log("Executor: Swap executed, amount out:", amountOut);
+        
+        // @audit consider additional validation on amountOut
+        emit TradeExecuted(tokenIn, tokenOut, amountIn, amountOut); // @audit consider adding more event data (recipient, fee)
         return amountOut;
     }
 
     function executeBalancerTrade(
-        address vault,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address recipient,
-        bytes32 poolId,
-        address router
+        bytes memory params // @audit consider adding validation for params length
     ) external returns (uint256) {
-        vault;
-        recipient; // @audit check reason for passing these parameters
+        console.log("Executor: Executing Balancer trade");
+        
+        // Decode all parameters
+        (
+            address tokenIn,
+            address tokenOut,
+            uint256 amountIn,
+            uint256 amountOutMin,
+            address recipient, // @audit verify recipient is not zero address
+            bytes32 poolId,
+            address router
+        ) = abi.decode(params, (address, address, uint256, uint256, address, bytes32, address));
+        
+        console.log("Executor: Token in:", tokenIn);
+        console.log("Executor: Token out:", tokenOut);
+        console.log("Executor: Amount in:", amountIn);
+        console.log("Executor: Min amount out:", amountOutMin);
+        console.log("Executor: Recipient:", recipient);
+        console.log("Executor: Pool ID:", uint256(poolId));
+        console.log("Executor: Router:", router);
+
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(tokenIn).approve(router, amountIn);
+        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        console.log("Executor: Router approved for amount", amountIn);
 
         IBalancerVault.SingleSwap memory singleSwap = IBalancerVault.SingleSwap({
             poolId: poolId,
-            kind: 0, // GIVEN_IN @audit check param
+            kind: 0, // GIVEN_IN @audit check if this is the correct kind
             assetIn: tokenIn,
             assetOut: tokenOut,
             amount: amountIn,
-            userData: ""
+            userData: "" // @audit document what userData could be used for
         });
 
         IBalancerVault.FundManagement memory funds = IBalancerVault.FundManagement({
             sender: msg.sender,
             fromInternalBalance: false,
-            recipient: address(this),
+            recipient: recipient,
             toInternalBalance: false
         });
 
-        IBalancerVault(router).swap(singleSwap, funds, amountOutMin, block.timestamp + 300);
+        console.log("Executor: Executing swap on Balancer");
+        IBalancerVault(router).swap(singleSwap, funds, amountOutMin, block.timestamp + 300); // @audit standardize deadline
         
         uint256 amountOut = IERC20(tokenOut).balanceOf(address(this));
-        emit TradeExecuted(tokenIn, tokenOut, amountIn, amountOut);
+        console.log("Executor: Swap executed, amount out:", amountOut);
+
+        // @audit consider additional validation on amountOut
+        emit TradeExecuted(tokenIn, tokenOut, amountIn, amountOut); // @audit consider adding more event data
         return amountOut;
     }
 
     function executeCurveTrade(
-        address pool,
-        int128 i,
-        int128 j,
-        uint256 amountIn,
-        uint256 amountOutMin,
-        address recipient,
-        address router
+        bytes memory params // @audit consider adding validation for params length
     ) external returns (uint256) {
-        recipient; // @audit check reason for passing these parameters
+        console.log("Executor: Executing Curve trade");
+        
+        // Decode all parameters
+        (
+            address pool,
+            int128 i,
+            int128 j,
+            uint256 amountIn,
+            uint256 amountOutMin,
+            address recipient, // @audit verify recipient is not zero address
+            address router
+        ) = abi.decode(params, (address, int128, int128, uint256, uint256, address, address));
+        
+        console.log("Executor: Pool:", pool);
+        console.log("Executor: i:", uint256(uint128(i)));
+        console.log("Executor: j:", uint256(uint128(j)));
+        console.log("Executor: Amount in:", amountIn);
+        console.log("Executor: Min amount out:", amountOutMin);
+        console.log("Executor: Recipient:", recipient);
+        console.log("Executor: Router:", router);
+
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(pool).approve(router, amountIn);
-        ICurvePool(router).exchange(i, j, amountIn, amountOutMin);
+        IERC20(pool).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        console.log("Executor: Router approved for amount", amountIn);
+
+        console.log("Executor: Executing swap on Curve");
+        ICurvePool(router).exchange(i, j, amountIn, amountOutMin); // @audit consider adding deadline parameter
         
         uint256 amountOut = IERC20(pool).balanceOf(address(this));
-        emit TradeExecuted(pool, pool, amountIn, amountOut);
+        console.log("Executor: Swap executed, amount out:", amountOut);
+
+        // @audit consider additional validation on amountOut
+        emit TradeExecuted(pool, pool, amountIn, amountOut); // @audit consider adding more event data
         return amountOut;
     }
 }
