@@ -14,6 +14,7 @@ import { MOCK_STREAMS } from '@/app/lib/constants/streams'
 import Image from 'next/image'
 import GlobalStreamSidebar from '../sidebar/globalStreamSidebar'
 import { Stream } from '@/app/lib/types/stream'
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 
 const tableData = [
   {
@@ -108,9 +109,9 @@ const TradesTable = () => {
   return (
     <div className="mt-16">
       <div className="flex justify-between">
-        <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
+        <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex gap-[6px]">
           <div
-            className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] cursor-pointer rounded-[8px] ${
+            className={`flex gap-[6px] items-center py-[6px] sm:py-[10px] bg-opacity-[12%] px-[6px] sm:px-[9px] cursor-pointer rounded-[8px] ${
               activeTab === 'all'
                 ? ' bg-primaryGradient text-black'
                 : 'hover:bg-tabsGradient'
@@ -123,7 +124,7 @@ const TradesTable = () => {
             ALL
           </div>
           <div
-            className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] cursor-pointer rounded-[8px] ${
+            className={`flex gap-[6px] items-center py-[6px] sm:py-[10px] bg-opacity-[12%] px-[6px] sm:px-[9px] cursor-pointer rounded-[8px] ${
               activeTab === 'myInstasettles'
                 ? ' bg-primaryGradient text-black'
                 : 'hover:bg-tabsGradient'
@@ -146,7 +147,7 @@ const TradesTable = () => {
                 <button
                   key={`${timeframe}-${index}`}
                   onClick={() => setActiveTimeframe(timeframe)}
-                  className={`px-3 py-1.5 rounded-md h-full text-xs transition-colors ${
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md h-full text-xs transition-colors ${
                     activeTimeframe === timeframe
                       ? 'bg-zinc-700 text-white'
                       : 'text-zinc-400 hover:text-white'
@@ -158,7 +159,7 @@ const TradesTable = () => {
             </div>
 
             {/* Search */}
-            <div className="relative h-10">
+            <div className="relative h-10 max-md:hidden">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600 w-4 h-4" />
               <input
                 type="text"
@@ -172,81 +173,84 @@ const TradesTable = () => {
         </div>
       </div>
 
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="text-center">Token Pair</TableHead>
-            <TableHead></TableHead>
-            <TableHead className="text-center">Input</TableHead>
-            <TableHead className="text-center">Output</TableHead>
-            <TableHead className="text-center">Streams</TableHead>
-            <TableHead className="text-center">EST. Time</TableHead>
-            <TableHead className="text-center">Swap Volume</TableHead>
-            <TableHead className="text-center"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {tradesData.map((item, index) => (
-            <TableRow key={index}>
-              <TableCell className="font-medium text-center">
-                {/* {item.invoice} */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Image
-                      src="/tokens/eth.svg"
-                      width={32}
-                      height={32}
-                      className="w-6 h-6"
-                      alt="eth"
-                    />
-                    <div>
-                      <p className="text-white">ETH</p>
-                      <p className="text-white52">{item.amount1}</p>
-                    </div>
-                  </div>
-                  <Image
-                    src="/icons/right-arrow.svg"
-                    width={24}
-                    height={24}
-                    alt="to"
-                    className="w-4 h-4"
-                  />
-                  <div className="flex items-center gap-2">
-                    <Image
-                      src="/tokens/usdc.svg"
-                      width={32}
-                      height={32}
-                      alt="usdc"
-                      className="w-6 h-6"
-                    />
-                    <div>
-                      <p className="text-white">USDC</p>
-                      <p className="text-white52">{item.amount2}</p>
-                    </div>
-                  </div>
-                </div>
-              </TableCell>
-              <TableCell>
-                <Button
-                  text={item.action}
-                  className="h-[2.15rem] hover:bg-tabsGradient"
-                />
-              </TableCell>
-              <TableCell className="text-center">{item.amount1}</TableCell>
-              <TableCell className="text-center">{item.amount2}</TableCell>
-              <TableCell className="text-center">{item.quantity}</TableCell>
-              <TableCell className="text-center">{item.duration}</TableCell>
-              <TableCell className="text-center">{item.value}</TableCell>
-              <TableCell className="text-center group">
-                <ArrowRight
-                  className="h-5 w-5 text-zinc-400 group-hover:text-white cursor-pointer"
-                  onClick={() => handleStreamClick(item)}
-                />
-              </TableCell>
+      <ScrollArea className="w-full whitespace-nowrap">
+        <Table className="min-w-[800px]">
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-center">Token Pair</TableHead>
+              <TableHead></TableHead>
+              <TableHead className="text-center">Input</TableHead>
+              <TableHead className="text-center">Output</TableHead>
+              <TableHead className="text-center">Streams</TableHead>
+              <TableHead className="text-center">EST. Time</TableHead>
+              <TableHead className="text-center">Swap Volume</TableHead>
+              <TableHead className="text-center"></TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {tradesData.map((item, index) => (
+              <TableRow key={index}>
+                <TableCell className="font-medium text-center">
+                  {/* {item.invoice} */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src="/tokens/eth.svg"
+                        width={32}
+                        height={32}
+                        className="w-6 h-6"
+                        alt="eth"
+                      />
+                      <div>
+                        <p className="text-white">ETH</p>
+                        <p className="text-white52">{item.amount1}</p>
+                      </div>
+                    </div>
+                    <Image
+                      src="/icons/right-arrow.svg"
+                      width={24}
+                      height={24}
+                      alt="to"
+                      className="w-4 h-4"
+                    />
+                    <div className="flex items-center gap-2">
+                      <Image
+                        src="/tokens/usdc.svg"
+                        width={32}
+                        height={32}
+                        alt="usdc"
+                        className="w-6 h-6"
+                      />
+                      <div>
+                        <p className="text-white">USDC</p>
+                        <p className="text-white52">{item.amount2}</p>
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Button
+                    text={item.action}
+                    className="h-[2.15rem] hover:bg-tabsGradient"
+                  />
+                </TableCell>
+                <TableCell className="text-center">{item.amount1}</TableCell>
+                <TableCell className="text-center">{item.amount2}</TableCell>
+                <TableCell className="text-center">{item.quantity}</TableCell>
+                <TableCell className="text-center">{item.duration}</TableCell>
+                <TableCell className="text-center">{item.value}</TableCell>
+                <TableCell className="text-center group">
+                  <ArrowRight
+                    className="h-5 w-5 text-zinc-400 group-hover:text-white cursor-pointer"
+                    onClick={() => handleStreamClick(item)}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
 
       {initialStream && (
         <GlobalStreamSidebar

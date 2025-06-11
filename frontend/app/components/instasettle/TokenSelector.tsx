@@ -1,18 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ChevronDown, Zap } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import SelectTokenWithAmountSection from '../home/SELSection/SelectTokenWithAmountSection'
 import Image from 'next/image'
 import { useModal } from '@/app/lib/context/modalContext'
 import { cn } from '@/lib/utils'
+import { useScreenSize } from '@/app/lib/hooks/useScreenSize'
 
 // Mock token data
 const tokens = [
@@ -37,6 +29,7 @@ export default function TokenSelector() {
   const [fromToken, setFromToken] = useState<(typeof tokens)[0] | null>(null)
   const [toToken, setToToken] = useState<(typeof tokens)[0] | null>(null)
   const [boltConfig, setBoltConfig] = useState(defaultBoltConfig)
+  const { isMobile, isTablet, isDesktop, screenType } = useScreenSize()
 
   const bothTokensSelected = fromToken && toToken
   const {
@@ -53,7 +46,7 @@ export default function TokenSelector() {
         ...defaultBoltConfig,
         color: '#33F498',
         outerBorderStrokeColor: '#40f798',
-        height: '6.6rem',
+        height: '6.8rem',
         innerBorderStrokeWidth: '2',
         innerBorderStrokeColor: '#020408',
         innerBorderFillColor: '#020408',
@@ -65,12 +58,12 @@ export default function TokenSelector() {
 
   return (
     <div className="bg-gray-900 flex items-center justify-center p-4 relative mb-10">
-      <div className="flex items-center gap-0 w-full max-w-2xl">
+      <div className={cn('flex items-center gap-0 w-full max-w-xl')}>
         {selectedTokenFrom && selectedTokenTo && (
           <Image
             src="/assets/left-strokes.svg"
             alt="valid"
-            className={`h-full left-[4.5rem] absolute top-0 blink-animation`}
+            className={`h-full md:block hidden left-[6.5rem] absolute top-0 blink-animation`}
             width={100}
             height={100}
           />
@@ -85,7 +78,7 @@ export default function TokenSelector() {
         >
           <div
             className={cn(
-              'flex justify-center items-center w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-5 rounded-l-[13px]',
+              'flex justify-center items-center w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-6 rounded-l-[13px]',
               selectedTokenFrom && selectedTokenTo
                 ? 'bg-gradient-to-r from-[#071310] to-[#062118] dotsbg'
                 : 'bg-[#0D0D0D]'
@@ -94,12 +87,12 @@ export default function TokenSelector() {
             {selectedTokenFrom ? (
               <div
                 className={cn(
-                  'min-w-[165px] group w-fit h-12 rounded-[25px] p-[2px]',
+                  'min-w-[120px] sm:min-w-[165px] max-sm:relative max-sm:right-[10px] group w-fit h-12 rounded-[25px] p-[2px]',
                   selectedTokenFrom ? 'bg-borderGradient' : 'bg-[#373D3F]'
                 )}
               >
                 <div
-                  className="min-w-[165px] overflow-hidden w-fit h-full bg-[#0D0D0D] group-hover:bg-tabsGradient transition-colors duration-300 p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold"
+                  className="min-w-[120px] sm:min-w-[165px] overflow-hidden w-fit h-full bg-[#0D0D0D] group-hover:bg-tabsGradient transition-colors duration-300 p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold"
                   onClick={() => showSelectTokenModal(true, 'from')}
                 >
                   <div className="flex items-center w-fit h-fit">
@@ -122,7 +115,7 @@ export default function TokenSelector() {
                   <Image
                     src="/icons/arrow-down-white.svg"
                     alt="close"
-                    className="w-fit h-fit mr-4"
+                    className="w-fit h-fit mr-0 sm:mr-4"
                     width={20}
                     height={20}
                   />
@@ -130,10 +123,10 @@ export default function TokenSelector() {
               </div>
             ) : (
               <div
-                className="min-w-[165px] relative w-fit h-12 bg-primaryGradient hover:opacity-85 py-[13px] px-[20px] gap-[14px] flex rounded-[25px] items-center justify-between text-black cursor-pointer uppercase font-bold"
+                className="min-w-[120px] sm:min-w-[165px] max-sm:right-[10px] relative w-fit h-12 bg-primaryGradient hover:opacity-85 py-[13px] px-[20px] gap-[14px] flex rounded-[25px] items-center justify-between text-black cursor-pointer uppercase font-bold"
                 onClick={() => showSelectTokenModal(true, 'from')}
               >
-                <p>Select Token</p>
+                <p>{isMobile ? 'Token' : 'Select Token'}</p>
                 <Image
                   src="/icons/arrow-down-black.svg"
                   alt="arrow-down"
@@ -149,7 +142,7 @@ export default function TokenSelector() {
         {/* Cover for top pin */}
         {(!selectedTokenFrom || !selectedTokenTo) && (
           <div
-            className="absolute bg-[#020407] w-4 h-4 z-[51]"
+            className="absolute bg-[#020407] w-8 md:w-4 h-4 z-[51]"
             style={{
               left: '50.5%',
               transform: 'translateX(-50%)',
@@ -159,7 +152,7 @@ export default function TokenSelector() {
         )}
         {selectedTokenFrom && selectedTokenTo && (
           <div
-            className="absolute bg-[#020407] w-4 h-4 z-[51]"
+            className="absolute bg-[#020407] w-8 md:w-4 h-4 z-[51]"
             style={{
               left: '50.5%',
               transform: 'translateX(-50%)',
@@ -211,7 +204,7 @@ export default function TokenSelector() {
         {/* Cover for bottom pin */}
         {(!selectedTokenFrom || !selectedTokenTo) && (
           <div
-            className="absolute bg-[#020407] w-4 h-4 z-[51]"
+            className="absolute bg-[#020407] w-8 md:w-4 h-4 z-[51]"
             style={{
               left: '49.5%',
               transform: 'translateX(-50%)',
@@ -240,7 +233,7 @@ export default function TokenSelector() {
         >
           <div
             className={cn(
-              'flex justify-center items-center w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-5 rounded-r-[13px]',
+              'flex justify-center items-center w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-6 rounded-r-[13px]',
               selectedTokenFrom && selectedTokenTo
                 ? 'bg-gradient-to-r from-[#071310] to-[#062118] dotsbg'
                 : 'bg-[#0D0D0D]'
@@ -249,12 +242,12 @@ export default function TokenSelector() {
             {selectedTokenTo ? (
               <div
                 className={cn(
-                  'min-w-[165px] group w-fit h-12 rounded-[25px] p-[2px]',
+                  'min-w-[120px] sm:min-w-[165px] group w-fit h-12 rounded-[25px] p-[2px] relative max-sm:left-[10px]',
                   selectedTokenTo ? 'bg-borderGradient' : 'bg-[#373D3F]'
                 )}
               >
                 <div
-                  className="min-w-[165px] overflow-hidden w-fit h-full bg-[#0D0D0D] group-hover:bg-tabsGradient transition-colors duration-300 p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold"
+                  className="min-w-[120px] sm:min-w-[165px] overflow-hidden w-fit h-full bg-[#0D0D0D] group-hover:bg-tabsGradient transition-colors duration-300 p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold"
                   onClick={() => showSelectTokenModal(true, 'from')}
                 >
                   <div className="flex items-center w-fit h-fit">
@@ -285,10 +278,10 @@ export default function TokenSelector() {
               </div>
             ) : (
               <div
-                className="min-w-[165px] relative w-fit h-12 bg-primaryGradient hover:opacity-85 py-[13px] px-[20px] gap-[14px] flex rounded-[25px] items-center justify-between text-black cursor-pointer uppercase font-bold"
+                className="min-w-[120px] sm:min-w-[165px] relative max-sm:left-[10px] w-fit h-12 bg-primaryGradient hover:opacity-85 py-[13px] px-[20px] gap-[14px] flex rounded-[25px] items-center justify-between text-black cursor-pointer uppercase font-bold"
                 onClick={() => showSelectTokenModal(true, 'to')}
               >
-                <p>Select Token</p>
+                <p>{isMobile ? 'Token' : 'Select Token'}</p>
                 <Image
                   src="/icons/arrow-down-black.svg"
                   alt="arrow-down"
@@ -304,7 +297,7 @@ export default function TokenSelector() {
           <Image
             src="/assets/right-strokes.svg"
             alt="valid"
-            className={`h-full right-[4.5rem] absolute top-0 blink-animation`}
+            className={`h-full md:block hidden right-[6.5rem] absolute top-0 blink-animation`}
             width={100}
             height={100}
           />

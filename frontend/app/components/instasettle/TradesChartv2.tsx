@@ -38,7 +38,7 @@ const chartConfig = {
 export default function TradesChartv2() {
   return (
     <div className="dark">
-      <div className="w-full p-6 bg-background text-foreground">
+      <div className="w-full sm:p-6 bg-background text-foreground">
         {/* <div className="mb-4">
           <h2 className="text-2xl font-bold">Volume vs Streams</h2>
           <p className="text-muted-foreground">
