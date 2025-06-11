@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./StreamDaemon.sol";
 import "./Executor.sol";
 import "./Utils.sol";
+import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "forge-std/console.sol";
@@ -14,16 +15,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     // @audit must be able to recieve and transfer tokens
     StreamDaemon public streamDaemon;
     Executor public executor;
+    IRegistry public registry;
 
     error ToxicTrade(uint256 tradeId);
-
-    // dexs
-    address public immutable uniswapV2Router;
-    address public immutable sushiswapRouter;
-    address public immutable uniswapV3Router;
-    address public immutable balancerVault;
-    address public immutable curvePool;
-    // @audit replace these arrays with a mapping for dynamic dex routing
 
     // gas / TWAP
     uint256 private startGas;
@@ -44,21 +38,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     constructor(
         address _streamDaemon,
         address _executor,
-        address _uniswapV2Router,
-        address _sushiswapRouter,
-        address _uniswapV3Router,
-        address _balancerVault,
-        address _curvePool,
+        address _registry,
         uint256 _lastGasUsed
     ) Ownable(msg.sender) {
         streamDaemon = StreamDaemon(_streamDaemon);
         executor = Executor(_executor);
-        uniswapV2Router = _uniswapV2Router;
-        uniswapV3Router = _uniswapV3Router;
-        balancerVault = _balancerVault;
-        curvePool = _curvePool;
-        sushiswapRouter = _sushiswapRouter;
-        // @audit initialise TWAP_GAS_COST here
+        registry = IRegistry(_registry);
         TWAP_GAS_COST.push(_lastGasUsed);
         lastGasUsed = _lastGasUsed;
     }
@@ -72,11 +57,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     function closeGasRecord() public {
         uint256 gasUsed = startGas - gasleft();
         lastGasUsed = gasUsed;
-        // lastGasPrice = tx.gasprice;
-        // lastGasCost = lastGasUsed * tx.gasprice;
-        // TWAP_GAS_COST.push(lastGasCost);
-
-        // @audit gas units uint96 need to be implemented
+        lastGasPrice = tx.gasprice;
+        lastGasCost = lastGasUsed * tx.gasprice;
+        TWAP_GAS_COST.push(lastGasCost);
     } 
 
     function readTWAPGasCost(uint256 delta) public view returns (uint256) {
@@ -199,26 +182,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         TWAP_GAS_COST.push(lastGasCost); //@audit location and function of gas caching needs attention 
     }
 
-    function _executeDexTrade(address dex, bytes4 selector, bytes memory params) internal returns (uint256 amountOut) {
-        if (selector == Executor.executeUniswapV2Trade.selector) {
-            (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient, address router) = abi.decode(params, (address, address, uint256, uint256, address, address));
-            IERC20(tokenIn).approve(router, amountIn);
-            (bool success,) = address(executor).delegatecall(abi.encodeWithSelector(selector, dex, tokenIn, tokenOut, amountIn, amountOutMin, recipient, router));
-            require(success, "DEX trade failed");
-            amountOut = IERC20(tokenOut).balanceOf(address(this));
-        } else if (selector == Executor.executeUniswapV3Trade.selector) {
-            (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient, uint24 fee, uint160 sqrtPriceLimitX96, address router) = abi.decode(params, (address, address, uint256, uint256, address, uint24, uint160, address));
-            IERC20(tokenIn).approve(router, amountIn);
-            (bool success,) = address(executor).delegatecall(abi.encodeWithSelector(selector, dex, params));
-            require(success, "DEX trade failed");
-            amountOut = IERC20(tokenOut).balanceOf(address(this));
-        } else {
-            revert("Unsupported DEX");
-        }
-        require(amountOut > 0, "No tokens received from swap");
-        return amountOut;
-    }
-
     function _executeStream(Utils.Trade memory trade) public returns (Utils.Trade memory updatedTrade) {
         console.log("Executing stream for trade %s", trade.tradeId);
         uint256 latestGasAverage = readTWAPGasCost(10); // converting this after to uint96 @audit check consistency
@@ -236,7 +199,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             revert ToxicTrade(trade.tradeId);
         }
 
-        (uint256 sweetSpot, address fetcher, address router) =
+        (uint256 sweetSpot, address bestDex, address router) = 
             streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, latestGasAverage);
 
         if (trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3) {
@@ -249,56 +212,29 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
         uint256 streamVolume = trade.amountIn / sweetSpot;
         uint256 targetAmountOut = trade.targetAmountOut / sweetSpot;
-        uint256 amountOut;
 
-        // Approve the router to spend our tokens
-        IERC20(trade.tokenIn).approve(router, streamVolume);
+        // Get trade data from registry
+        IRegistry.TradeData memory tradeData = registry.prepareTradeData(
+            bestDex,
+            trade.tokenIn,
+            trade.tokenOut,
+            streamVolume,
+            targetAmountOut,
+            address(this)
+        );
 
-        if (router == uniswapV2Router || router == sushiswapRouter) {
-            bytes memory params = abi.encode(
-                trade.tokenIn,
-                trade.tokenOut,
-                streamVolume,
-                targetAmountOut,
-                address(this),
-                router
-            );
-            amountOut = _executeDexTrade(fetcher, Executor.executeUniswapV2Trade.selector, params);
-        } else if (router == uniswapV3Router) {
-            bytes memory params = abi.encode(
-                trade.tokenIn,
-                trade.tokenOut,
-                streamVolume,
-                targetAmountOut,
-                address(this),
-                uint24(3000),
-                uint160(0),
-                router
-            );
-            amountOut = _executeDexTrade(fetcher, Executor.executeUniswapV3Trade.selector, params);
-        } else if (router == balancerVault) {
-            bytes32 poolId = bytes32(0); // TODO: get poolId from StreamDaemon or registry
-            bytes memory params = abi.encode(
-                trade.tokenIn,
-                trade.tokenOut,
-                streamVolume,
-                targetAmountOut,
-                address(this),
-                poolId,
-                router
-            );
-            amountOut = _executeDexTrade(fetcher, Executor.executeBalancerTrade.selector, params);
-        } else if (router == curvePool) {
-            bytes memory params = abi.encode(
-                trade.tokenIn,
-                trade.tokenOut,
-                streamVolume,
-                targetAmountOut,
-                address(this),
-                router
-            );
-            amountOut = _executeDexTrade(fetcher, Executor.executeCurveTrade.selector, params);
-        }
+        // Approve router to spend tokens
+        IERC20(trade.tokenIn).approve(tradeData.router, streamVolume);
+
+        // Execute trade
+        (bool success, bytes memory returnData) = address(executor).delegatecall(
+            abi.encodeWithSelector(tradeData.selector, bestDex, tradeData.params)
+        );
+        require(success, "DEX trade failed");
+        
+        // Decode returned amount
+        uint256 amountOut = abi.decode(returnData, (uint256));
+        require(amountOut > 0, "No tokens received from swap");
 
         if (sweetSpot == 1 || sweetSpot == 2 || sweetSpot == 3 || sweetSpot == 4) {
             sweetSpot--;
