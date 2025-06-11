@@ -115,6 +115,7 @@ The Router serves as the primary entry point for global protocol interactions, p
 - **cancelTrade**: Allows users to cancel pending trades
 - **executeTrades**: Allows bots to execute pending trades for a specific token
 - **instaSettle**: Permits immediate settlement of trades
+- **instaConfig**: Manages the configuration of instasettle by the EOA owning the trade
 
 #### 3.1.2 Security Mechanisms
 
@@ -334,3 +335,7 @@ The design of the front end should contain feature windows which deisplay the co
 - Visual representation of trade streaming process
 - Responsive design for mobile and desktop interfaces
 - Wallet integration with all wallet providers (Rainbow kit style)
+
+### Furture Considerations
+
+- Uprade instasettle to degrade with time

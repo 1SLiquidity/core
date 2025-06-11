@@ -1,30 +1,39 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "../interfaces/IReserveFeatcher.sol";
+import "../interfaces/IUniversalDexInterface.sol";
 
 interface ICurvePool {
-    function coins(uint256 i) external view returns (address);
-    function balances(uint256 i) external view returns (uint256);
+    function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256);
+    function balances(int128 i) external view returns (uint256);
 }
 
-contract CurveFetcher is IReserveFetcher {
+contract CurveFetcher is IUniversalDexInterface {
     address public pool;
 
     constructor(address _pool) {
         pool = _pool;
     }
 
-    function getReserves(address tokenA, address tokenB) external view override returns (uint256 reserveA, uint256 reserveB) {
-        address token0 = ICurvePool(pool).coins(0);
-        address token1 = ICurvePool(pool).coins(1);
-        uint256 balance0 = ICurvePool(pool).balances(0);
-        uint256 balance1 = ICurvePool(pool).balances(1);
+    function getReserves(address tokenA, address tokenB)
+        external
+        view
+        override
+        returns (uint256 reserveA, uint256 reserveB)
+    {
+        // @audit this is a simplified version. In reality, we need to map tokens to indices
+        return (ICurvePool(pool).balances(0), ICurvePool(pool).balances(1));
+    }
 
-        if (tokenA == token0) {
-            return (balance0, balance1);
-        } else {
-            return (balance1, balance0);
-        }
+    function getPoolAddress(address tokenIn, address tokenOut) external view override returns (address) {
+        return pool;
+    }
+
+    function getDexType() external pure override returns (string memory) {
+        return "Curve";
+    }
+
+    function getDexVersion() external pure override returns (string memory) {
+        return "V2";
     }
 }
