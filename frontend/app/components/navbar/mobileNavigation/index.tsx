@@ -43,7 +43,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
         <div className="relative h-screen overflow-hidden overflow-y-auto scroll-hidden">
           <div className="w-full h-14 border-b border-primary">
-            <Link
+            {/* <Link
               href={''}
               className="w-10 h-10 bg-white rounded-[12px] flex items-center justify-center"
             >
@@ -54,6 +54,22 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                 width={40}
                 height={40}
               />
+            </Link> */}
+
+            <Link
+              href="/"
+              className="rounded-[12px] flex items-center bg-tabsGradient hover:shadow-lg hover:shadow-blackGradient bg-opacity-[12%] group text-white transition-all duration-300 justify-center px-2"
+            >
+              <Image
+                src="/assets/logo.svg"
+                alt="logo"
+                className="w-10 h-10"
+                width={40}
+                height={40}
+              />
+              <span className="self-center text-2xl font-bold text-white tracking-wide">
+                DECAStream
+              </span>
             </Link>
           </div>
 

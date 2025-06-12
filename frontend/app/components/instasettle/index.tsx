@@ -9,12 +9,6 @@ import TradesChartv2 from './TradesChartv2'
 import TokenSelector from './TokenSelector'
 
 const Instasettle = () => {
-  return <HeroSection />
-}
-
-export default Instasettle
-
-function HeroSection() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Navbar and SELSection */}
@@ -71,3 +65,5 @@ function HeroSection() {
     </div>
   )
 }
+
+export default Instasettle

@@ -31,7 +31,6 @@ export default function TokenSelector() {
   const [boltConfig, setBoltConfig] = useState(defaultBoltConfig)
   const { isMobile, isTablet, isDesktop, screenType } = useScreenSize()
 
-  const bothTokensSelected = fromToken && toToken
   const {
     showSelectTokenModal,
     selectedTokenFrom,
@@ -55,6 +54,16 @@ export default function TokenSelector() {
       setBoltConfig(defaultBoltConfig)
     }
   }, [selectedTokenFrom, selectedTokenTo])
+
+  useEffect(() => {
+    return () => {
+      // Reset token states when component unmounts
+      setSelectedTokenFrom(null)
+      setSelectedTokenTo(null)
+    }
+  }, [setSelectedTokenFrom, setSelectedTokenTo])
+
+  const bothTokensSelected = fromToken && toToken
 
   return (
     <div className="bg-gray-900 flex items-center justify-center p-4 relative mb-10">
