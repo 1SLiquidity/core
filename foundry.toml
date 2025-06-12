@@ -1,7 +1,13 @@
 [profile.default]
+remappings = [
+    "@openzeppelin=node_modules/@openzeppelin",
+    "forge-std=node_modules/forge-std/src",
+    "@uniswap/v3-periphery=node_modules/@uniswap/v3-periphery",
+]
 src = "src"
 out = "out"
 libs = ["lib"]
+via_ir = true
 
 [profile.via_ir]
 src = "src"
