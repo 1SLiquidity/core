@@ -27,11 +27,25 @@ import {
   ChartTooltip,
 } from '@/components/ui/chart'
 import TradesTable from './TradesTable'
-import { ChartDataPoint, Trade } from '@/app/lib/types/trade'
-import tradesApi from '@/api/trades'
-import { Spinner } from '../ui/spinner'
 
-const ITEMS_PER_PAGE = 20
+const chartData = [
+  { volume: 2, streams: 4 },
+  { volume: 15, streams: 12 },
+  { volume: 45, streams: 8 },
+  { volume: 120, streams: 25 },
+  { volume: 250, streams: 18 },
+  { volume: 400, streams: 35 },
+  { volume: 567, streams: 28 },
+  { volume: 767, streams: 42 },
+  { volume: 890, streams: 38 },
+  { volume: 1200, streams: 55 },
+  { volume: 250, streams: 18 },
+  { volume: 400, streams: 35 },
+  { volume: 567, streams: 28 },
+  { volume: 767, streams: 42 },
+  { volume: 890, streams: 38 },
+  { volume: 1200, streams: 55 },
+]
 
 const chartConfig = {
   streams: {

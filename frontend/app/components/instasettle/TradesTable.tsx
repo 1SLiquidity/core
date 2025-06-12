@@ -355,24 +355,18 @@ const TradesTable = ({
             >
               ALL
             </div>
-            <div
-              className={`flex gap-[6px] items-center py-[6px] sm:py-[10px] bg-opacity-[12%] px-[6px] sm:px-[9px] cursor-pointer rounded-[8px] ${
-                activeTab === 'myInstasettles'
-                  ? ' bg-primaryGradient text-black'
-                  : 'hover:bg-tabsGradient'
-              } ${
-                isChartFiltered
-                  ? 'opacity-50 pointer-events-none cursor-not-allowed'
-                  : ''
-              }`}
-              onClick={() => {
-                if (!isChartFiltered) {
-                  setActiveTab('myInstasettles')
-                }
-              }}
-            >
-              MY INSTASETTLES
-            </div>
+
+            {/* Search */}
+            {/* <div className="relative h-10 max-md:hidden">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent border border-primary h-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-zinc-600 w-64"
+              />
+            </div> */}
           </div>
         </div>
         {isChartFiltered && selectedVolume !== null && (
