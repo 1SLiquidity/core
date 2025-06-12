@@ -30,7 +30,12 @@ const SELSection = () => {
   const [swap, setSwap] = useState(false)
 
   const { addToast } = useToast()
-  const { selectedTokenFrom, selectedTokenTo } = useModal()
+  const {
+    selectedTokenFrom,
+    selectedTokenTo,
+    setSelectedTokenFrom,
+    setSelectedTokenTo,
+  } = useModal()
   const { address, isConnected } = useAppKitAccount()
 
   // Get current chain from AppKit
@@ -39,6 +44,14 @@ const SELSection = () => {
   const chainId = chainIdWithPrefix.split(':')[1]
   const pathname = usePathname()
   const router = useRouter()
+
+  useEffect(() => {
+    return () => {
+      // Reset token states when component unmounts
+      setSelectedTokenFrom(null)
+      setSelectedTokenTo(null)
+    }
+  }, [setSelectedTokenFrom, setSelectedTokenTo])
 
   // Use our custom hooks
   const {
@@ -148,14 +161,24 @@ const SELSection = () => {
   return (
     <div className="w-full flex flex-col justify-center items-center">
       {pathname === '/' && (
-        <motion.h1
-          className="text-4xl md:text-6xl font-bold mb-10 sm:mb-16 text-white"
-          initial="hidden"
-          animate={controls}
-          variants={titleVariants}
-        >
-          Swap anytime, anywhere
-        </motion.h1>
+        <div className="flex flex-col items-center justify-center gap-2">
+          <motion.h1
+            className="text-5xl md:text-6xl font-bold text-white text-center"
+            initial="hidden"
+            animate={controls}
+            variants={titleVariants}
+          >
+            Stream your trades
+          </motion.h1>
+          <motion.h2
+            className="text-3xl md:text-5xl font-bold mb-10 sm:mb-16 text-white text-center"
+            initial="hidden"
+            animate={controls}
+            variants={titleVariants}
+          >
+            Save 10's of $1000s In minutes
+          </motion.h2>
+        </div>
       )}
       <motion.div
         className="md:min-w-[500px] max-w-[500px] w-[95vw] p-2"
