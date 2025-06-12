@@ -1,11 +1,7 @@
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import Navbar from '../navbar'
-import SELSection from '../home/SELSection'
-import TradesTable from './TradesTable'
-import { TradesChart } from './TradesChart'
-import { TradesChart2 } from './TradesChart2'
-import TradesChartv2 from './TradesChartv2'
+import TradesChart from './TradesChart'
 import TokenSelector from './TokenSelector'
 
 const Instasettle = () => {
@@ -18,8 +14,7 @@ const Instasettle = () => {
           Instasettle
         </h1>
         <TokenSelector />
-        <TradesChartv2 />
-        <TradesTable />
+        <TradesChart />
       </div>
 
       <div className="absolute inset-0 w-full h-full pointer-events-none">
