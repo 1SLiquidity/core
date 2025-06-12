@@ -3,9 +3,9 @@ export interface Trade {
   action: string
   amount1: string
   amount2: string
-  savings: string
+  quantity: string
   duration: string
-  bps: string
+  value: string
   isOwner: boolean
   timestamp: number // Unix timestamp in milliseconds
 }

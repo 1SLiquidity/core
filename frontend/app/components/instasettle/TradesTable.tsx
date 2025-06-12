@@ -17,22 +17,9 @@ import { Stream } from '@/app/lib/types/stream'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Trade } from '@/app/lib/types/trade'
 import { useScreenSize } from '@/app/lib/hooks/useScreenSize'
-import { useInView } from 'react-intersection-observer'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import tradesApi from '@/api/trades'
-import { Spinner } from '../ui/spinner'
 
-const LIMIT = 10
-
-type SortField = 'streams' | 'output' | 'volume' | 'timestamp' | null
+type SortField = 'streams' | 'output' | 'volume' | null
 type SortDirection = 'asc' | 'desc' | null
-
-interface TradeResponse {
-  trades: Trade[]
-  total: number
-  skip: number
-  limit: number
-}
 
 interface TradesTableProps {
   selectedTrade: Trade | null
@@ -65,7 +52,7 @@ const tableData: Trade[] = [
     action: 'INSTASETTLE',
     amount1: '$3.21',
     amount2: '$43.65',
-    savings: '30',
+    quantity: '30',
     duration: '6 mins',
     bps: '70',
     isOwner: false,
@@ -76,7 +63,7 @@ const tableData: Trade[] = [
     action: 'INSTASETTLE',
     amount1: '$3.21',
     amount2: '$37.65',
-    savings: '30',
+    quantity: '30',
     duration: '6 mins',
     bps: '30',
     isOwner: true,
@@ -98,7 +85,7 @@ const tableData: Trade[] = [
     action: 'INSTASETTLE',
     amount1: '$3.21',
     amount2: '$22.65',
-    savings: '30',
+    quantity: '30',
     duration: '6 mins',
     bps: '50',
     isOwner: false,
@@ -151,37 +138,6 @@ const TradesTable = ({
   const { isMobile, isTablet } = useScreenSize()
   const [sortField, setSortField] = useState<SortField>(null)
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
-  const { ref, inView } = useInView()
-
-  const {
-    data,
-    status,
-    error,
-    fetchNextPage,
-    isFetchingNextPage,
-    hasNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['trades', activeTab, activeTimeframe],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await tradesApi.fetchTrades(LIMIT, pageParam * LIMIT)
-      return response
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage: TradeResponse, allPages: TradeResponse[]) => {
-      if (isChartFiltered) return undefined
-      const nextPage =
-        lastPage.trades.length === LIMIT ? allPages.length : undefined
-      return nextPage
-    },
-    enabled: !isChartFiltered,
-  })
-
-  useEffect(() => {
-    if (inView && hasNextPage && !isChartFiltered) {
-      fetchNextPage()
-    }
-  }, [inView, hasNextPage, fetchNextPage, isChartFiltered])
-
   // Reset filters and sorting when chart selection changes
   useEffect(() => {
     if (isChartFiltered) {
@@ -210,34 +166,16 @@ const TradesTable = ({
   }
 
   // Filter and sort trades
-  const displayData = useMemo(() => {
-    console.log('selectedTrade ====>', selectedTrade)
-    console.log('isChartFiltered ====>', isChartFiltered)
-
-    // If chart is filtered, only show selected trade or nothing
+  const filteredAndSortedTrades = useMemo(() => {
     if (isChartFiltered) {
-      console.log('Returning only selected trade')
       return selectedTrade ? [selectedTrade] : []
     }
 
-    console.log('========================================')
-    console.log('========== continue ==========')
-    console.log('========================================')
-
-    if (!data?.pages) return []
-
-    let trades = data.pages.flatMap((page) => page.trades)
-    console.log('Total trades after flattening:', trades.length)
-
-    // Apply ownership filter
-    if (activeTab === 'myInstasettles') {
-      trades = trades.filter((trade) => trade.isOwner)
-      console.log('Trades after ownership filter:', trades.length)
-    }
+    let trades = [...tableData]
 
     // Apply timeframe filter
     const now = Date.now()
-    trades = trades.filter((trade) => {
+    const filterByTime = (trade: Trade) => {
       switch (activeTimeframe) {
         case '1D':
           return now - trade.timestamp <= 24 * 60 * 60 * 1000
@@ -252,8 +190,14 @@ const TradesTable = ({
         default:
           return true
       }
-    })
-    console.log('Trades after timeframe filter:', trades.length)
+    }
+
+    trades = trades.filter(filterByTime)
+
+    // Apply ownership filter
+    if (activeTab === 'myInstasettles') {
+      trades = trades.filter((trade) => trade.isOwner)
+    }
 
     // Apply sorting
     if (sortField && sortDirection) {
@@ -262,20 +206,16 @@ const TradesTable = ({
 
         switch (sortField) {
           case 'streams':
-            compareA = parseInt(a.savings)
-            compareB = parseInt(b.savings)
+            compareA = parseInt(a.quantity)
+            compareB = parseInt(b.quantity)
             break
           case 'output':
             compareA = parseFloat(a.amount2.replace('$', ''))
             compareB = parseFloat(b.amount2.replace('$', ''))
             break
           case 'volume':
-            compareA = parseFloat(a.bps)
-            compareB = parseFloat(b.bps)
-            break
-          case 'timestamp':
-            compareA = a.timestamp
-            compareB = b.timestamp
+            compareA = parseFloat(a.value.replace('$', '').replace(',', ''))
+            compareB = parseFloat(b.value.replace('$', '').replace(',', ''))
             break
           default:
             return 0
@@ -285,12 +225,10 @@ const TradesTable = ({
           ? compareA - compareB
           : compareB - compareA
       })
-      console.log('Trades after sorting:', trades.length)
     }
 
     return trades
   }, [
-    data?.pages,
     activeTab,
     activeTimeframe,
     isChartFiltered,
@@ -298,6 +236,8 @@ const TradesTable = ({
     sortField,
     sortDirection,
   ])
+
+  const displayData = filteredAndSortedTrades
 
   const handleStreamClick = (item: Trade) => {
     // Create a dummy stream from the table data
@@ -334,7 +274,20 @@ const TradesTable = ({
 
   return (
     <div className="mt-16">
-      <div className="flex justify-between mb-6">
+      {(isMobile || isTablet) && selectedVolume !== null && (
+        <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex items-center mb-3">
+          <div className="flex gap-[6px] items-center py-[6px] sm:py-[10px] px-[6px] sm:px-[9px] rounded-[8px]">
+            <span>Trade Volume: ${selectedVolume}</span>
+            <button
+              onClick={onClearSelection}
+              className="hover:text-primary transition-colors"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="flex justify-between">
         <div className="flex gap-2">
           <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex gap-[6px]">
             <div
@@ -355,18 +308,80 @@ const TradesTable = ({
             >
               ALL
             </div>
+            <div
+              className={`flex gap-[6px] items-center py-[6px] sm:py-[10px] bg-opacity-[12%] px-[6px] sm:px-[9px] cursor-pointer rounded-[8px] ${
+                activeTab === 'myInstasettles'
+                  ? ' bg-primaryGradient text-black'
+                  : 'hover:bg-tabsGradient'
+              } ${
+                isChartFiltered
+                  ? 'opacity-50 pointer-events-none cursor-not-allowed'
+                  : ''
+              }`}
+              onClick={() => {
+                if (!isChartFiltered) {
+                  setActiveTab('myInstasettles')
+                }
+              }}
+            >
+              MY INSTASETTLES
+            </div>
+          </div>
+
+          {!(isMobile || isTablet) &&
+            isChartFiltered &&
+            selectedVolume !== null && (
+              <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex items-center">
+                <div className="flex gap-[6px] items-center py-[6px] sm:py-[10px] px-[6px] sm:px-[9px] rounded-[8px]">
+                  <span>Trade Volume: ${selectedVolume}</span>
+                  <button
+                    onClick={onClearSelection}
+                    className="hover:text-primary transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+        </div>
+
+        <div className="flex justify-between items-center mb-6 h-10">
+          <div className="flex items-center gap-2">
+            <div
+              className={`flex rounded-lg p-1 border border-primary h-10 ${
+                isChartFiltered
+                  ? 'opacity-50 pointer-events-none cursor-not-allowed'
+                  : ''
+              }`}
+            >
+              {timeframes.map((timeframe, index) => (
+                <button
+                  key={`${timeframe}-${index}`}
+                  onClick={() =>
+                    !isChartFiltered && setActiveTimeframe(timeframe)
+                  }
+                  className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md h-full text-xs transition-colors ${
+                    activeTimeframe === timeframe
+                      ? 'bg-zinc-700 text-white'
+                      : 'text-zinc-400 hover:text-white'
+                  }`}
+                >
+                  {timeframe}
+                </button>
+              ))}
+            </div>
 
             {/* Search */}
             {/* <div className="relative h-10 max-md:hidden">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600 w-4 h-4" />
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border border-primary h-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-zinc-600 w-64"
-              />
-            </div> */}
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-transparent border border-primary h-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-zinc-600 w-64"
+                />
+              </div> */}
           </div>
         </div>
         {isChartFiltered && selectedVolume !== null && (
@@ -390,13 +405,13 @@ const TradesTable = ({
             <TableRow>
               <TableHead className="text-center">Token Pair</TableHead>
               <TableHead></TableHead>
-              <TableHead className="text-center">Volume</TableHead>
+              <TableHead className="text-center">Input</TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
                 onClick={() => handleSort('output')}
               >
                 <div className="flex items-center justify-center">
-                  Effective Price
+                  Output
                   <SortIcon
                     active={sortField === 'output'}
                     direction={sortField === 'output' ? sortDirection : null}
@@ -408,34 +423,23 @@ const TradesTable = ({
                 onClick={() => handleSort('streams')}
               >
                 <div className="flex items-center justify-center">
-                  Savings
+                  Streams
                   <SortIcon
                     active={sortField === 'streams'}
                     direction={sortField === 'streams' ? sortDirection : null}
                   />
                 </div>
               </TableHead>
+              <TableHead className="text-center">EST. Time</TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
                 onClick={() => handleSort('volume')}
               >
                 <div className="flex items-center justify-center">
-                  bps
+                  Swap Volume
                   <SortIcon
                     active={sortField === 'volume'}
                     direction={sortField === 'volume' ? sortDirection : null}
-                  />
-                </div>
-              </TableHead>
-              <TableHead
-                className="text-center cursor-pointer group"
-                onClick={() => handleSort('timestamp')}
-              >
-                <div className="flex items-center justify-center">
-                  Timestamp
-                  <SortIcon
-                    active={sortField === 'timestamp'}
-                    direction={sortField === 'timestamp' ? sortDirection : null}
                   />
                 </div>
               </TableHead>
@@ -444,7 +448,7 @@ const TradesTable = ({
           </TableHeader>
           <TableBody>
             {displayData.map((item, index) => (
-              <TableRow key={item.invoice}>
+              <TableRow key={index}>
                 <TableCell className="font-medium text-center">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
