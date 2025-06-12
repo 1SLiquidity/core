@@ -159,7 +159,7 @@ const TradesTable = () => {
             </div>
 
             {/* Search */}
-            <div className="relative h-10 max-md:hidden">
+            {/* <div className="relative h-10 max-md:hidden">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600 w-4 h-4" />
               <input
                 type="text"
@@ -168,7 +168,7 @@ const TradesTable = () => {
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-transparent border border-primary h-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-zinc-600 w-64"
               />
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
