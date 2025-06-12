@@ -60,7 +60,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       <div className="gap-[18px] w-fit h-fit md:flex hidden">
         <Link
           href="/"
-          className="rounded-[12px] flex items-center hover:shadow-lg hover:shadow-secondary bg-opacity-[12%] group text-white transition-all duration-300 justify-center px-2"
+          className="rounded-[12px] flex items-center bg-tabsGradient hover:shadow-lg hover:shadow-secondary bg-opacity-[12%] group text-white transition-all duration-300 justify-center px-2"
         >
           <Image
             src="/assets/logo.svg"
