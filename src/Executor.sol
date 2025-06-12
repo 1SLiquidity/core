@@ -17,28 +17,20 @@ contract Executor {
     error ZeroAmount();
     error SwapFailed();
 
-    event TradeExecuted(
-        address indexed tokenIn,
-        address indexed tokenOut,
-        uint256 amountIn,
-        uint256 amountOut
-    );
+    event TradeExecuted(address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 amountOut);
 
     function executeUniswapV2Trade(
         bytes memory params // @audit consider adding validation for params length
-    ) external returns (uint256) {
+    )
+        external
+        returns (uint256)
+    {
         console.log("Executor: Executing UniswapV2 || Sushiswap trade");
-        
+
         // Decode all parameters
-        (
-            address tokenIn,
-            address tokenOut,
-            uint256 amountIn,
-            uint256 amountOutMin,
-            address recipient,
-            address router
-        ) = abi.decode(params, (address, address, uint256, uint256, address, address));
-        
+        (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient, address router) =
+            abi.decode(params, (address, address, uint256, uint256, address, address));
+
         console.log("Executor: Token in:", tokenIn);
         console.log("Executor: Token out:", tokenOut);
         console.log("Executor: Amount in:", amountIn);
@@ -47,7 +39,7 @@ contract Executor {
         console.log("Executor: Router:", router);
 
         if (amountIn == 0) revert ZeroAmount();
-        
+
         IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
         console.log("Executor: Router approved for amount", amountIn);
 
@@ -66,16 +58,20 @@ contract Executor {
         console.log("Executor: Swap executed, amount out:", amounts[amounts.length - 1]);
 
         // @audit consider additional validation on amountOut
-        emit TradeExecuted(tokenIn, tokenOut, amountIn, amounts[amounts.length - 1]); // @audit consider adding more event data
+        emit TradeExecuted(tokenIn, tokenOut, amountIn, amounts[amounts.length - 1]); // @audit consider adding more
+            // event data
         return amounts[amounts.length - 1];
     }
 
     function executeUniswapV3Trade(
         bytes memory params // @audit consider adding validation for params length
-    ) external returns (uint256) {
+    )
+        external
+        returns (uint256)
+    {
         console.log("Executor: Executing UniswapV3 trade");
         console.log("Executor: Decoding params");
-        
+
         // Decode all parameters
         (
             address tokenIn,
@@ -86,10 +82,7 @@ contract Executor {
             uint24 fee,
             uint160 sqrtPriceLimitX96,
             address router
-        ) = abi.decode(
-            params,
-            (address, address, uint256, uint256, address, uint24, uint160, address)
-        );
+        ) = abi.decode(params, (address, address, uint256, uint256, address, uint24, uint160, address));
 
         console.log("Executor: Token in:", tokenIn);
         console.log("Executor: Token out:", tokenOut);
@@ -113,24 +106,28 @@ contract Executor {
             amountIn: amountIn,
             amountOutMinimum: amountOutMin, // @audit consider minimum slippage threshold
             sqrtPriceLimitX96: sqrtPriceLimitX96 // @audit document impact of this parameter
-        });
+         });
         console.log("Executor: Swap params prepared");
         console.log("Executor: Deadline set to:", block.timestamp + 300);
 
         console.log("Executor: Executing swap on router:", router);
         uint256 amountOut = IUniswapV3Router(router).exactInputSingle(swapParams);
         console.log("Executor: Swap executed, amount out:", amountOut);
-        
+
         // @audit consider additional validation on amountOut
-        emit TradeExecuted(tokenIn, tokenOut, amountIn, amountOut); // @audit consider adding more event data (recipient, fee)
+        emit TradeExecuted(tokenIn, tokenOut, amountIn, amountOut); // @audit consider adding more event data
+            // (recipient, fee)
         return amountOut;
     }
 
     function executeBalancerTrade(
         bytes memory params // @audit consider adding validation for params length
-    ) external returns (uint256) {
+    )
+        external
+        returns (uint256)
+    {
         console.log("Executor: Executing Balancer trade");
-        
+
         // Decode all parameters
         (
             address tokenIn,
@@ -141,7 +138,7 @@ contract Executor {
             bytes32 poolId,
             address router
         ) = abi.decode(params, (address, address, uint256, uint256, address, bytes32, address));
-        
+
         console.log("Executor: Token in:", tokenIn);
         console.log("Executor: Token out:", tokenOut);
         console.log("Executor: Amount in:", amountIn);
@@ -162,7 +159,7 @@ contract Executor {
             assetOut: tokenOut,
             amount: amountIn,
             userData: "" // @audit document what userData could be used for
-        });
+         });
 
         IBalancerVault.FundManagement memory funds = IBalancerVault.FundManagement({
             sender: msg.sender,
@@ -172,8 +169,9 @@ contract Executor {
         });
 
         console.log("Executor: Executing swap on Balancer");
-        IBalancerVault(router).swap(singleSwap, funds, amountOutMin, block.timestamp + 300); // @audit standardize deadline
-        
+        IBalancerVault(router).swap(singleSwap, funds, amountOutMin, block.timestamp + 300); // @audit standardize
+            // deadline
+
         uint256 amountOut = IERC20(tokenOut).balanceOf(address(this));
         console.log("Executor: Swap executed, amount out:", amountOut);
 
@@ -184,9 +182,12 @@ contract Executor {
 
     function executeCurveTrade(
         bytes memory params // @audit consider adding validation for params length
-    ) external returns (uint256) {
+    )
+        external
+        returns (uint256)
+    {
         console.log("Executor: Executing Curve trade");
-        
+
         // Decode all parameters
         (
             address pool,
@@ -197,7 +198,7 @@ contract Executor {
             address recipient, // @audit verify recipient is not zero address
             address router
         ) = abi.decode(params, (address, int128, int128, uint256, uint256, address, address));
-        
+
         console.log("Executor: Pool:", pool);
         console.log("Executor: i:", uint256(uint128(i)));
         console.log("Executor: j:", uint256(uint128(j)));
@@ -213,7 +214,7 @@ contract Executor {
 
         console.log("Executor: Executing swap on Curve");
         ICurvePool(router).exchange(i, j, amountIn, amountOutMin); // @audit consider adding deadline parameter
-        
+
         uint256 amountOut = IERC20(pool).balanceOf(address(this));
         console.log("Executor: Swap executed, amount out:", amountOut);
 

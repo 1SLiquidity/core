@@ -35,12 +35,11 @@ contract TradePlacement is Protocol {
         // Approve Core to spend WETH
         uint256 allowanceBefore = IERC20(WETH).allowance(address(this), address(core));
         console.log("Allowance before approval: %s", allowanceBefore);
-        
+
         approveToken(WETH, address(core), amountIn);
-        
+
         uint256 allowanceAfter = IERC20(WETH).allowance(address(this), address(core));
         allowanceAfter;
-
 
         // Record initial balances
         uint256 initialWethBalance = getTokenBalance(WETH, address(core));
@@ -89,7 +88,8 @@ contract TradePlacement is Protocol {
         uint256 finalWethBalance = getTokenBalance(WETH, address(core));
         uint256 finalUsdcBalance = getTokenBalance(USDC, address(core));
 
-        assertEq(finalWethBalance - initialWethBalance, amountIn * 3 / 4, "WETH balance not decreased correctly"); // we know sweet spot comes out at 4 for this tx
+        assertEq(finalWethBalance - initialWethBalance, amountIn * 3 / 4, "WETH balance not decreased correctly"); // we
+            // know sweet spot comes out at 4 for this tx
         assertEq(
             initialUsdcBalance + trade.realisedAmountOut, finalUsdcBalance, "USDC balance should increase by realised amount"
         );
@@ -328,7 +328,7 @@ contract TradePlacement is Protocol {
 
     function test_RevertWhen_InsufficientBalance() public {
         uint256 amountIn = formatTokenAmount(WETH, 1000); // Try to trade 1000 WETH
-        uint256 amountOutMin = formatTokenAmount(USDC, 1800000);
+        uint256 amountOutMin = formatTokenAmount(USDC, 1_800_000);
 
         approveToken(WETH, address(core), amountIn);
 

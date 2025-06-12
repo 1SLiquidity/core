@@ -43,11 +43,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 lastSweetSpot
     );
 
-    event TradeCancelled(
-        uint256 indexed tradeId,
-        uint256 amountRemaining,
-        uint256 realisedAmountOut
-    );
+    event TradeCancelled(uint256 indexed tradeId, uint256 amountRemaining, uint256 realisedAmountOut);
 
     event TradeSettled(
         uint256 indexed tradeId,
@@ -78,7 +74,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         address _executor,
         address _registry,
         uint256 _lastGasUsed
-    ) Ownable(msg.sender) {
+    )
+        Ownable(msg.sender)
+    {
         streamDaemon = StreamDaemon(_streamDaemon);
         executor = Executor(_executor);
         registry = IRegistry(_registry);
@@ -98,7 +96,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         lastGasPrice = tx.gasprice;
         lastGasCost = lastGasUsed * tx.gasprice;
         TWAP_GAS_COST.push(lastGasCost);
-    } 
+    }
 
     function readTWAPGasCost(uint256 delta) public view returns (uint256) {
         console.log("Reading TWAP gas cost");
@@ -113,7 +111,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             totalGasCost += TWAP_GAS_COST[i];
         }
         totalGasCost = totalGasCost > 0 ? totalGasCost / delta : lastGasCost;
-        return totalGasCost > lastGasUsed ? totalGasCost / TWAP_GAS_COST.length : 100000;
+        return totalGasCost > lastGasUsed ? totalGasCost / TWAP_GAS_COST.length : 100_000;
     }
 
     function placeTrade(bytes calldata tradeData) public payable {
@@ -125,7 +123,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             bool isInstasettlable,
             uint256 botGasAllowance
         ) = abi.decode(tradeData, (address, address, uint256, uint256, bool, uint256));
-        // @audit may be better to abstract sweetSpot algo to here and pass the value along, since small (<0.001% pool depth) trades shouldn't be split at all and would save hefty logic
+        // @audit may be better to abstract sweetSpot algo to here and pass the value along, since small (<0.001% pool
+        // depth) trades shouldn't be split at all and would save hefty logic
         IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
 
         uint256 tradeId = lastTradeId++;
@@ -173,8 +172,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function _cancelTrade(uint256 tradeId) public returns (bool) {
-        // @audit It is essential that this authority may be granted by a bot, therefore meaning if the msg.sender is Core.
-        // @audit Similarly, when the Router is implemented, we mnust forward the msg.sender in the function call / veridy signed message
+        // @audit It is essential that this authority may be granted by a bot, therefore meaning if the msg.sender is
+        // Core.
+        // @audit Similarly, when the Router is implemented, we mnust forward the msg.sender in the function call /
+        // veridy signed message
         Utils.Trade memory trade = trades[tradeId];
         if (trade.owner == address(0)) {
             revert("Trade does not exist");
@@ -183,13 +184,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             delete trades[tradeId];
             IERC20(trade.tokenOut).transfer(msg.sender, trade.realisedAmountOut);
             IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
-            
-            emit TradeCancelled(
-                tradeId,
-                trade.amountRemaining,
-                trade.realisedAmountOut
-            );
-            
+
+            emit TradeCancelled(tradeId, trade.amountRemaining, trade.realisedAmountOut);
+
             return true;
         } else {
             revert("Only trade owner can cancel");
@@ -197,7 +194,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function executeTrades(bytes32 pairId) public {
-
         uint256[] storage tradeIds = pairIdTradeIds[pairId];
 
         for (uint256 i = 0; i < tradeIds.length; i++) {
@@ -221,18 +217,18 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         }
         lastGasPrice = tx.gasprice;
         lastGasCost = lastGasUsed * tx.gasprice;
-        TWAP_GAS_COST.push(lastGasCost); //@audit location and function of gas caching needs attention 
+        TWAP_GAS_COST.push(lastGasCost); //@audit location and function of gas caching needs attention
     }
 
     function _executeStream(Utils.Trade memory trade) public returns (Utils.Trade memory updatedTrade) {
         console.log("Executing stream for trade %s", trade.tradeId);
         uint256 latestGasAverage = readTWAPGasCost(10); // converting this after to uint96 @audit check consistency
         console.log("Latest gas average: %s", latestGasAverage);
-        
+
         Utils.Trade storage storageTrade = trades[trade.tradeId];
-        
+
         uint256 gasCostInWei = latestGasAverage * 0.1 gwei;
-        
+
         if (trade.cumulativeGasEntailed + gasCostInWei > trade.botGasAllowance) {
             _cancelTrade(trade.tradeId);
         }
@@ -241,7 +237,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             revert ToxicTrade(trade.tradeId);
         }
 
-        (uint256 sweetSpot, address bestDex, address router) = 
+        (uint256 sweetSpot, address bestDex, address router) =
             streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, latestGasAverage);
 
         if (trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3) {
@@ -268,15 +264,11 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         IERC20(trade.tokenIn).approve(tradeData.router, streamVolume);
         console.log("Core: Router approved");
 
-        (bool success, bytes memory returnData) = address(executor).delegatecall(
-            abi.encodeWithSelector(
-                tradeData.selector,
-                tradeData.params  
-            )
-        );
+        (bool success, bytes memory returnData) =
+            address(executor).delegatecall(abi.encodeWithSelector(tradeData.selector, tradeData.params));
         console.log("Core: Delegatecall success:", success);
         require(success, "DEX trade failed");
-        
+
         uint256 amountOut = abi.decode(returnData, (uint256));
         require(amountOut > 0, "No tokens received from swap");
 
@@ -289,13 +281,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         storageTrade.lastSweetSpot = sweetSpot;
         storageTrade.cumulativeGasEntailed += uint96(gasCostInWei);
 
-        emit TradeStreamExecuted(
-            trade.tradeId,
-            streamVolume,
-            amountOut,
-            storageTrade.cumulativeGasEntailed,
-            sweetSpot
-        );
+        emit TradeStreamExecuted(trade.tradeId, streamVolume, amountOut, storageTrade.cumulativeGasEntailed, sweetSpot);
 
         return storageTrade;
     }
@@ -330,14 +316,23 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
         // Calculate remaining amount that needs to be settled
         uint256 remainingAmountOut = trade.targetAmountOut - trade.realisedAmountOut;
-        require(remainingAmountOut > 0, "No remaining amount to settle");
-        uint256 instasettleAmount = (remainingAmountOut * (10000 - trade.instasettleBps)) / 10000;
+        // then, we take the bps
+        uint256 instasettleBps = trade.instasettleBps;
+        uint256 instasettleAmount = trade.amountRemaining - (trade.amountRemaining * instasettleBps) / 10_000;
+        // if the instasettleAmount is less than the remainingAmountOut, we revert
+        require(instasettleAmount >= remainingAmountOut, "Insufficient balance to settle trade");
+        // if so, we execute a full trade swap (no streams)
+        //first of course we remove the trade from storage
+        delete trades[trade.tradeId];
+        //then we initialise the interface
+        IERC20 tokenOut = IERC20(trade.tokenOut);
+        //then, we transfer money from the purchaser to the owner
+        (bool statusIn) = tokenOut.transferFrom(msg.sender, trade.owner, instasettleAmount);
+        //then, we transfer the remaining amount of tokenIn to the purchaser
+        (bool statusOut) = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining); // @audit we pass
+            // msg.sender here for testing without a Router, but we should have auth for Router access set up and the
+            // caller's address passed as a parameter from Router on this function call
 
-        delete trades[tradeId];
-        bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, instasettleAmount);
-        require(statusIn, "Instasettle: Failed to transfer tokens to trade owner");
-        bool statusOut = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
-        require(statusOut, "Instasettle: Failed to transfer tokens to settler");
         emit TradeSettled(
             trade.tradeId,
             msg.sender,

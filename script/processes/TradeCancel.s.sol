@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import "./TradePlacement.s.sol";
 
 contract TradeCancel is TradePlacement {
-    function run() override external {
+    function run() external override {
         testCancelTrade();
         test_RevertWhen_CancellingNonExistentTrade();
         test_RevertWhen_CancellingOthersTrade();
@@ -53,22 +53,7 @@ contract TradeCancel is TradePlacement {
         console.log("USDC:", initialUsdcBalance);
 
         // Get trade details before cancellation
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            uint256 amountRemaining,
-            ,
-            uint256 realisedAmountOut,
-            ,
-            ,
-            ,
-            ,
-            
-        ) = core.trades(tradeId);
+        (,,,,,, uint256 amountRemaining,, uint256 realisedAmountOut,,,,,) = core.trades(tradeId);
 
         // Cancel trade
         bool success = core._cancelTrade(tradeId);
@@ -93,7 +78,7 @@ contract TradeCancel is TradePlacement {
 
     function test_RevertWhen_CancellingNonExistentTrade() public {
         vm.expectRevert("Trade does not exist");
-        core._cancelTrade(999999);
+        core._cancelTrade(999_999);
     }
 
     function test_RevertWhen_CancellingOthersTrade() public {

@@ -9,11 +9,11 @@ contract SushiswapTradePlacement is SingleDexProtocol {
         SushiswapFetcher sushiswapFetcher = new SushiswapFetcher(SUSHISWAP_FACTORY);
         setUpSingleDex(address(sushiswapFetcher), SUSHISWAP_ROUTER);
         vm.startPrank(WETH_WHALE);
-        IERC20(WETH).transfer(address(this), 100 * 1e18); 
+        IERC20(WETH).transfer(address(this), 100 * 1e18);
         vm.stopPrank();
 
         vm.startPrank(USDC_WHALE);
-        IERC20(USDC).transfer(address(this), 200_000 * 1e6); 
+        IERC20(USDC).transfer(address(this), 200_000 * 1e6);
         vm.stopPrank();
 
         IERC20(WETH).approve(address(core), type(uint256).max);
@@ -26,7 +26,7 @@ contract SushiswapTradePlacement is SingleDexProtocol {
 
     function testPlaceTradeWETHUSDC() public {
         console.log("Starting Sushiswap trade test");
-        
+
         uint256 amountIn = formatTokenAmount(WETH, 1);
         uint256 amountOutMin = formatTokenAmount(USDC, 1792); // (lowered for testing)
         uint256 botGasAllowance = 0.0005 ether;
@@ -40,14 +40,7 @@ contract SushiswapTradePlacement is SingleDexProtocol {
         uint256 usdcBalanceBefore = getTokenBalance(USDC, address(core));
 
         console.log("Placing trade on Sushiswap");
-        bytes memory tradeData = abi.encode(
-            WETH,
-            USDC,
-            amountIn,
-            amountOutMin,
-            false,
-            botGasAllowance
-        );
+        bytes memory tradeData = abi.encode(WETH, USDC, amountIn, amountOutMin, false, botGasAllowance);
         core.placeTrade(tradeData);
         console.log("Working on trade");
 
@@ -61,11 +54,11 @@ contract SushiswapTradePlacement is SingleDexProtocol {
             address tokenOut,
             uint256 amountIn_,
             uint256 amountRemaining,
-            ,  // targetAmountOut
+            , // targetAmountOut
             uint256 realisedAmountOut,
-            ,  // tradeId_
+            , // tradeId_
             uint256 instasettleBps,
-            ,  // botGasAllowance_
+            , // botGasAllowance_
             uint256 lastSweetSpot,
             bool isInstasettlable
         ) = core.trades(tradeId);
@@ -84,7 +77,7 @@ contract SushiswapTradePlacement is SingleDexProtocol {
         uint256 finalUsdcBalance = getTokenBalance(USDC, address(core));
 
         assertEq(finalWethBalance, amountIn * 3 / 4, "WETH balance should match input with sweet spot");
-        assertEq(finalUsdcBalance, 448824323, "USDC balance should match realised amount");
+        assertEq(finalUsdcBalance, 448_824_323, "USDC balance should match realised amount");
 
         console.log("\nSushiswap Trade Execution Details:");
         console.log("----------------------------------------");
@@ -102,4 +95,4 @@ contract SushiswapTradePlacement is SingleDexProtocol {
         console.log("WETH Remaining:", amountRemaining);
         console.log("----------------------------------------\n");
     }
-} 
+}

@@ -15,7 +15,10 @@ contract CurveFetcher is IUniversalDexInterface {
         pool = _pool;
     }
 
-    function getReserves(address tokenA, address tokenB)
+    function getReserves(
+        address tokenA,
+        address tokenB
+    )
         external
         view
         override

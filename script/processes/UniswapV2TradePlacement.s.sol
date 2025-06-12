@@ -7,7 +7,7 @@ import "../../src/Utils.sol";
 contract UniswapV2TradePlacement is SingleDexProtocol {
     function setUp() public {
         UniswapV2Fetcher uniswapV2Fetcher = new UniswapV2Fetcher(UNISWAP_V2_FACTORY);
-        
+
         // set up protocol with only UniswapV2
         setUpSingleDex(address(uniswapV2Fetcher), UNISWAP_V2_ROUTER);
 
@@ -29,7 +29,7 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
 
     function testPlaceTradeWETHUSDC() public {
         console.log("Starting UniswapV2 trade test");
-        
+
         uint256 amountIn = formatTokenAmount(WETH, 1); // 1 WETH
         uint256 amountOutMin = formatTokenAmount(USDC, 1792); // 100 USDC minimum output (lowered for testing)
         uint256 botGasAllowance = 0.0005 ether;
@@ -40,14 +40,7 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
         IERC20(WETH).approve(address(core), amountIn);
 
         console.log("Placing trade on UniswapV2");
-        bytes memory tradeData = abi.encode(
-            WETH,
-            USDC,
-            amountIn,
-            amountOutMin,
-            false,
-            botGasAllowance
-        );
+        bytes memory tradeData = abi.encode(WETH, USDC, amountIn, amountOutMin, false, botGasAllowance);
         core.placeTrade(tradeData);
         console.log("Working on trade");
 
@@ -85,7 +78,7 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
         uint256 finalUsdcBalance = getTokenBalance(USDC, address(core));
 
         assertEq(finalWethBalance, amountIn * 3 / 4, "WETH balance should match input with sweet spot");
-        assertEq(finalUsdcBalance, 448983071, "USDC balance should match realised amount");
+        assertEq(finalUsdcBalance, 448_983_071, "USDC balance should match realised amount");
 
         console.log("Trade Execution Details:");
         console.log("Trade ID:", tradeId);
@@ -95,4 +88,4 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
         console.log("Sweet Spot:", lastSweetSpot);
         console.log("Attempts:", attempts);
     }
-} 
+}

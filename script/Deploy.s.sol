@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {Script, console} from "forge-std/Script.sol";
-import {StreamDaemon} from "../src/StreamDaemon.sol";
-import {Executor} from "../src/Executor.sol";
-import {IUniversalDexInterface} from "../src/interfaces/IUniversalDexInterface.sol";
-import {UniswapV2Fetcher} from "../src/adapters/UniswapV2Fetcher.sol";
-import {SushiswapFetcher} from "../src/adapters/SushiswapFetcher.sol";
-import {UniswapV3Fetcher} from "../src/adapters/UniswapV3Fetcher.sol";
+import { Script, console } from "forge-std/Script.sol";
+import { StreamDaemon } from "../src/StreamDaemon.sol";
+import { Executor } from "../src/Executor.sol";
+import { IUniversalDexInterface } from "../src/interfaces/IUniversalDexInterface.sol";
+import { UniswapV2Fetcher } from "../src/adapters/UniswapV2Fetcher.sol";
+import { SushiswapFetcher } from "../src/adapters/SushiswapFetcher.sol";
+import { UniswapV3Fetcher } from "../src/adapters/UniswapV3Fetcher.sol";
 // import {CurveFetcher} from "../src/adapters/CurveFetcher.sol";
 // import {BalancerFetcher} from "../src/adapters/BalancerFetcher.sol";
 
@@ -85,7 +85,7 @@ contract DeployScript is Script {
         // test for sweet spot calculation
         console.log("\n=== Testing Sweet Spot Calculation ===");
         // Volume in tokens (e.g., 10,000 tokens)
-        uint256 testVolume = 10000 * 1e18;
+        uint256 testVolume = 10_000 * 1e18;
 
         // Gas price in dollar terms (approximate)
         // Assuming ETH at $3000 and gas price of 50 gwei
