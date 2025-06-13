@@ -58,7 +58,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
 
             <Link
               href="/"
-              className="rounded-[12px] flex items-center bg-tabsGradient hover:shadow-lg hover:shadow-blackGradient bg-opacity-[12%] group text-white transition-all duration-300 justify-center px-2"
+              className="rounded-[12px] flex items-center hover:shadow-lg hover:shadow-blackGradient bg-opacity-[12%] group text-white transition-all duration-300 justify-center px-2"
             >
               <Image
                 src="/assets/logo.svg"

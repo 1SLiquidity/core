@@ -203,6 +203,19 @@ body {
   scrollbar-width: none;
 }
 
+/* Custom scrollbar for chart container */
+.chart-scroll {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scroll-behavior: smooth;
+}
+
+.chart-scroll::-webkit-scrollbar {
+  height: 0; /* For Chrome, Safari, and Opera */
+  width: 0;
+  display: none;
+}
+
 /* dots-bg */
 .dotsbg::after {
   content: '';
