@@ -24,7 +24,7 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
         console.log("UniswapV3TradePlacement: Using router at", dexRouter);
         
         uint256 amountIn = formatTokenAmount(WETH, 33); // 1 WETH
-        uint256 amountOutMin = formatTokenAmount(USDC, 1800); // 1800 USDC
+        uint256 amountOutMin = formatTokenAmount(USDC, 1792); // 1800 USDC
         uint256 botGasAllowance = 0.0005 ether;
 
         console.log("WETH balance before trade: %s", getTokenBalance(WETH, address(this)));

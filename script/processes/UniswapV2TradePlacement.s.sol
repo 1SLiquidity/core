@@ -31,7 +31,7 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
         console.log("Starting UniswapV2 trade test");
         
         uint256 amountIn = formatTokenAmount(WETH, 1); // 1 WETH
-        uint256 amountOutMin = formatTokenAmount(USDC, 100); // 100 USDC minimum output (lowered for testing)
+        uint256 amountOutMin = formatTokenAmount(USDC, 1792); // 100 USDC minimum output (lowered for testing)
         uint256 botGasAllowance = 0.0005 ether;
 
         uint256 initialWethBalance = getTokenBalance(WETH, address(core));

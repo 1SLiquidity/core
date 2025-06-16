@@ -28,7 +28,7 @@ contract SushiswapTradePlacement is SingleDexProtocol {
         console.log("Starting Sushiswap trade test");
         
         uint256 amountIn = formatTokenAmount(WETH, 1);
-        uint256 amountOutMin = formatTokenAmount(USDC, 100); // (lowered for testing)
+        uint256 amountOutMin = formatTokenAmount(USDC, 1792); // (lowered for testing)
         uint256 botGasAllowance = 0.0005 ether;
 
         uint256 initialWethBalance = getTokenBalance(WETH, address(core));
