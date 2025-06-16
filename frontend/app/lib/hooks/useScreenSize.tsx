@@ -4,9 +4,9 @@ import { useState } from 'react'
 
 // Custom hook for screen size detection
 export const useScreenSize = () => {
-  const [screenType, setScreenType] = useState<'mobile' | 'tablet' | 'desktop'>(
-    'desktop'
-  )
+  const [screenType, setScreenType] = useState<
+    'mobile' | 'tablet' | 'desktop' | 'xl'
+  >('desktop')
 
   useEffect(() => {
     const handleResize = () => {
@@ -15,6 +15,8 @@ export const useScreenSize = () => {
         setScreenType('mobile')
       } else if (width >= 640 && width < 768) {
         setScreenType('tablet')
+      } else if (width >= 1280) {
+        setScreenType('xl')
       } else {
         setScreenType('desktop')
       }
@@ -34,6 +36,7 @@ export const useScreenSize = () => {
     isMobile: screenType === 'mobile',
     isTablet: screenType === 'tablet',
     isDesktop: screenType === 'desktop',
+    isXl: screenType === 'xl',
     screenType,
   }
 }
