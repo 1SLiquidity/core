@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
-import { debounce } from 'lodash'
+import { useInView } from 'react-intersection-observer'
 import {
   Select,
   SelectContent,
@@ -27,257 +27,11 @@ import {
   ChartTooltip,
 } from '@/components/ui/chart'
 import TradesTable from './TradesTable'
-import { ChartDataPoint } from '@/app/lib/types/trade'
+import { ChartDataPoint, Trade } from '@/app/lib/types/trade'
+import tradesApi from '@/api/trades'
+import { Spinner } from '../ui/spinner'
 
-// Helper function to get timestamp for relative dates
-const getTimestamp = (daysAgo: number): number => {
-  const date = new Date()
-  date.setDate(date.getDate() - daysAgo)
-  return date.getTime()
-}
-
-const unsortedChartData: ChartDataPoint[] = [
-  {
-    volume: 2,
-    streams: 4,
-    trade: {
-      invoice: 'INV001',
-      action: 'INSTASETTLE',
-      amount1: '$4.56',
-      amount2: '$56.78',
-      savings: '40',
-      duration: '4 mins',
-      bps: '45',
-      isOwner: true,
-      timestamp: getTimestamp(0), // Today
-    },
-  },
-  {
-    volume: 15,
-    streams: 12,
-    trade: {
-      invoice: 'INV002',
-      action: 'INSTASETTLE',
-      amount1: '$3.21',
-      amount2: '$47.65',
-      savings: '30',
-      duration: '6 mins',
-      bps: '70',
-      isOwner: false,
-      timestamp: getTimestamp(2), // 2 days ago
-    },
-  },
-  {
-    volume: 45,
-    streams: 8,
-    trade: {
-      invoice: 'INV003',
-      action: 'INSTASETTLE',
-      amount1: '$5.67',
-      amount2: '$89.12',
-      savings: '35',
-      duration: '5 mins',
-      bps: '30',
-      isOwner: true,
-      timestamp: getTimestamp(5), // 5 days ago
-    },
-  },
-  {
-    volume: 120,
-    streams: 25,
-    trade: {
-      invoice: 'INV004',
-      action: 'INSTASETTLE',
-      amount1: '$6.78',
-      amount2: '$123.45',
-      savings: '45',
-      duration: '7 mins',
-      bps: '40',
-      isOwner: false,
-      timestamp: getTimestamp(15), // 15 days ago
-    },
-  },
-  {
-    volume: 230,
-    streams: 18,
-    trade: {
-      invoice: 'INV005',
-      action: 'INSTASETTLE',
-      amount1: '$7.89',
-      amount2: '$234.56',
-      savings: '50',
-      duration: '8 mins',
-      bps: '50',
-      isOwner: true,
-      timestamp: getTimestamp(20), // 20 days ago
-    },
-  },
-  {
-    volume: 380,
-    streams: 35,
-    trade: {
-      invoice: 'INV006',
-      action: 'INSTASETTLE',
-      amount1: '$8.90',
-      amount2: '$345.67',
-      savings: '55',
-      duration: '9 mins',
-      bps: '60',
-      isOwner: false,
-      timestamp: getTimestamp(25), // 25 days ago
-    },
-  },
-  {
-    volume: 560,
-    streams: 28,
-    trade: {
-      invoice: 'INV007',
-      action: 'INSTASETTLE',
-      amount1: '$9.01',
-      amount2: '$456.78',
-      savings: '60',
-      duration: '10 mins',
-      bps: '70',
-      isOwner: true,
-      timestamp: getTimestamp(30), // 30 days ago
-    },
-  },
-  {
-    volume: 667,
-    streams: 42,
-    trade: {
-      invoice: 'INV008',
-      action: 'INSTASETTLE',
-      amount1: '$10.12',
-      amount2: '$567.89',
-      savings: '65',
-      duration: '11 mins',
-      bps: '80',
-      isOwner: false,
-      timestamp: getTimestamp(45), // 45 days ago
-    },
-  },
-  {
-    volume: 850,
-    streams: 38,
-    trade: {
-      invoice: 'INV009',
-      action: 'INSTASETTLE',
-      amount1: '$11.23',
-      amount2: '$678.90',
-      savings: '70',
-      duration: '12 mins',
-      bps: '90',
-      isOwner: true,
-      timestamp: getTimestamp(60), // 60 days ago
-    },
-  },
-  {
-    volume: 900,
-    streams: 55,
-    trade: {
-      invoice: 'INV010',
-      action: 'INSTASETTLE',
-      amount1: '$12.34',
-      amount2: '$789.01',
-      savings: '75',
-      duration: '13 mins',
-      bps: '100',
-      isOwner: false,
-      timestamp: getTimestamp(90), // 90 days ago
-    },
-  },
-  {
-    volume: 250,
-    streams: 18,
-    trade: {
-      invoice: 'INV011',
-      action: 'INSTASETTLE',
-      amount1: '$13.45',
-      amount2: '$890.12',
-      savings: '80',
-      duration: '14 mins',
-      bps: '110',
-      isOwner: true,
-      timestamp: getTimestamp(0), // Today
-    },
-  },
-  {
-    volume: 400,
-    streams: 35,
-    trade: {
-      invoice: 'INV012',
-      action: 'INSTASETTLE',
-      amount1: '$14.56',
-      amount2: '$901.23',
-      savings: '85',
-      duration: '15 mins',
-      bps: '120',
-      isOwner: false,
-      timestamp: getTimestamp(2), // 2 days ago
-    },
-  },
-  {
-    volume: 560,
-    streams: 28,
-    trade: {
-      invoice: 'INV013',
-      action: 'INSTASETTLE',
-      amount1: '$15.67',
-      amount2: '$1012.34',
-      savings: '90',
-      duration: '16 mins',
-      bps: '130',
-      isOwner: true,
-      timestamp: getTimestamp(5), // 5 days ago
-    },
-  },
-  {
-    volume: 767,
-    streams: 42,
-    trade: {
-      invoice: 'INV014',
-      action: 'INSTASETTLE',
-      amount1: '$16.78',
-      amount2: '$1123.45',
-      savings: '95',
-      duration: '17 mins',
-      bps: '140',
-      isOwner: false,
-      timestamp: getTimestamp(15), // 15 days ago
-    },
-  },
-  {
-    volume: 850,
-    streams: 38,
-    trade: {
-      invoice: 'INV015',
-      action: 'INSTASETTLE',
-      amount1: '$17.89',
-      amount2: '$1234.56',
-      savings: '100',
-      duration: '18 mins',
-      bps: '150',
-      isOwner: true,
-      timestamp: getTimestamp(20), // 20 days ago
-    },
-  },
-  {
-    volume: 1500,
-    streams: 75,
-    trade: {
-      invoice: 'INV016',
-      action: 'INSTASETTLE',
-      amount1: '$18.90',
-      amount2: '$1345.67',
-      savings: '105',
-      duration: '19 mins',
-      bps: '160',
-      isOwner: false,
-      timestamp: getTimestamp(180), // 180 days ago
-    },
-  },
-]
+const ITEMS_PER_PAGE = 20
 
 const chartConfig = {
   streams: {
@@ -290,49 +44,15 @@ export default function TradesChart() {
   const [selectedBar, setSelectedBar] = useState<number | null>(null)
   const [isChartReady, setIsChartReady] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-  const ITEMS_PER_PAGE = 20
+
+  // Setup intersection observer with options
+  const { ref, inView } = useInView({
+    threshold: 0,
+    rootMargin: '0px 400px 0px 0px', // Trigger earlier before reaching the edge
+  })
 
   // Filter states
-  const [selectedRange, setSelectedRange] = useState<string | null>(null)
   const [selectedTopN, setSelectedTopN] = useState<string>('all')
-  const [selectedVolume, setSelectedVolume] = useState<string | null>(null)
-  const [selectedCount, setSelectedCount] = useState<string | null>(null)
-  const [sliderValue, setSliderValue] = useState<number>(100)
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
-
-  // Function to generate dummy data based on page number
-  const generateDummyData = (
-    pageNum: number,
-    limit?: number
-  ): ChartDataPoint[] => {
-    const itemsToGenerate = limit || ITEMS_PER_PAGE
-    console.log('Generating dummy data:', { pageNum, limit, itemsToGenerate })
-    return Array.from({ length: itemsToGenerate }).map((_, index) => {
-      // For fixed amounts (10, 20, 30), generate higher volume trades
-      const baseVolume = limit
-        ? (limit - index) * 1000 + Math.floor(Math.random() * 500) // Descending order for top N
-        : (pageNum - 1) * 2000 + index * 200 + Math.floor(Math.random() * 100)
-
-      return {
-        volume: baseVolume,
-        streams: Math.floor(Math.random() * 50) + 10,
-        trade: {
-          invoice: `INV${String(pageNum).padStart(2, '0')}${String(
-            index
-          ).padStart(2, '0')}`,
-          action: 'INSTASETTLE',
-          amount1: `$${(Math.random() * 10 + 1).toFixed(2)}`,
-          amount2: `$${(Math.random() * 100 + 20).toFixed(2)}`,
-          savings: String(Math.floor(Math.random() * 40) + 20),
-          duration: `${Math.floor(Math.random() * 10) + 2} mins`,
-          bps: `$${baseVolume.toLocaleString()}`,
-          isOwner: Math.random() > 0.5,
-          timestamp:
-            Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000,
-        },
-      }
-    })
-  }
 
   // React Query infinite scroll setup
   const {
@@ -344,119 +64,66 @@ export default function TradesChart() {
     refetch,
   } = useInfiniteQuery({
     queryKey: ['trades', selectedTopN],
-    queryFn: async ({ pageParam = 1 }) => {
+    queryFn: async ({ pageParam = 0 }) => {
       console.log('Fetching page:', pageParam, 'selectedTopN:', selectedTopN)
-      await new Promise((resolve) => setTimeout(resolve, 200))
 
       // If specific number selected, return exactly that many items
       if (selectedTopN !== 'all') {
         const limit = parseInt(selectedTopN)
+        const response = await tradesApi.fetchTrades(limit, 0)
         return {
-          trades: generateDummyData(1, limit),
+          ...response,
           hasMore: false,
         }
       }
 
-      const trades = generateDummyData(pageParam)
+      const response = await tradesApi.fetchTrades(
+        ITEMS_PER_PAGE,
+        pageParam * ITEMS_PER_PAGE
+      )
       return {
-        trades,
-        hasMore: trades.length === ITEMS_PER_PAGE, // Only has more if we got a full page
+        ...response,
+        hasMore: response.trades.length === ITEMS_PER_PAGE,
       }
     },
     getNextPageParam: (lastPage, allPages) => {
       // Only enable infinite scroll for 'all' and if there's more data
       if (selectedTopN !== 'all' || !lastPage.hasMore) return undefined
-
-      const nextPage = lastPage.hasMore ? allPages.length + 1 : undefined
-      console.log(
-        'Next page param:',
-        nextPage,
-        'Current pages:',
-        allPages.length
-      )
-      return nextPage
+      return allPages.length
     },
-    initialPageParam: 1,
+    initialPageParam: 0,
   })
 
-  // Handle scroll with debounce
-  const handleScroll = useCallback(
-    (e: Event) => {
-      // Only handle scroll for 'all' view
-      if (selectedTopN !== 'all') return
-
-      console.log('Scroll event fired')
-      const container = e.target as HTMLDivElement
-      if (!container || isFetchingNextPage || !hasNextPage) {
-        console.log('Scroll handler early return:', {
-          hasContainer: !!container,
-          isFetchingNextPage,
-          hasNextPage,
-        })
-        return
-      }
-
-      const { scrollLeft, scrollWidth, clientWidth } = container
-      const scrollEnd = scrollWidth - clientWidth
-      const threshold = scrollEnd * 0.7 // Load more when 70% scrolled
-
-      console.log('Scroll Debug:', {
-        scrollLeft,
-        scrollWidth,
-        clientWidth,
-        scrollEnd,
-        threshold,
-        hasNextPage,
-        isFetchingNextPage,
-        currentDataLength: data?.pages.length,
-      })
-
-      if (scrollLeft >= threshold) {
-        console.log('Fetching next page...')
-        fetchNextPage()
-      }
-    },
-    [
-      fetchNextPage,
-      hasNextPage,
-      isFetchingNextPage,
-      data?.pages.length,
-      selectedTopN,
-    ]
-  )
-
-  // Add scroll event listener
+  // Handle intersection observer
   useEffect(() => {
-    console.log('Setting up scroll listener')
-    const container = containerRef.current
-    if (!container) {
-      console.log('No container found')
-      return
+    if (
+      inView &&
+      hasNextPage &&
+      selectedTopN === 'all' &&
+      !isFetchingNextPage
+    ) {
+      console.log('Loading more data...', {
+        inView,
+        hasNextPage,
+        selectedTopN,
+        isFetchingNextPage,
+      })
+      fetchNextPage()
     }
+  }, [inView, hasNextPage, fetchNextPage, selectedTopN, isFetchingNextPage])
 
-    // Immediate check for initial load
-    handleScroll({ target: container } as unknown as Event)
-
-    const debouncedScroll = debounce((e: Event) => {
-      console.log('Debounced scroll triggered')
-      handleScroll(e)
-    }, 50)
-
-    container.addEventListener('scroll', debouncedScroll, { passive: true })
-
-    return () => {
-      console.log('Cleaning up scroll listener')
-      container.removeEventListener('scroll', debouncedScroll)
-      debouncedScroll.cancel()
-    }
-  }, [handleScroll])
-
-  // Combine all pages of data
+  // Combine all pages of data into chart data points
   const allChartData = useMemo(() => {
     if (!data?.pages) return []
-    const flatData = data.pages.flatMap((page) => page.trades)
-    console.log('All chart data length:', flatData.length)
-    return flatData
+    return data.pages.flatMap((page) =>
+      page.trades.map(
+        (trade: Trade): ChartDataPoint => ({
+          volume: parseFloat(trade.bps),
+          streams: parseInt(trade.savings),
+          trade,
+        })
+      )
+    )
   }, [data?.pages])
 
   // Sort all chart data
@@ -485,7 +152,6 @@ export default function TradesChart() {
     return calculatedWidth
   }, [sortedChartData.length])
 
-  // 114532
   const getBarProps = useCallback(
     (index: number) => ({
       fill:
@@ -546,7 +212,7 @@ export default function TradesChart() {
               <SelectTrigger className="w-[180px] bg-transparent border border-primary hover:bg-tabsGradient transition-colors">
                 <SelectValue placeholder="Select trades" />
               </SelectTrigger>
-              <SelectContent className="bg-background border border-primary">
+              <SelectContent className="bg-black border border-primary">
                 <SelectItem
                   value="10"
                   className="hover:bg-tabsGradient hover:text-white cursor-pointer"
@@ -582,18 +248,16 @@ export default function TradesChart() {
               className="overflow-x-auto chart-scroll rounded-2xl"
               style={{
                 width: '100%',
+                height: '500px',
                 overflowY: 'hidden',
-                WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
-              }}
-              onScroll={(e) => {
-                console.log('Direct scroll event')
-                handleScroll(e as unknown as Event)
+                WebkitOverflowScrolling: 'touch',
+                position: 'relative',
               }}
             >
               <div
                 style={{
                   width: `${containerWidth}px`,
-                  height: '500px',
+                  height: '100%',
                   position: 'relative',
                 }}
               >
@@ -612,12 +276,12 @@ export default function TradesChart() {
                     maskRepeat: 'no-repeat',
                     maskSize: '100% 100%',
                   }}
-                ></div>
+                />
 
-                {/* [mask-image:linear-gradient(to_top,black_0%,transparent_100%)] */}
+                {/* [mask-image:linear-gradient(to_top,black_70%,transparent_100%)] */}
                 <ChartContainer
                   config={chartConfig}
-                  className="h-full w-full relative overflow-hidden"
+                  className="h-full w-full relative"
                 >
                   <BarChart
                     data={sortedChartData}
@@ -646,7 +310,8 @@ export default function TradesChart() {
                   >
                     {/* <CartesianGrid
                       strokeDasharray="3 3"
-                      stroke="hsl(var(--border))"
+                      // stroke="hsl(var(--border))"
+                      stroke="#181818"
                       strokeWidth={1}
                       vertical={true}
                       horizontal={true}
@@ -721,13 +386,25 @@ export default function TradesChart() {
                     />
                   </BarChart>
                 </ChartContainer>
+
+                {/* Intersection Observer target */}
+                {selectedTopN === 'all' && hasNextPage && (
+                  <div
+                    ref={ref}
+                    className="absolute right-0 top-0 bottom-0 w-40"
+                    style={{
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    {isFetchingNextPage && (
+                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+                        <Spinner />
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-            {isFetchingNextPage && (
-              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-background/80 p-2 rounded-lg">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-              </div>
-            )}
           </div>
         </div>
       </div>

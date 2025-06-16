@@ -514,7 +514,11 @@ const TradesTable = ({
 
       {/* Intersection Observer target */}
       {!isChartFiltered && hasNextPage && (
-        <div ref={ref}>{isFetchingNextPage && <Spinner />}</div>
+        <div ref={ref}>
+          {isFetchingNextPage && (
+            <Spinner className="flex justify-center items-center" />
+          )}
+        </div>
       )}
 
       {initialStream && (
