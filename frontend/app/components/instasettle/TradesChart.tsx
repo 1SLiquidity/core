@@ -292,7 +292,7 @@ export default function TradesChart() {
   const [selectedBar, setSelectedBar] = useState<number | null>(null)
   const [isChartReady, setIsChartReady] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
-  const ITEMS_PER_PAGE = 25
+  const ITEMS_PER_PAGE = 20
 
   // Filter states
   const [selectedRange, setSelectedRange] = useState<string | null>(null)
@@ -308,6 +308,7 @@ export default function TradesChart() {
     limit?: number
   ): ChartDataPoint[] => {
     const itemsToGenerate = limit || ITEMS_PER_PAGE
+    console.log('Generating dummy data:', { pageNum, limit, itemsToGenerate })
     return Array.from({ length: itemsToGenerate }).map((_, index) => {
       // For fixed amounts (10, 20, 30), generate higher volume trades
       const baseVolume = limit
@@ -352,16 +353,23 @@ export default function TradesChart() {
       // If specific number selected, return exactly that many items
       if (selectedTopN !== 'all') {
         const limit = parseInt(selectedTopN)
-        return generateDummyData(1, limit)
+        return {
+          trades: generateDummyData(1, limit),
+          hasMore: false,
+        }
       }
 
-      return generateDummyData(pageParam)
+      const trades = generateDummyData(pageParam)
+      return {
+        trades,
+        hasMore: trades.length === ITEMS_PER_PAGE, // Only has more if we got a full page
+      }
     },
     getNextPageParam: (lastPage, allPages) => {
-      // Only enable infinite scroll for 'all'
-      if (selectedTopN !== 'all') return undefined
+      // Only enable infinite scroll for 'all' and if there's more data
+      if (selectedTopN !== 'all' || !lastPage.hasMore) return undefined
 
-      const nextPage = allPages.length < 10 ? allPages.length + 1 : undefined
+      const nextPage = lastPage.hasMore ? allPages.length + 1 : undefined
       console.log(
         'Next page param:',
         nextPage,
@@ -448,7 +456,7 @@ export default function TradesChart() {
   // Combine all pages of data
   const allChartData = useMemo(() => {
     if (!data?.pages) return []
-    const flatData = data.pages.flat()
+    const flatData = data.pages.flatMap((page) => page.trades)
     console.log('All chart data length:', flatData.length)
     return flatData
   }, [data?.pages])
