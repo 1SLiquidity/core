@@ -29,7 +29,7 @@ export default function TokenSelector() {
   const [fromToken, setFromToken] = useState<(typeof tokens)[0] | null>(null)
   const [toToken, setToToken] = useState<(typeof tokens)[0] | null>(null)
   const [boltConfig, setBoltConfig] = useState(defaultBoltConfig)
-  const { isMobile, isTablet, isDesktop, screenType } = useScreenSize()
+  const { isMobile } = useScreenSize()
 
   const {
     showSelectTokenModal,
