@@ -104,9 +104,14 @@ const SELSection = () => {
     }
   }, [selectedTokenFrom, selectedTokenTo])
 
-  const handleSwap = () => {
+  const handleSwap = (): void => {
     if (sellAmount > 0 || buyAmount > 0) {
       setSellAmount(buyAmount)
+    } else if (selectedTokenFrom && selectedTokenTo) {
+      // If no values but tokens are selected, swap the tokens
+      const tempToken = selectedTokenFrom
+      setSelectedTokenFrom(selectedTokenTo)
+      setSelectedTokenTo(tempToken)
     }
   }
 
@@ -248,11 +253,18 @@ const SELSection = () => {
           )}
           <div
             onClick={handleSwap}
-            className="absolute items-center flex border-[#1F1F1F] border-[2px] border-opacity-[1.5] bg-black justify-center cursor-pointer rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50"
+            className={`absolute items-center flex border-[#1F1F1F] border-[2px] border-opacity-[1.5] bg-black justify-center rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50 ${
+              !selectedTokenFrom || !selectedTokenTo
+                ? 'cursor-not-allowed'
+                : 'cursor-pointer'
+            }`}
           >
             <div className="w-[25.3px] h-[22.8px] absolute bg-transparent md:bg-black -rotate-45 -z-30 -left-[14px] top-[50.8px]" />
             <div className="w-[26.4px] h-[22.8px] absolute bg-transparent md:bg-black -rotate-45 -z-30 -right-[11.8px] -top-[13.2px]" />
-            <SwapBox active={sellAmount > 0 || buyAmount > 0} />
+            <SwapBox
+              active={sellAmount > 0 || buyAmount > 0}
+              disabled={!selectedTokenFrom || !selectedTokenTo}
+            />
           </div>
           {swap ? (
             <CoinSellSection
