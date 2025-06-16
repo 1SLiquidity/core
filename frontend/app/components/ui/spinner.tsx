@@ -1,5 +1,9 @@
-export const Spinner = () => (
-  <div className="flex justify-center items-center w-full py-4">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-  </div>
-)
+import { cn } from '@/lib/utils'
+
+export function Spinner({ className }: { className?: string }) {
+  return (
+    <div className={cn('bg-background/80 p-2 rounded-lg', className)}>
+      <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  )
+}
