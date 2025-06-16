@@ -18,7 +18,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Trade } from '@/app/lib/types/trade'
 import { useScreenSize } from '@/app/lib/hooks/useScreenSize'
 
-type SortField = 'streams' | 'output' | 'volume' | null
+type SortField = 'streams' | 'output' | 'volume' | 'timestamp' | null
 type SortDirection = 'asc' | 'desc' | null
 
 interface TradesTableProps {
@@ -52,7 +52,7 @@ const tableData: Trade[] = [
     action: 'INSTASETTLE',
     amount1: '$3.21',
     amount2: '$43.65',
-    quantity: '30',
+    savings: '30',
     duration: '6 mins',
     bps: '70',
     isOwner: false,
@@ -63,7 +63,7 @@ const tableData: Trade[] = [
     action: 'INSTASETTLE',
     amount1: '$3.21',
     amount2: '$37.65',
-    quantity: '30',
+    savings: '30',
     duration: '6 mins',
     bps: '30',
     isOwner: true,
@@ -85,7 +85,7 @@ const tableData: Trade[] = [
     action: 'INSTASETTLE',
     amount1: '$3.21',
     amount2: '$22.65',
-    quantity: '30',
+    savings: '30',
     duration: '6 mins',
     bps: '50',
     isOwner: false,
@@ -206,16 +206,20 @@ const TradesTable = ({
 
         switch (sortField) {
           case 'streams':
-            compareA = parseInt(a.quantity)
-            compareB = parseInt(b.quantity)
+            compareA = parseInt(a.savings)
+            compareB = parseInt(b.savings)
             break
           case 'output':
             compareA = parseFloat(a.amount2.replace('$', ''))
             compareB = parseFloat(b.amount2.replace('$', ''))
             break
           case 'volume':
-            compareA = parseFloat(a.value.replace('$', '').replace(',', ''))
-            compareB = parseFloat(b.value.replace('$', '').replace(',', ''))
+            compareA = parseFloat(a.bps)
+            compareB = parseFloat(b.bps)
+            break
+          case 'timestamp':
+            compareA = a.timestamp
+            compareB = b.timestamp
             break
           default:
             return 0
@@ -287,7 +291,7 @@ const TradesTable = ({
           </div>
         </div>
       )}
-      <div className="flex justify-between">
+      <div className="flex justify-between mb-6">
         <div className="flex gap-2">
           <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex gap-[6px]">
             <div
@@ -327,25 +331,25 @@ const TradesTable = ({
               MY INSTASETTLES
             </div>
           </div>
-
-          {!(isMobile || isTablet) &&
-            isChartFiltered &&
-            selectedVolume !== null && (
-              <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex items-center">
-                <div className="flex gap-[6px] items-center py-[6px] sm:py-[10px] px-[6px] sm:px-[9px] rounded-[8px]">
-                  <span>Trade Volume: ${selectedVolume}</span>
-                  <button
-                    onClick={onClearSelection}
-                    className="hover:text-primary transition-colors"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            )}
         </div>
 
-        <div className="flex justify-between items-center mb-6 h-10">
+        {!(isMobile || isTablet) &&
+          isChartFiltered &&
+          selectedVolume !== null && (
+            <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex items-center">
+              <div className="flex gap-[6px] items-center py-[6px] sm:py-[10px] px-[6px] sm:px-[9px] rounded-[8px]">
+                <span>Trade Volume: ${selectedVolume}</span>
+                <button
+                  onClick={onClearSelection}
+                  className="hover:text-primary transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+
+        {/* <div className="flex justify-between items-center mb-6 h-10">
           <div className="flex items-center gap-2">
             <div
               className={`flex rounded-lg p-1 border border-primary h-10 ${
@@ -371,32 +375,18 @@ const TradesTable = ({
               ))}
             </div>
 
-            {/* Search */}
-            {/* <div className="relative h-10 max-md:hidden">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600 w-4 h-4" />
-                <input
-                  type="text"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent border border-primary h-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-zinc-600 w-64"
-                />
-              </div> */}
-          </div>
-        </div>
-        {isChartFiltered && selectedVolume !== null && (
-          <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex items-center">
-            <div className="flex gap-[6px] items-center py-[6px] sm:py-[10px] px-[6px] sm:px-[9px] rounded-[8px]">
-              <span>Trade Volume: ${selectedVolume}</span>
-              <button
-                onClick={onClearSelection}
-                className="hover:text-primary transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
+            <div className="relative h-10 max-md:hidden">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-600 w-4 h-4" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-transparent border border-primary h-full rounded-lg pl-10 pr-4 py-2 text-sm focus:outline-none focus:border-zinc-600 w-64"
+              />
             </div>
           </div>
-        )}
+        </div> */}
       </div>
 
       <ScrollArea className="w-full whitespace-nowrap">
@@ -405,13 +395,13 @@ const TradesTable = ({
             <TableRow>
               <TableHead className="text-center">Token Pair</TableHead>
               <TableHead></TableHead>
-              <TableHead className="text-center">Input</TableHead>
+              <TableHead className="text-center">Volume</TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
                 onClick={() => handleSort('output')}
               >
                 <div className="flex items-center justify-center">
-                  Output
+                  Effective Price
                   <SortIcon
                     active={sortField === 'output'}
                     direction={sortField === 'output' ? sortDirection : null}
@@ -423,26 +413,38 @@ const TradesTable = ({
                 onClick={() => handleSort('streams')}
               >
                 <div className="flex items-center justify-center">
-                  Streams
+                  Savings
                   <SortIcon
                     active={sortField === 'streams'}
                     direction={sortField === 'streams' ? sortDirection : null}
                   />
                 </div>
               </TableHead>
-              <TableHead className="text-center">EST. Time</TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
                 onClick={() => handleSort('volume')}
               >
                 <div className="flex items-center justify-center">
-                  Swap Volume
+                  bps
                   <SortIcon
                     active={sortField === 'volume'}
                     direction={sortField === 'volume' ? sortDirection : null}
                   />
                 </div>
               </TableHead>
+              <TableHead
+                className="text-center cursor-pointer group"
+                onClick={() => handleSort('timestamp')}
+              >
+                <div className="flex items-center justify-center">
+                  Timestamp
+                  <SortIcon
+                    active={sortField === 'timestamp'}
+                    direction={sortField === 'timestamp' ? sortDirection : null}
+                  />
+                </div>
+              </TableHead>
+
               <TableHead className="text-center"></TableHead>
             </TableRow>
           </TableHeader>

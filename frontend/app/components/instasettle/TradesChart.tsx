@@ -8,6 +8,7 @@ import {
   YAxis,
   ResponsiveContainer,
   Cell,
+  Rectangle,
 } from 'recharts'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -44,9 +45,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$4.56',
       amount2: '$56.78',
-      quantity: '40',
+      savings: '40',
       duration: '4 mins',
-      value: '$1,551',
+      bps: '45',
       isOwner: true,
       timestamp: getTimestamp(0), // Today
     },
@@ -59,9 +60,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$3.21',
       amount2: '$47.65',
-      quantity: '30',
+      savings: '30',
       duration: '6 mins',
-      value: '$1,200',
+      bps: '70',
       isOwner: false,
       timestamp: getTimestamp(2), // 2 days ago
     },
@@ -74,9 +75,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$5.67',
       amount2: '$89.12',
-      quantity: '35',
+      savings: '35',
       duration: '5 mins',
-      value: '$2,200',
+      bps: '30',
       isOwner: true,
       timestamp: getTimestamp(5), // 5 days ago
     },
@@ -89,9 +90,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$6.78',
       amount2: '$123.45',
-      quantity: '45',
+      savings: '45',
       duration: '7 mins',
-      value: '$3,200',
+      bps: '40',
       isOwner: false,
       timestamp: getTimestamp(15), // 15 days ago
     },
@@ -104,9 +105,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$7.89',
       amount2: '$234.56',
-      quantity: '50',
+      savings: '50',
       duration: '8 mins',
-      value: '$4,200',
+      bps: '50',
       isOwner: true,
       timestamp: getTimestamp(20), // 20 days ago
     },
@@ -119,9 +120,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$8.90',
       amount2: '$345.67',
-      quantity: '55',
+      savings: '55',
       duration: '9 mins',
-      value: '$5,200',
+      bps: '60',
       isOwner: false,
       timestamp: getTimestamp(25), // 25 days ago
     },
@@ -134,9 +135,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$9.01',
       amount2: '$456.78',
-      quantity: '60',
+      savings: '60',
       duration: '10 mins',
-      value: '$6,200',
+      bps: '70',
       isOwner: true,
       timestamp: getTimestamp(30), // 30 days ago
     },
@@ -149,9 +150,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$10.12',
       amount2: '$567.89',
-      quantity: '65',
+      savings: '65',
       duration: '11 mins',
-      value: '$7,200',
+      bps: '80',
       isOwner: false,
       timestamp: getTimestamp(45), // 45 days ago
     },
@@ -164,9 +165,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$11.23',
       amount2: '$678.90',
-      quantity: '70',
+      savings: '70',
       duration: '12 mins',
-      value: '$8,200',
+      bps: '90',
       isOwner: true,
       timestamp: getTimestamp(60), // 60 days ago
     },
@@ -179,9 +180,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$12.34',
       amount2: '$789.01',
-      quantity: '75',
+      savings: '75',
       duration: '13 mins',
-      value: '$9,200',
+      bps: '100',
       isOwner: false,
       timestamp: getTimestamp(90), // 90 days ago
     },
@@ -194,9 +195,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$13.45',
       amount2: '$890.12',
-      quantity: '80',
+      savings: '80',
       duration: '14 mins',
-      value: '$10,200',
+      bps: '110',
       isOwner: true,
       timestamp: getTimestamp(0), // Today
     },
@@ -209,9 +210,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$14.56',
       amount2: '$901.23',
-      quantity: '85',
+      savings: '85',
       duration: '15 mins',
-      value: '$11,200',
+      bps: '120',
       isOwner: false,
       timestamp: getTimestamp(2), // 2 days ago
     },
@@ -224,9 +225,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$15.67',
       amount2: '$1012.34',
-      quantity: '90',
+      savings: '90',
       duration: '16 mins',
-      value: '$12,200',
+      bps: '130',
       isOwner: true,
       timestamp: getTimestamp(5), // 5 days ago
     },
@@ -239,9 +240,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$16.78',
       amount2: '$1123.45',
-      quantity: '95',
+      savings: '95',
       duration: '17 mins',
-      value: '$13,200',
+      bps: '140',
       isOwner: false,
       timestamp: getTimestamp(15), // 15 days ago
     },
@@ -254,9 +255,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$17.89',
       amount2: '$1234.56',
-      quantity: '100',
+      savings: '100',
       duration: '18 mins',
-      value: '$14,200',
+      bps: '150',
       isOwner: true,
       timestamp: getTimestamp(20), // 20 days ago
     },
@@ -269,9 +270,9 @@ const unsortedChartData: ChartDataPoint[] = [
       action: 'INSTASETTLE',
       amount1: '$18.90',
       amount2: '$1345.67',
-      quantity: '105',
+      savings: '105',
       duration: '19 mins',
-      value: '$15,200',
+      bps: '160',
       isOwner: false,
       timestamp: getTimestamp(180), // 180 days ago
     },
@@ -321,9 +322,9 @@ export default function TradesChart() {
           action: 'INSTASETTLE',
           amount1: `$${(Math.random() * 10 + 1).toFixed(2)}`,
           amount2: `$${(Math.random() * 100 + 20).toFixed(2)}`,
-          quantity: String(Math.floor(Math.random() * 40) + 20),
+          savings: String(Math.floor(Math.random() * 40) + 20),
           duration: `${Math.floor(Math.random() * 10) + 2} mins`,
-          value: `$${baseVolume.toLocaleString()}`,
+          bps: `$${baseVolume.toLocaleString()}`,
           isOwner: Math.random() > 0.5,
           timestamp:
             Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000,
@@ -476,10 +477,11 @@ export default function TradesChart() {
     return calculatedWidth
   }, [sortedChartData.length])
 
+  // 114532
   const getBarProps = useCallback(
     (index: number) => ({
       fill:
-        activeBar === index || selectedBar === index ? '#41fcb4' : '#114532',
+        activeBar === index || selectedBar === index ? '#0f4e35' : '#41fcb4',
       style: {
         transition: 'fill 0.2s ease',
       },
@@ -569,7 +571,7 @@ export default function TradesChart() {
           <div className="relative">
             <div
               ref={containerRef}
-              className="overflow-x-auto chart-scroll"
+              className="overflow-x-auto chart-scroll rounded-2xl"
               style={{
                 width: '100%',
                 overflowY: 'hidden',
@@ -587,9 +589,27 @@ export default function TradesChart() {
                   position: 'relative',
                 }}
               >
+                {/* bg-[#08160e] */}
+                {/* bg-[#0c1d13] */}
+                {/* <div className="h-full w-full bg-[#08160e] absolute top-0 left-0 rounded-2xl" /> */}
+                <div
+                  className="h-64 w-full bg-gradient-to-br from-[#114532] to-[#22432e] absolute bottom-0 left-0 rounded-2xl"
+                  style={{
+                    WebkitMaskImage:
+                      'linear-gradient(to top, #ffffff 0%, transparent 100%)',
+                    WebkitMaskRepeat: 'no-repeat',
+                    WebkitMaskSize: '100% 100%',
+                    maskImage:
+                      'linear-gradient(to top, #ffffff 0%, transparent 100%)',
+                    maskRepeat: 'no-repeat',
+                    maskSize: '100% 100%',
+                  }}
+                ></div>
+
+                {/* [mask-image:linear-gradient(to_top,black_0%,transparent_100%)] */}
                 <ChartContainer
                   config={chartConfig}
-                  className="h-full w-full [mask-image:linear-gradient(to_top,black_0%,transparent_100%)]"
+                  className="h-full w-full relative overflow-hidden"
                 >
                   <BarChart
                     data={sortedChartData}
@@ -616,13 +636,13 @@ export default function TradesChart() {
                       }
                     }}
                   >
-                    <CartesianGrid
+                    {/* <CartesianGrid
                       strokeDasharray="3 3"
                       stroke="hsl(var(--border))"
                       strokeWidth={1}
                       vertical={true}
                       horizontal={true}
-                    />
+                    /> */}
                     <XAxis
                       dataKey="volume"
                       tickLine={false}
@@ -630,12 +650,29 @@ export default function TradesChart() {
                       tickMargin={8}
                       tickFormatter={(value) => `$${value}`}
                       label={{
-                        value: 'Volume',
+                        bps: 'Volume',
                         position: 'insideBottom',
                         offset: -10,
                       }}
                     />
-                    <Bar dataKey="streams" radius={8}>
+                    <Bar
+                      dataKey="streams"
+                      radius={8}
+                      activeIndex={(selectedBar || activeBar) ?? undefined}
+                      activeBar={({ ...props }) => {
+                        return (
+                          <Rectangle
+                            {...props}
+                            fillOpacity={0.8}
+                            stroke={'#646363'}
+                            strokeWidth={1}
+                            strokeDasharray={4}
+                            strokeDashoffset={4}
+                            strokeLinecap="round"
+                          />
+                        )
+                      }}
+                    >
                       {sortedChartData.map((entry, index) => (
                         <Cell
                           key={`cell-${index}`}
