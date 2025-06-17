@@ -35,3 +35,13 @@ evm_version = "paris"
 url = "https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec"
 accounts = ["${PRIVATE_KEY}"]
 chainId = 25875
+
+[etherscan]
+mainnet = { key = "${API_KEY_ETHERSCAN}" }
+polygon = { key = "${API_KEY_POLYGONSCAN}" }
+base = { key = "${API_KEY_BASESCAN}" }
+
+[rpc_endpoints]
+mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+polygon = "https://polygon-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+base = "https://base-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"

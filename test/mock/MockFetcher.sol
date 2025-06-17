@@ -1,20 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "src/interfaces/IUniversalDexInterface.sol";
+import { IUniversalDexInterface } from "src/interfaces/IUniversalDexInterface.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 abstract contract AMockFetcher is IUniversalDexInterface {
-    function getReserves(
-        address tokenA,
-        address tokenB
-    )
-        external
-        view
-        override
-        returns (uint256 reserveA, uint256 reserveB)
-    {
-        // to implement
-        return (0, 0);
+    uint256 public reserveA;
+    uint256 public reserveB;
+
+    function setReserves(uint256 _reserveA, uint256 _reserveB) external {
+        reserveA = _reserveA;
+        reserveB = _reserveB;
+    }
+
+    function getReserves(address, address) external view override returns (uint256, uint256) {
+        return (reserveA, reserveB);
     }
 
     function getPoolAddress(address, address) external pure override returns (address) {
