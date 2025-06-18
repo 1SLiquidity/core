@@ -4,6 +4,10 @@ pragma solidity ^0.8.13;
 import {Script, console} from "forge-std/Script.sol";
 import {StreamDaemon} from "../src/StreamDaemon.sol";
 import {Executor} from "../src/Executor.sol";
+import {Core} from "../src/Core.sol";
+import {Registry} from "../src/Registry.sol";
+import {Router} from "../src/Router.sol";
+import {Fees} from "../src/Fees.sol";
 import {IUniversalDexInterface} from "../src/interfaces/IUniversalDexInterface.sol";
 import {UniswapV2Fetcher} from "../src/adapters/UniswapV2Fetcher.sol";
 import {SushiswapFetcher} from "../src/adapters/SushiswapFetcher.sol";
@@ -28,10 +32,9 @@ contract DeployScript is Script {
     function run() external {
         vm.startBroadcast();
 
+        // Deploy fetchers
         UniswapV2Fetcher uniswapV2Fetcher = new UniswapV2Fetcher(UNISWAP_V2_FACTORY);
         SushiswapFetcher sushiswapFetcher = new SushiswapFetcher(SUSHISWAP_FACTORY);
-
-        // Deploy fetchers
         UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, 3000); // Use single fee tier
 
         // CurveFetcher curveFetcher = new CurveFetcher(CURVE_REGISTRY);
@@ -57,6 +60,30 @@ contract DeployScript is Script {
         // Deploy Executor
         Executor executor = new Executor();
 
+        // Deploy Registry
+        Registry registry = new Registry();
+        
+        // Configure all DEX routers in Registry
+        registry.setRouter("UniswapV2", UNISWAP_V2_ROUTER);
+        registry.setRouter("UniswapV3", UNISWAP_V3_ROUTER);
+        registry.setRouter("Sushiswap", SUSHISWAP_ROUTER);
+        registry.setRouter("Balancer", BALANCER_VAULT);
+        registry.setRouter("Curve", CURVE_REGISTRY);
+
+        // Deploy Core with all dependencies
+        Core core = new Core(
+            address(streamDaemon),
+            address(executor),
+            address(registry),
+            100000  // Initial gas estimate
+        );
+
+        // Deploy Fees contract
+        Fees fees = new Fees();
+
+        // Deploy Router with Core dependency
+        Router routerContract = new Router(address(core));
+
         console.log("UniswapV2Fetcher deployed at:", address(uniswapV2Fetcher));
         console.log("SushiswapFetcher deployed at:", address(sushiswapFetcher));
         console.log("UniswapV3Fetcher deployed at:", address(uniswapV3Fetcher));
@@ -64,6 +91,10 @@ contract DeployScript is Script {
         // console.log("BalancerFetcher deployed at:", address(balancerFetcher));
         console.log("StreamDaemon deployed at:", address(streamDaemon));
         console.log("Executor deployed at:", address(executor));
+        console.log("Registry deployed at:", address(registry));
+        console.log("Core deployed at:", address(core));
+        console.log("Fees deployed at:", address(fees));
+        console.log("Router deployed at:", address(routerContract));
 
         console.log("\n=== Testing Reserve Fetching ===");
         (address bestDex, uint256 maxReserveIn, uint256 maxReserveOut) =
@@ -97,21 +128,21 @@ contract DeployScript is Script {
         uint256 effectiveGasInDollars = gasPriceInDollars > 0.1 ether ? gasPriceInDollars : 0.1 ether;
 
         // Test sweet spot for WETH-USDC
-        (uint256 sweetSpot, address sweetSpotDex, address router) =
+        (uint256 sweetSpot, address sweetSpotDex, address dexRouter) =
             streamDaemon.evaluateSweetSpotAndDex(WETH, USDC, testVolume, effectiveGasInDollars);
         console.log("WETH-USDC Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);
         console.log("Sweet Spot Value:", sweetSpot);
 
         // Test sweet spot for WETH-WBTC
-        (sweetSpot, sweetSpotDex, router) =
+        (sweetSpot, sweetSpotDex, dexRouter) =
             streamDaemon.evaluateSweetSpotAndDex(WETH, WBTC, testVolume, effectiveGasInDollars);
         console.log("WETH-WBTC Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);
         console.log("Sweet Spot Value:", sweetSpot);
 
         // Test sweet spot for WETH-DAI
-        (sweetSpot, sweetSpotDex, router) =
+        (sweetSpot, sweetSpotDex, dexRouter) =
             streamDaemon.evaluateSweetSpotAndDex(WETH, DAI, testVolume, effectiveGasInDollars);
         console.log("WETH-DAI Sweet Spot:");
         console.log("Best DEX:", sweetSpotDex);

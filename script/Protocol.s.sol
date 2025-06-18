@@ -12,12 +12,20 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../src/Registry.sol";
 
+// Test contract to hold tokens
+contract TokenHolder {
+    function receiveTokens(address token, uint256 amount) external {
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+    }
+}
+
 contract Protocol is Test {
     // Core protocol contracts
     Core public core;
     StreamDaemon public streamDaemon;
     Executor public executor;
     Registry public registry;
+    TokenHolder public tokenHolder;
 
     // DEX addresses on mainnet
     address constant UNISWAP_V2_FACTORY = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
@@ -50,6 +58,10 @@ contract Protocol is Test {
     function setUp() public virtual {
         console.log("Protocol: setUp() start");
         console.log("Starting setUp...");
+
+        // Deploy token holder first
+        console.log("Deploying TokenHolder...");
+        tokenHolder = new TokenHolder();
 
         // Deploy fetchers
         console.log("Deploying UniswapV2Fetcher...");
@@ -106,6 +118,7 @@ contract Protocol is Test {
         console.log("Core deployed");
 
         // Log deployment addresses
+        console.log("TokenHolder deployed at: %s", address(tokenHolder));
         console.log("StreamDaemon deployed at: %s", address(streamDaemon));
         console.log("Executor deployed at: %s", address(executor));
         console.log("Core deployed at: %s", address(core));
@@ -115,25 +128,31 @@ contract Protocol is Test {
         uint256 whaleWethBalanceBefore = IERC20(WETH).balanceOf(WETH_WHALE);
         console.log("WETH_WHALE balance before prank: %s", whaleWethBalanceBefore);
         vm.startPrank(WETH_WHALE);
-        uint256 whaleWethBalanceAfter = IERC20(WETH).balanceOf(WETH_WHALE);
-        console.log("WETH_WHALE balance after prank: %s", whaleWethBalanceAfter);
-        console.log("Protocol: Before WETH transfer");
-        IERC20(WETH).transfer(address(this), formatTokenAmount(WETH, 1));
-        console.log("Protocol: After WETH transfer");
+        try IERC20(WETH).transfer(address(tokenHolder), formatTokenAmount(WETH, 10)) {
+            console.log("WETH transfer to TokenHolder successful");
+        } catch Error(string memory reason) {
+            console.log("WETH transfer failed with reason: %s", reason);
+        } catch (bytes memory lowLevelData) {
+            console.log("WETH transfer failed with low level error");
+            console.log("Error data length: %s", lowLevelData.length);
+        }
         vm.stopPrank();
 
         console.log("Protocol: Funding with USDC from whale");
         vm.startPrank(USDC_WHALE);
-        uint256 whaleUsdcBalance = IERC20(USDC).balanceOf(USDC_WHALE);
-        console.log("USDC_WHALE balance: %s", whaleUsdcBalance);
-        console.log("Protocol: Before USDC transfer");
-        IERC20(USDC).transfer(address(this), formatTokenAmount(USDC, 3000));
-        console.log("Protocol: After USDC transfer");
+        try IERC20(USDC).transfer(address(tokenHolder), formatTokenAmount(USDC, 1000)) {
+            console.log("USDC transfer to TokenHolder successful");
+        } catch Error(string memory reason) {
+            console.log("USDC transfer failed with reason: %s", reason);
+        } catch (bytes memory lowLevelData) {
+            console.log("USDC transfer failed with low level error");
+            console.log("Error data length: %s", lowLevelData.length);
+        }
         vm.stopPrank();
 
-        console.log("Final test contract balances:");
-        console.log("Test contract WETH balance: %s", getTokenBalance(WETH, address(this)));
-        console.log("Test contract USDC balance: %s", getTokenBalance(USDC, address(this)));
+        console.log("Final token holder balances:");
+        console.log("Token holder WETH balance: %s", getTokenBalance(WETH, address(tokenHolder)));
+        console.log("Token holder USDC balance: %s", getTokenBalance(USDC, address(tokenHolder)));
 
         console.log("setUp completed");
         console.log("Protocol: setUp() end");
@@ -165,10 +184,11 @@ contract Protocol is Test {
         assertTrue(address(core) != address(0), "Core not deployed");
         assertTrue(address(streamDaemon) != address(0), "StreamDaemon not deployed");
         assertTrue(address(executor) != address(0), "Executor not deployed");
+        assertTrue(address(tokenHolder) != address(0), "TokenHolder not deployed");
 
         // Verify token balances
-        uint256 wethBalance = getTokenBalance(WETH, address(this));
-        uint256 usdcBalance = getTokenBalance(USDC, address(this));
+        uint256 wethBalance = getTokenBalance(WETH, address(tokenHolder));
+        uint256 usdcBalance = getTokenBalance(USDC, address(tokenHolder));
 
         assertTrue(wethBalance > 0, "No WETH balance");
         assertTrue(usdcBalance > 0, "No USDC balance");
