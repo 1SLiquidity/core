@@ -16,7 +16,7 @@ const tokens = [
 ]
 
 const defaultBoltConfig = {
-  height: '7.5rem',
+  height: '8.5rem',
   color: '#020408',
   outerBorderStrokeWidth: '5',
   outerBorderStrokeColor: '#262626',
@@ -45,8 +45,26 @@ export default function TokenSelector() {
         ...defaultBoltConfig,
         color: '#33F498',
         outerBorderStrokeColor: '#40f798',
-        height: '6.8rem',
+        height: '7.5rem',
         innerBorderStrokeWidth: '2',
+        innerBorderStrokeColor: '#020408',
+        innerBorderFillColor: '#020408',
+      })
+    } else if (selectedTokenFrom) {
+      setBoltConfig({
+        ...defaultBoltConfig,
+        outerBorderStrokeColor: 'url(#leftGradient)',
+        height: '8.5rem',
+        innerBorderStrokeWidth: '1.5',
+        innerBorderStrokeColor: '#020408',
+        innerBorderFillColor: '#020408',
+      })
+    } else if (selectedTokenTo) {
+      setBoltConfig({
+        ...defaultBoltConfig,
+        outerBorderStrokeColor: 'url(#rightGradient)',
+        height: '8.5rem',
+        innerBorderStrokeWidth: '1.5',
         innerBorderStrokeColor: '#020408',
         innerBorderFillColor: '#020408',
       })
@@ -68,7 +86,7 @@ export default function TokenSelector() {
   return (
     <div className="bg-gray-900 flex items-center justify-center p-4 relative mb-10">
       <div className={cn('flex items-center gap-0 w-full max-w-xl')}>
-        {selectedTokenFrom && selectedTokenTo && (
+        {selectedTokenFrom && (
           <Image
             src="/assets/left-strokes.svg"
             alt="valid"
@@ -82,13 +100,15 @@ export default function TokenSelector() {
             'w-full min-h-[53px] md:min-h-[51px] rounded-l-[15px] p-[2px] relative -right-[2px]',
             selectedTokenFrom && selectedTokenTo
               ? 'bg-primary'
+              : selectedTokenFrom
+              ? 'bg-primary'
               : 'bg-neutral-800'
           )}
         >
           <div
             className={cn(
               'flex justify-center items-center w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-6 rounded-l-[13px]',
-              selectedTokenFrom && selectedTokenTo
+              selectedTokenFrom
                 ? 'bg-gradient-to-r from-[#071310] to-[#062118] dotsbg'
                 : 'bg-[#0D0D0D]'
             )}
@@ -151,7 +171,7 @@ export default function TokenSelector() {
         {/* Cover for top pin */}
         {(!selectedTokenFrom || !selectedTokenTo) && (
           <div
-            className="absolute bg-[#020407] w-8 md:w-4 h-4 z-[51]"
+            className="absolute bg-[#020407] w-10 h-4 z-[51]"
             style={{
               left: '50.5%',
               transform: 'translateX(-50%)',
@@ -161,7 +181,7 @@ export default function TokenSelector() {
         )}
         {selectedTokenFrom && selectedTokenTo && (
           <div
-            className="absolute bg-[#020407] w-8 md:w-4 h-4 z-[51]"
+            className="absolute bg-[#020407] w-10 h-4 z-[51]"
             style={{
               left: '50.5%',
               transform: 'translateX(-50%)',
@@ -179,22 +199,56 @@ export default function TokenSelector() {
           className="absolute left-1/2 top-1/2 z-50 flex items-center justify-center"
           style={{
             transform: 'translate(-50%, -50%)',
-            width: '3rem',
+            width: '3.3rem',
             height: boltConfig.height,
           }}
         >
-          {/* Outermost border path */}
+          <defs>
+            <linearGradient
+              id="leftGradient"
+              x1="0%"
+              y1="50%"
+              x2="100%"
+              y2="50%"
+            >
+              <stop offset="0%" stopColor="#40f798" />
+              <stop offset="50%" stopColor="#40f798" />
+              <stop offset="51%" stopColor="#262626" />
+              <stop offset="100%" stopColor="#262626" />
+            </linearGradient>
+            <linearGradient
+              id="rightGradient"
+              x1="100%"
+              y1="50%"
+              x2="0%"
+              y2="50%"
+            >
+              <stop offset="0%" stopColor="#40f798" />
+              <stop offset="50%" stopColor="#40f798" />
+              <stop offset="51%" stopColor="#262626" />
+              <stop offset="100%" stopColor="#262626" />
+            </linearGradient>
+          </defs>
+
+          {/* Left side of bolt */}
           <path
-            d="M24.5681 1.18613C24.612 0.608638 23.8031 0.430899 23.6009 0.97364L0.733023 62.3743C0.61658 62.687 0.833176 63.0238 1.16596 63.0476L13.9898 63.9636C14.2697 63.9836 14.4783 64.2299 14.452 64.5092L9.85446 113.248C9.79994 113.826 10.6086 114.017 10.8184 113.476L36.4638 47.326C36.5851 47.0133 36.3701 46.6722 36.0356 46.6467L21.6898 45.5539C21.4145 45.533 21.2083 45.2928 21.2292 45.0174L24.5681 1.18613Z"
+            d="M24.5681 1.18613C24.612 0.608638 23.8031 0.430899 23.6009 0.97364L0.733023 62.3743C0.61658 62.687 0.833176 63.0238 1.16596 63.0476L13.9898 63.9636C14.2697 63.9836 14.4783 64.2299 14.452 64.5092L9.85446 113.248"
             fill="transparent"
-            stroke={boltConfig.outerBorderStrokeColor}
-            strokeWidth={boltConfig.outerBorderStrokeWidth}
+            stroke={selectedTokenFrom ? '#40f798' : '#262626'}
+            strokeWidth="5"
+          />
+
+          {/* Right side of bolt */}
+          <path
+            d="M9.85446 113.248C9.79994 113.826 10.6086 114.017 10.8184 113.476L36.4638 47.326C36.5851 47.0133 36.3701 46.6722 36.0356 46.6467L21.6898 45.5539C21.4145 45.533 21.2083 45.2928 21.2292 45.0174L24.5681 1.18613"
+            fill="transparent"
+            stroke={selectedTokenTo ? '#40f798' : '#262626'}
+            strokeWidth="5"
           />
 
           {/* Middle padding path */}
           <path
             d="M24.5681 1.18613C24.612 0.608638 23.8031 0.430899 23.6009 0.97364L0.733023 62.3743C0.61658 62.687 0.833176 63.0238 1.16596 63.0476L13.9898 63.9636C14.2697 63.9836 14.4783 64.2299 14.452 64.5092L9.85446 113.248C9.79994 113.826 10.6086 114.017 10.8184 113.476L36.4638 47.326C36.5851 47.0133 36.3701 46.6722 36.0356 46.6467L21.6898 45.5539C21.4145 45.533 21.2083 45.2928 21.2292 45.0174L24.5681 1.18613Z"
-            // fill="transparent"
             fill={boltConfig.innerBorderFillColor}
             stroke={boltConfig.innerBorderStrokeColor}
             strokeWidth={boltConfig.innerBorderStrokeWidth}
@@ -213,7 +267,7 @@ export default function TokenSelector() {
         {/* Cover for bottom pin */}
         {(!selectedTokenFrom || !selectedTokenTo) && (
           <div
-            className="absolute bg-[#020407] w-8 md:w-4 h-4 z-[51]"
+            className="absolute bg-[#020407] w-10 h-4 z-[51]"
             style={{
               left: '49.5%',
               transform: 'translateX(-50%)',
@@ -223,7 +277,7 @@ export default function TokenSelector() {
         )}
         {selectedTokenFrom && selectedTokenTo && (
           <div
-            className="absolute bg-[#020407] w-4 h-4 z-[51]"
+            className="absolute bg-[#020407] w-10 h-4 z-[51]"
             style={{
               left: '49.5%',
               transform: 'translateX(-50%)',
@@ -237,13 +291,15 @@ export default function TokenSelector() {
             'w-full min-h-[53px] md:min-h-[51px] rounded-r-[15px] p-[2px] relative -left-[2px]',
             selectedTokenFrom && selectedTokenTo
               ? 'bg-primary'
+              : selectedTokenTo
+              ? 'bg-primary'
               : 'bg-neutral-800'
           )}
         >
           <div
             className={cn(
               'flex justify-center items-center w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-6 rounded-r-[13px]',
-              selectedTokenFrom && selectedTokenTo
+              selectedTokenTo
                 ? 'bg-gradient-to-r from-[#071310] to-[#062118] dotsbg'
                 : 'bg-[#0D0D0D]'
             )}
@@ -302,7 +358,7 @@ export default function TokenSelector() {
             )}
           </div>
         </div>
-        {selectedTokenFrom && selectedTokenTo && (
+        {selectedTokenTo && (
           <Image
             src="/assets/right-strokes.svg"
             alt="valid"
