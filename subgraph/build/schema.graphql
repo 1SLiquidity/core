@@ -1,0 +1,73 @@
+type Trade @entity {
+  id: ID!
+  tradeId: BigInt!
+  user: Bytes!
+  tokenIn: Bytes!
+  tokenOut: Bytes!
+  amountIn: BigInt!
+  amountRemaining: BigInt!
+  minAmountOut: BigInt!
+  realisedAmountOut: BigInt!
+  isInstasettlable: Boolean!
+  instasettleBps: BigInt!
+  botGasAllowance: BigInt!
+  cumulativeGasEntailed: BigInt!
+  lastSweetSpot: BigInt!
+  createdAt: BigInt!
+  executions: [TradeExecution!]! @derivedFrom(field: "trade")
+  cancellations: [TradeCancellation!]! @derivedFrom(field: "trade")
+  settlements: [TradeSettlement!]! @derivedFrom(field: "trade")
+  instaSettleConfigs: [InstaSettleConfig!]! @derivedFrom(field: "trade")
+}
+
+type TradeExecution @entity {
+  id: ID!
+  trade: Trade!
+  amountIn: BigInt!
+  realisedAmountOut: BigInt!
+  cumulativeGasEntailed: BigInt!
+  lastSweetSpot: BigInt!
+  timestamp: BigInt!
+}
+
+type TradeCancellation @entity {
+  id: ID!
+  trade: Trade!
+  amountRemaining: BigInt!
+  realisedAmountOut: BigInt!
+  timestamp: BigInt!
+}
+
+type TradeSettlement @entity {
+  id: ID!
+  trade: Trade!
+  settler: Bytes!
+  totalAmountIn: BigInt!
+  totalAmountOut: BigInt!
+  totalFees: BigInt!
+  timestamp: BigInt!
+}
+
+type InstaSettleConfig @entity {
+  id: ID!
+  trade: Trade!
+  enabled: Boolean!
+  instasettleBps: BigInt!
+  timestamp: BigInt!
+}
+
+type DEXRoute @entity {
+  id: ID!
+  dex: Bytes!
+  isActive: Boolean!
+  addedAt: BigInt!
+  removedAt: BigInt
+}
+
+type FeeClaim @entity {
+  id: ID!
+  bot: Bytes!
+  feeToken: Bytes!
+  amount: BigInt!
+  timestamp: BigInt!
+} 

@@ -12,12 +12,20 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../src/Registry.sol";
 
+// Test contract to hold tokens
+contract TokenHolder {
+    function receiveTokens(address token, uint256 amount) external {
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+    }
+}
+
 contract Protocol is Test {
     // Core protocol contracts
     Core public core;
     StreamDaemon public streamDaemon;
     Executor public executor;
     Registry public registry;
+    TokenHolder public tokenHolder;
 
     // DEX addresses on mainnet
     address constant UNISWAP_V2_FACTORY = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
@@ -45,6 +53,10 @@ contract Protocol is Test {
 
     function setUp() public virtual {
         console.log("Starting setUp...");
+
+        // Deploy token holder first
+        console.log("Deploying TokenHolder...");
+        tokenHolder = new TokenHolder();
 
         // Deploy fetchers
         console.log("Deploying UniswapV2Fetcher...");
@@ -92,6 +104,7 @@ contract Protocol is Test {
         );
 
         // Log deployment addresses
+        console.log("TokenHolder deployed at: %s", address(tokenHolder));
         console.log("StreamDaemon deployed at: %s", address(streamDaemon));
         console.log("Executor deployed at: %s", address(executor));
         console.log("Core deployed at: %s", address(core));
@@ -103,8 +116,8 @@ contract Protocol is Test {
 
         console.log("Attempting WETH transfer...");
         vm.startPrank(WETH_WHALE);
-        try IERC20(WETH).transfer(address(this), formatTokenAmount(WETH, 1)) {
-            console.log("WETH transfer successful");
+        try IERC20(WETH).transfer(address(tokenHolder), formatTokenAmount(WETH, 10)) {
+            console.log("WETH transfer to TokenHolder successful");
         } catch Error(string memory reason) {
             console.log("WETH transfer failed with reason: %s", reason);
         } catch (bytes memory lowLevelData) {
@@ -115,8 +128,8 @@ contract Protocol is Test {
 
         console.log("Attempting USDC transfer...");
         vm.startPrank(USDC_WHALE);
-        try IERC20(USDC).transfer(address(this), formatTokenAmount(USDC, 100)) {
-            console.log("USDC transfer successful");
+        try IERC20(USDC).transfer(address(tokenHolder), formatTokenAmount(USDC, 1000)) {
+            console.log("USDC transfer to TokenHolder successful");
         } catch Error(string memory reason) {
             console.log("USDC transfer failed with reason: %s", reason);
         } catch (bytes memory lowLevelData) {
@@ -125,9 +138,9 @@ contract Protocol is Test {
         }
         vm.stopPrank();
 
-        console.log("Final test contract balances:");
-        console.log("Test contract WETH balance: %s", getTokenBalance(WETH, address(this)));
-        console.log("Test contract USDC balance: %s", getTokenBalance(USDC, address(this)));
+        console.log("Final token holder balances:");
+        console.log("Token holder WETH balance: %s", getTokenBalance(WETH, address(tokenHolder)));
+        console.log("Token holder USDC balance: %s", getTokenBalance(USDC, address(tokenHolder)));
 
         console.log("setUp completed");
     }
@@ -158,10 +171,11 @@ contract Protocol is Test {
         assertTrue(address(core) != address(0), "Core not deployed");
         assertTrue(address(streamDaemon) != address(0), "StreamDaemon not deployed");
         assertTrue(address(executor) != address(0), "Executor not deployed");
+        assertTrue(address(tokenHolder) != address(0), "TokenHolder not deployed");
 
         // Verify token balances
-        uint256 wethBalance = getTokenBalance(WETH, address(this));
-        uint256 usdcBalance = getTokenBalance(USDC, address(this));
+        uint256 wethBalance = getTokenBalance(WETH, address(tokenHolder));
+        uint256 usdcBalance = getTokenBalance(USDC, address(tokenHolder));
 
         assertTrue(wethBalance > 0, "No WETH balance");
         assertTrue(usdcBalance > 0, "No USDC balance");

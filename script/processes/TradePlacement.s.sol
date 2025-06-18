@@ -8,6 +8,12 @@ import "../../src/Utils.sol";
 contract TradePlacement is Protocol {
     function setUp() public override {
         super.setUp();
+        
+        // Transfer tokens from TokenHolder to this contract for testing
+        vm.startPrank(address(tokenHolder));
+        IERC20(WETH).transfer(address(this), formatTokenAmount(WETH, 10));
+        IERC20(USDC).transfer(address(this), formatTokenAmount(USDC, 1000));
+        vm.stopPrank();
     }
 
     function run() virtual override external {
@@ -35,8 +41,7 @@ contract TradePlacement is Protocol {
         approveToken(WETH, address(core), amountIn);
         
         uint256 allowanceAfter = IERC20(WETH).allowance(address(this), address(core));
-        allowanceAfter;
-
+        console.log("Allowance after approval: %s", allowanceAfter);
 
         // Record initial balances
         uint256 initialWethBalance = getTokenBalance(WETH, address(core));
