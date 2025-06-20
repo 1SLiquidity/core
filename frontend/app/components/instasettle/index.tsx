@@ -17,7 +17,7 @@ const Instasettle = () => {
         <TradesChart />
       </div>
 
-      <div className="absolute inset-0 w-full h-full pointer-events-none">
+      {/* <div className="absolute inset-0 w-full h-full pointer-events-none">
         <Image
           src="/heros/gradient-overlay.svg"
           alt="hero background"
@@ -56,7 +56,7 @@ const Instasettle = () => {
           maskPosition: 'center',
           maskSize: 'cover',
         }}
-      ></div>
+      ></div> */}
     </div>
   )
 }

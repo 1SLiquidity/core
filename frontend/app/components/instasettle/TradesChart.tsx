@@ -44,6 +44,7 @@ export default function TradesChart() {
   const [selectedBar, setSelectedBar] = useState<number | null>(null)
   const [isChartReady, setIsChartReady] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const chartContainerRef = useRef<HTMLDivElement>(null)
 
   // Setup intersection observer with options
   const { ref, inView } = useInView({
@@ -152,10 +153,11 @@ export default function TradesChart() {
     return calculatedWidth
   }, [sortedChartData.length])
 
+  // 0f4e35
   const getBarProps = useCallback(
     (index: number) => ({
       fill:
-        activeBar === index || selectedBar === index ? '#0f4e35' : '#41fcb4',
+        activeBar === index || selectedBar === index ? '#00e0ff' : '#41fcb4',
       style: {
         transition: 'fill 0.2s ease',
       },
@@ -241,17 +243,49 @@ export default function TradesChart() {
             </Select>
           </div>
 
-          {/* Fixed Chart Container */}
-          <div className="relative">
+          {/* Chart Container */}
+          <div className="relative" ref={chartContainerRef}>
+            {/* Edge fade effect */}
+            <div
+              className="absolute left-0 top-0 bottom-[35px] w-28 z-10 pointer-events-none"
+              style={{
+                background:
+                  'linear-gradient(to right, black, rgba(0, 0, 0, 0.99) 5%, rgba(0, 0, 0, 0.97) 10%, rgba(0, 0, 0, 0.95) 20%, rgba(0, 0, 0, 0.9) 30%, rgba(0, 0, 0, 0.8) 40%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.2) 85%, transparent)',
+              }}
+            />
+            <div
+              className="absolute right-0 top-0 bottom-[35px] w-28 z-10 pointer-events-none"
+              style={{
+                background:
+                  'linear-gradient(to left, black, rgba(0, 0, 0, 0.99) 5%, rgba(0, 0, 0, 0.97) 10%, rgba(0, 0, 0, 0.95) 20%, rgba(0, 0, 0, 0.9) 30%, rgba(0, 0, 0, 0.8) 40%, rgba(0, 0, 0, 0.6) 60%, rgba(0, 0, 0, 0.2) 85%, transparent)',
+              }}
+            />
+
+            {/* Top fade mask - keeping this as it adds depth */}
+            <div
+              className="absolute inset-0 bg-black pointer-events-none"
+              style={{
+                WebkitMaskImage: `
+          radial-gradient(circle at top, transparent 0%, black 30%)`,
+                WebkitMaskRepeat: 'no-repeat',
+                WebkitMaskPosition: 'center',
+                WebkitMaskSize: 'cover',
+                maskImage: `
+          radial-gradient(circle at top, transparent 0%, black 30%)`,
+                maskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                maskSize: 'cover',
+              }}
+            />
+
             <div
               ref={containerRef}
-              className="overflow-x-auto chart-scroll rounded-2xl"
+              className="overflow-x-auto chart-scroll relative"
               style={{
                 width: '100%',
                 height: '500px',
                 overflowY: 'hidden',
                 WebkitOverflowScrolling: 'touch',
-                position: 'relative',
               }}
             >
               <div
@@ -261,11 +295,9 @@ export default function TradesChart() {
                   position: 'relative',
                 }}
               >
-                {/* bg-[#08160e] */}
-                {/* bg-[#0c1d13] */}
-                {/* <div className="h-full w-full bg-[#08160e] absolute top-0 left-0 rounded-2xl" /> */}
+                {/* Background gradient */}
                 <div
-                  className="h-64 w-full bg-gradient-to-br from-[#114532] to-[#22432e] absolute bottom-0 left-0 rounded-2xl"
+                  className="w-full h-64 bg-gradient-to-br from-[#114532] to-[#22432e] absolute bottom-[35px] left-0"
                   style={{
                     WebkitMaskImage:
                       'linear-gradient(to top, #ffffff 0%, transparent 100%)',
@@ -277,8 +309,8 @@ export default function TradesChart() {
                     maskSize: '100% 100%',
                   }}
                 />
+                {/* <div className="h-[calc(100%-35px)] w-full bg-[#08160e] absolute top-0 left-0 rounded-2xl" /> */}
 
-                {/* [mask-image:linear-gradient(to_top,black_70%,transparent_100%)] */}
                 <ChartContainer
                   config={chartConfig}
                   className="h-full w-full relative"
@@ -287,9 +319,9 @@ export default function TradesChart() {
                     data={sortedChartData}
                     margin={{
                       top: 20,
-                      right: 30,
-                      left: 20,
-                      bottom: 20,
+                      right: 50,
+                      left: 80,
+                      bottom: 20, // Increased bottom margin for x-axis text
                     }}
                     onMouseMove={(state) => {
                       if (state?.activeTooltipIndex !== undefined) {
@@ -308,19 +340,11 @@ export default function TradesChart() {
                       }
                     }}
                   >
-                    {/* <CartesianGrid
-                      strokeDasharray="3 3"
-                      // stroke="hsl(var(--border))"
-                      stroke="#181818"
-                      strokeWidth={1}
-                      vertical={true}
-                      horizontal={true}
-                    /> */}
                     <XAxis
                       dataKey="volume"
                       tickLine={false}
                       axisLine={false}
-                      tickMargin={8}
+                      tickMargin={20} // Increased tick margin for better spacing
                       tickFormatter={(value) => `$${value}`}
                       label={{
                         bps: 'Volume',
@@ -332,19 +356,19 @@ export default function TradesChart() {
                       dataKey="streams"
                       radius={8}
                       activeIndex={(selectedBar || activeBar) ?? undefined}
-                      activeBar={({ ...props }) => {
-                        return (
-                          <Rectangle
-                            {...props}
-                            fillOpacity={0.8}
-                            stroke={'#646363'}
-                            strokeWidth={1}
-                            strokeDasharray={4}
-                            strokeDashoffset={4}
-                            strokeLinecap="round"
-                          />
-                        )
-                      }}
+                      // activeBar={({ ...props }) => {
+                      //   return (
+                      //     <Rectangle
+                      //       {...props}
+                      //       fillOpacity={0.8}
+                      //       stroke={'#646363'}
+                      //       strokeWidth={1}
+                      //       strokeDasharray={4}
+                      //       strokeDashoffset={4}
+                      //       strokeLinecap="round"
+                      //     />
+                      //   )
+                      // }}
                     >
                       {sortedChartData.map((entry, index) => (
                         <Cell
