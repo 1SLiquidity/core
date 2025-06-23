@@ -6,9 +6,9 @@ dataSources:
     name: Core
     network: local
     source:
-      address: "0x93E05bA2d0683b61208AEC6D1f85e0991a02828e"  # Replace with your deployed contract address
+      address: "0xB049183063EA129b321022e7F664e91849BD41Ae"  # Replace with your deployed contract address
       abi: Core
-      startBlock: 22727024
+      startBlock: 22738023
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -36,9 +36,9 @@ dataSources:
     name: Router
     network: local
     source:
-      address: "0xDf8461abc484FEc6C96739D1F74d7859368f20D3"  # Replace with your deployed contract address
+      address: "0x245Dfb7A8e02169710a7B8f0eC706b5a59739Bb0"  # Replace with your deployed contract address
       abi: Router
-      startBlock: 22727024
+      startBlock: 22738023
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -57,9 +57,9 @@ dataSources:
     name: StreamDaemon
     network: local
     source:
-      address: "0x4182AE5ebCf3703AD3ADB95df08a1FaDF2dFeB62"  # Replace with your deployed contract address
+      address: "0x439c09706D52e577B036E67b63308C7f218d2b22"  # Replace with your deployed contract address
       abi: StreamDaemon
-      startBlock: 22727024
+      startBlock: 22738023
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -80,9 +80,9 @@ dataSources:
     name: Fees
     network: local
     source:
-      address: "0x28E2E3a25de36e4Cd542D0c87aC1FC42dC5db8C4"  # Replace with your deployed contract address
+      address: "0x85CFbFc81C77aC5072eD02156C3FCEBA29a469D7"  # Replace with your deployed contract address
       abi: Fees
-      startBlock: 22727024
+      startBlock: 22738023
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
