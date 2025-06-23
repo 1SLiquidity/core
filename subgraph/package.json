@@ -5,10 +5,10 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --product hosted-service 1sliquidity/1sliquidity",
-    "create-local": "graph create --node http://localhost:8020/ 1sliquidity",
-    "remove-local": "graph remove --node http://localhost:8020/ 1sliquidity",
-    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 1sliquidity"
+    "deploy": "graph deploy --node http://localhost:8020/ decastream",
+    "create-local": "graph create --node http://localhost:8020/ decastream",
+    "remove-local": "graph remove --node http://localhost:8020/ decastream",
+    "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 decastream"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.51.0",
