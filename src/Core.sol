@@ -300,14 +300,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         return storageTrade;
     }
 
-        function instasettle(uint256 tradeId) external 
-    // returns (bool) 
-    {
+    function instasettle(uint256 tradeId) external {
         console.log("Instasettle: %s", tradeId);
         Utils.Trade memory trade = trades[tradeId];
         require(trade.owner != address(0), "Trade not found");
-        // Legacy check for instasettleBps
-        // require(trade.instasettleBps > 0, "Trade not instasettlable");
         require(trade.isInstasettlable, "Trade not instasettlable");
         console.log("Trade is instasettlable");
 
@@ -331,10 +327,13 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // Calculate remaining amount that needs to be settled
         uint256 remainingAmountOut = trade.targetAmountOut - trade.realisedAmountOut;
         require(remainingAmountOut > 0, "No remaining amount to settle");
-        uint256 instasettleAmount = (remainingAmountOut * (10000 - trade.instasettleBps)) / 10000;
+        
+        // Calculate how much the settler should pay
+        // targetAmountOut - (realisedAmountOut * (1 - instasettleBps/10000))
+        uint256 settlerPayment = trade.targetAmountOut - ((trade.realisedAmountOut * (10000 - trade.instasettleBps)) / 10000);
 
         delete trades[tradeId];
-        bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, instasettleAmount);
+        bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, settlerPayment);
         require(statusIn, "Instasettle: Failed to transfer tokens to trade owner");
         bool statusOut = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
         require(statusOut, "Instasettle: Failed to transfer tokens to settler");
@@ -342,65 +341,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             trade.tradeId,
             msg.sender,
             trade.amountRemaining,
-            instasettleAmount,
-            remainingAmountOut - instasettleAmount // totalFees is the difference
+            settlerPayment,
+            remainingAmountOut - settlerPayment // totalFees is the difference
         );
-
-        // return statusIn && statusOut;
     }
-
-    // function instasettle(uint256 tradeId) public payable {
-    //     // first we pull the trade from storage into memory
-    //     Utils.Trade memory trade = trades[tradeId];
-    //     // then we check if the trade is instasettlable
-    //     if (trade.isInstasettlable) {
-    //         // then we execute the stream
-    //         require(
-    //             _settleTrade(trade),
-    //             /**
-    //              * , tradePlacer
-    //              */
-    //             "Trade not settled"
-    //         ); // parameter for tradePlacer temporarily subbed out until Router is implemented
-    //     }
-    //     // Emit Instasettled(tradeId);
-    // }
-
-    // function _settleTrade(Utils.Trade memory trade)
-    //     /**
-    //      * , address instasettler
-    //      */
-    //     internal
-    //     returns (bool)
-    // {
-    //     // we need to ensure the amount of provided tokenIn satisfies the remainingTokenOut from the trade
-    //     // if so, we execute a full trade swap (no streams)
-    //     uint256 remainingAmountOut = trade.targetAmountOut - trade.realisedAmountOut;
-    //     // then, we take the bps
-    //     uint256 instasettleBps = trade.instasettleBps;
-    //     uint256 instasettleAmount = trade.amountRemaining - (trade.amountRemaining * instasettleBps) / 10000;
-    //     // if the instasettleAmount is less than the remainingAmountOut, we revert
-    //     require(instasettleAmount >= remainingAmountOut, "Insufficient balance to settle trade");
-    //     // if so, we execute a full trade swap (no streams)
-    //     //first of course we remove the trade from storage
-    //     delete trades[trade.tradeId];
-    //     //then we initialise the interface
-    //     IERC20 tokenOut = IERC20(trade.tokenOut);
-    //     //then, we transfer money from the purchaser to the owner
-    //     (bool statusIn) = tokenOut.transferFrom(msg.sender, trade.owner, instasettleAmount);
-    //     //then, we transfer the remaining amount of tokenIn to the purchaser
-    //     (bool statusOut) = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining); // @audit we pass msg.sender here for testing without a Router, but we should have auth for Router access set up and the caller's address passed as a parameter from Router on this function call
-
-    //     emit TradeSettled(
-    //         trade.tradeId,
-    //         msg.sender,
-    //         trade.amountRemaining,
-    //         instasettleAmount,
-    //         trade.amountRemaining - instasettleAmount // totalFees is the difference
-    //     );
-
-    //     return statusIn == statusOut ? true : false;
-    // }
 
     function getPairIdTradeIds(bytes32 pairId) external view returns (uint256[] memory) {
         return pairIdTradeIds[pairId];

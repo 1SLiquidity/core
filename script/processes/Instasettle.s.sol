@@ -155,7 +155,7 @@ contract Instasettle is TradePlacement {
 
         // Modify trade to be non-instasettlable
         Utils.Trade memory trade = core.getTrade(tradeId);
-        trade.instasettleBps = 0;
+        trade.isInstasettlable = false;
         vm.store(
             address(core),
             keccak256(abi.encode(tradeId, uint256(2))), // slot for trades mapping

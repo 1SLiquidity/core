@@ -50,18 +50,18 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
 
         (
             address owner,
-            uint256 cumulativeGasEntailed,
-            uint256 attempts,
+            uint96 cumulativeGasEntailed,
+            uint8 attempts,
             address tokenIn,
             address tokenOut,
             uint256 amountIn_,
             uint256 amountRemaining,
+            uint256 targetAmountOut,
             uint256 realisedAmountOut,
-            uint256 lastSweetSpot,
-            uint256 lastExecutionTime,
+            uint256 tradeId_,
             uint256 instasettleBps,
             uint256 botGasAllowance_,
-            uint256 lastDexIndex,
+            uint256 lastSweetSpot,
             bool isInstasettlable
         ) = core.trades(tradeId);
 
@@ -71,7 +71,7 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
         assertEq(amountIn_, amountIn, "amountIn should match input");
         assertNotEq(amountRemaining, 0, "amount remaining should not be 0 after execution");
         assertEq(instasettleBps, 100, "instasettle BPS should be 100");
-        assertTrue(lastDexIndex >= 0, "Last DEX index should be > = 0");
+        assertTrue(lastSweetSpot >= 0, "Last Sweet Spot should be >= 0");
         assertEq(isInstasettlable, false, "sould not be instasettlable");
         assertEq(attempts, 1, "ahould have 1 attempt");
         assertTrue(cumulativeGasEntailed > 0, "Should have gas entailed");
