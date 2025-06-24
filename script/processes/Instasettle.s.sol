@@ -34,7 +34,7 @@ contract Instasettle is TradePlacement {
         
         // Place a trade using inherited function
         console.log("Placing trade...");
-        uint256 tradeId = placeTradeWETHUSDC();
+        uint256 tradeId = placeTradeWETHUSDC(true);
         console.log("Trade placed with ID:", tradeId);
 
         // Define addresses
@@ -139,7 +139,7 @@ contract Instasettle is TradePlacement {
         deal(WETH, address(this), 1 ether);
 
         // Place a trade using inherited function
-        uint256 tradeId = placeTradeWETHUSDC();
+        uint256 tradeId = placeTradeWETHUSDC(true);
 
         // Drain this contract's USDC balance
         uint256 balance = IERC20(USDC).balanceOf(address(this));
@@ -154,7 +154,7 @@ contract Instasettle is TradePlacement {
 
     function test_RevertWhen_NonInstasettlableTrade() public {
         // Place a non-instasettlable trade
-        uint256 tradeId = placeTradeWETHUSDC();
+        uint256 tradeId = placeTradeWETHUSDC(false);
 
         // Modify trade to be non-instasettlable
         Utils.Trade memory trade = core.getTrade(tradeId);
@@ -172,7 +172,7 @@ contract Instasettle is TradePlacement {
         vm.stopPrank();
     }
 
-    function placeTradeWETHUSDC() public override returns (uint256 tradeId) {
+    function placeTradeWETHUSDC(bool isInstasettlable) public override returns (uint256 tradeId) {
         // Use a different address as the trade owner to avoid self-transfer issues
         address tradeOwner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8; // Hardhat account #1
         
@@ -202,7 +202,7 @@ contract Instasettle is TradePlacement {
             USDC, // tokenOut
             amountIn, // amountIn
             amountOutMin, // amountOutMin
-            true, // isInstasettlable
+            isInstasettlable, // isInstasettlable
             botGasAllowance // botGasAllowance
         );
 
