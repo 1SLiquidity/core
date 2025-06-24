@@ -12,6 +12,7 @@
     "rpc": "forge test --rpc-url base-sepolia --rpc-chain-id 84532",
     "deploy-fork": "forge script ForkDeployer.s.sol --rpc-url buildbear",
     "# DEX Tests": "# Tests for individual DEXs",
+    "test": "npm run test:all:bear && npm run test:all:anvil",
     "test:uniswap-v2": "forge script script/processes/UniswapV2TradePlacement.s.sol:UniswapV2TradePlacement -vvvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --via-ir --broadcast",
     "test:sushiswap": "forge script script/processes/SushiswapTradePlacement.s.sol:SushiswapTradePlacement -vvvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --via-ir --broadcast",
     "test:uniswap-v3": "forge script script/processes/UniswapV3TradePlacement.s.sol:UniswapV3TradePlacement -vvvv --fork-url https://rpc.buildbear.io/foolish-darkphoenix-2fe074ec --via-ir --broadcast",
@@ -46,7 +47,7 @@
     "test:protocol-anvil": "forge script script/Protocol.s.sol:Protocol --via-ir --rpc-url http://localhost:8545 -vvvv",
     "test:trade-placement-anvil": "forge test --match-path script/processes/TradePlacement.s.sol --fork-url http://localhost:8545 --via-ir && forge script script/TestSingleReserves.s.sol:TestReservesScript --via-ir --rpc-url http://localhost:8545",
     "test:reserves-anvil": "forge script script/TestSingleReserves.s.sol:TestReservesScript --via-ir --rpc-url http://localhost:8545 -vvvv",
-    "test:insta-anvil": "forge test --match-path script/processes/Instasettle.s.sol --fork-url http://localhost:8545 --via-ir",
+    "test:insta-anvil": "forge test --match-path script/processes/Instasettle.s.sol --fork-url http://localhost:8545 --via-ir -vvv",
     "test:trade-cancel-test-anvil": "FOUNDRY_PROFILE=via_ir forge test --match-path script/processes/TradeCancel.s.sol -vvv --fork-url http://localhost:8545"
   },
   "repository": {

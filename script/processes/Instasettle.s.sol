@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.8.0;
-
+ 
 import "../Protocol.s.sol";
 import "../processes/TradePlacement.s.sol";
 
@@ -34,21 +34,25 @@ contract Instasettle is TradePlacement {
         
         // Place a trade using inherited function
         console.log("Placing trade...");
-        uint256 tradeId = super.placeTradeWETHUSDC();
+        uint256 tradeId = placeTradeWETHUSDC();
         console.log("Trade placed with ID:", tradeId);
+
+        // Define addresses
+        address tradeOwner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+        address settler = address(this);
 
         // Get balances before settlement
         console.log("Getting initial balances...");
-        uint256 settlerUsdcBefore = IERC20(USDC).balanceOf(address(this));
-        uint256 settlerWethBefore = IERC20(WETH).balanceOf(address(this));
-        uint256 ownerUsdcBefore = IERC20(USDC).balanceOf(address(this));
-        uint256 ownerWethBefore = IERC20(WETH).balanceOf(address(this));
+        uint256 settlerUsdcBefore = IERC20(USDC).balanceOf(settler);
+        uint256 settlerWethBefore = IERC20(WETH).balanceOf(settler);
+        uint256 ownerUsdcBefore = IERC20(USDC).balanceOf(tradeOwner);
+        uint256 coreWethBefore = IERC20(WETH).balanceOf(address(core));
         
         console.log("Initial balances:");
-        console.log("Settler USDC:", settlerUsdcBefore);
-        console.log("Settler WETH:", settlerWethBefore);
-        console.log("Owner USDC:", ownerUsdcBefore);
-        console.log("Owner WETH:", ownerWethBefore);
+        console.log("Settler USDC before:", settlerUsdcBefore);
+        console.log("Settler WETH before:", settlerWethBefore);
+        console.log("Owner USDC before:", ownerUsdcBefore);
+        console.log("Core WETH before:", coreWethBefore);
 
         // Get trade details
         console.log("Getting trade details...");
@@ -65,11 +69,10 @@ contract Instasettle is TradePlacement {
         uint256 remainingAmountOut = trade.targetAmountOut - trade.realisedAmountOut;
         
         // Calculate instasettle amount based on remaining amount
-        uint256 instasettleAmount = (trade.targetAmountOut * trade.instasettleBps) / 10000;
+        uint256 instasettleAmount = (remainingAmountOut * (10000 - trade.instasettleBps)) / 10000;
         
-        // Calculate how much the settler should pay
-        // targetAmountOut - (realisedAmountOut * (1 - instasettleBps/10000))
-        uint256 settlerPayment = trade.targetAmountOut - ((trade.realisedAmountOut * (10000 - trade.instasettleBps)) / 10000);
+        // Calculate how much the settler should pay (match contract logic)
+        uint256 settlerPayment = ((trade.targetAmountOut - trade.realisedAmountOut) * (10000 - trade.instasettleBps)) / 10000;
         
         console.log("remainingAmountOut:", remainingAmountOut);
         console.log("instasettleAmount:", instasettleAmount);
@@ -77,22 +80,22 @@ contract Instasettle is TradePlacement {
 
         // Instasettle the trade
         console.log("Executing instasettle...");
-        vm.prank(address(this));
+        vm.prank(settler);
         core.instasettle(tradeId);
         console.log("Instasettle executed");
 
         // Get balances after settlement
         console.log("Getting final balances...");
-        uint256 settlerUsdcAfter = IERC20(USDC).balanceOf(address(this));
-        uint256 settlerWethAfter = IERC20(WETH).balanceOf(address(this));
-        uint256 ownerUsdcAfter = IERC20(USDC).balanceOf(address(this));
-        uint256 ownerWethAfter = IERC20(WETH).balanceOf(address(this));
+        uint256 settlerUsdcAfter = IERC20(USDC).balanceOf(settler);
+        uint256 settlerWethAfter = IERC20(WETH).balanceOf(settler);
+        uint256 ownerUsdcAfter = IERC20(USDC).balanceOf(tradeOwner);
+        uint256 coreWethAfter = IERC20(WETH).balanceOf(address(core));
         
         console.log("Final balances:");
-        console.log("Settler USDC:", settlerUsdcAfter);
-        console.log("Settler WETH:", settlerWethAfter);
-        console.log("Owner USDC:", ownerUsdcAfter);
-        console.log("Owner WETH:", ownerWethAfter);
+        console.log("Settler USDC after:", settlerUsdcAfter);
+        console.log("Settler WETH after:", settlerWethAfter);
+        console.log("Owner USDC after:", ownerUsdcAfter);
+        console.log("Core WETH after:", coreWethAfter);
 
         console.log("Verifying token transfers...");
         // Normal instasettle case
@@ -100,7 +103,7 @@ contract Instasettle is TradePlacement {
         assertEq(
             settlerUsdcBefore - settlerUsdcAfter,
             settlerPayment,
-            "Settler should pay targetAmountOut - (realisedAmountOut * (1 - instasettleBps/10000)) in USDC"
+            "Settler should pay settler payment amount"
         );
         console.log("Checking settler WETH transfer...");
         assertEq(
@@ -111,16 +114,16 @@ contract Instasettle is TradePlacement {
         console.log("Checking owner USDC transfer...");
         assertEq(
             ownerUsdcAfter - ownerUsdcBefore,
-            trade.realisedAmountOut,
-            "Owner should receive realisedAmountOut in USDC"
+            settlerPayment,
+            "Owner should receive settler payment in USDC"
         );
 
-        // Owner's WETH balance should be 0 after spending all WETH
-        console.log("Checking owner WETH balance...");
+        // Core's WETH balance should be reduced by the amount transferred to settler
+        console.log("Checking Core WETH balance...");
         assertEq(
-            ownerWethAfter,
-            0,
-            "Owner's WETH balance should be 0 after spending all WETH"
+            coreWethBefore - coreWethAfter,
+            trade.amountRemaining,
+            "Core's WETH balance should be reduced by the amount transferred to settler"
         );
 
         // Trade should be deleted
@@ -136,7 +139,7 @@ contract Instasettle is TradePlacement {
         deal(WETH, address(this), 1 ether);
 
         // Place a trade using inherited function
-        uint256 tradeId = super.placeTradeWETHUSDC();
+        uint256 tradeId = placeTradeWETHUSDC();
 
         // Drain this contract's USDC balance
         uint256 balance = IERC20(USDC).balanceOf(address(this));
@@ -151,7 +154,7 @@ contract Instasettle is TradePlacement {
 
     function test_RevertWhen_NonInstasettlableTrade() public {
         // Place a non-instasettlable trade
-        uint256 tradeId = super.placeTradeWETHUSDC();
+        uint256 tradeId = placeTradeWETHUSDC();
 
         // Modify trade to be non-instasettlable
         Utils.Trade memory trade = core.getTrade(tradeId);
@@ -167,5 +170,53 @@ contract Instasettle is TradePlacement {
         vm.expectRevert("Trade not instasettlable");
         core.instasettle(tradeId);
         vm.stopPrank();
+    }
+
+    function placeTradeWETHUSDC() public override returns (uint256 tradeId) {
+        // Use a different address as the trade owner to avoid self-transfer issues
+        address tradeOwner = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8; // Hardhat account #1
+        
+        // Fund the trade owner with WETH
+        vm.startPrank(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+        deal(WETH, tradeOwner, formatTokenAmount(WETH, 10));
+        vm.stopPrank();
+        
+        // Switch to trade owner context
+        vm.startPrank(tradeOwner);
+        
+        // Setup initial balances
+        uint256 amountIn = formatTokenAmount(WETH, 1); // 1 WETH
+        uint256 amountOutMin = formatTokenAmount(USDC, 1800); // Expected USDC output with 0.1% slippage
+        uint256 botGasAllowance = 0.0005 ether;
+
+        // Log WETH balance before approval
+        uint256 wethBalance = getTokenBalance(WETH, tradeOwner);
+        require(wethBalance >= amountIn, "Insufficient WETH balance");
+
+        // Approve Core to spend WETH
+        approveToken(WETH, address(core), amountIn);
+
+        // Create the trade data
+        bytes memory tradeData = abi.encode(
+            WETH, // tokenIn
+            USDC, // tokenOut
+            amountIn, // amountIn
+            amountOutMin, // amountOutMin
+            true, // isInstasettlable
+            botGasAllowance // botGasAllowance
+        );
+
+        // Place trade
+        core.placeTrade(tradeData);
+
+        // Verify trade was placed
+        bytes32 pairId = keccak256(abi.encode(WETH, USDC));
+        uint256[] memory tradeIds = core.getPairIdTradeIds(pairId);
+        tradeId = tradeIds[0];
+        
+        vm.stopPrank();
+        
+        console.log("Trade Placed and Stream Executed");
+        return tradeId;
     }
 }

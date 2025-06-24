@@ -213,7 +213,7 @@ contract TradePlacement is Protocol {
     //     console.log("Trade Placed and Stream Executed");
     // }
 
-    function placeTradeWETHUSDC() public returns (uint256 tradeId) {
+    function placeTradeWETHUSDC() public virtual returns (uint256 tradeId) {
         // Setup initial balances
         uint256 amountIn = formatTokenAmount(WETH, 1); // 1 WETH
         uint256 amountOutMin = formatTokenAmount(USDC, 1800); // Expected USDC output with 0.1% slippage

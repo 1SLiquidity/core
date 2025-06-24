@@ -309,6 +309,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
         // If lastSweetSpot == 1, just settle the amountRemaining
         if (trade.lastSweetSpot == 1) {
+            console.log("Instasettle: lastSweetSpot == 1");
             delete trades[tradeId];
             bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, trade.realisedAmountOut);
             require(statusIn, "Instasettle: Failed to transfer tokens to trade owner");
@@ -323,6 +324,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             );
             return;
         }
+        console.log("Instasettle: lastSweetSpot != 1");
 
         // Calculate remaining amount that needs to be settled
         uint256 remainingAmountOut = trade.targetAmountOut - trade.realisedAmountOut;
@@ -330,13 +332,16 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         
         // Calculate how much the settler should pay
         // targetAmountOut - (realisedAmountOut * (1 - instasettleBps/10000))
-        uint256 settlerPayment = trade.targetAmountOut - ((trade.realisedAmountOut * (10000 - trade.instasettleBps)) / 10000);
+        uint256 settlerPayment = ((trade.targetAmountOut - trade.realisedAmountOut) * (10000 - trade.instasettleBps)) / 10000;
+        console.log("Instasettle: settlerPayment: %s", settlerPayment);
 
         delete trades[tradeId];
         bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, settlerPayment);
         require(statusIn, "Instasettle: Failed to transfer tokens to trade owner");
+        console.log("Instasettle: statusIn: %s", statusIn);
         bool statusOut = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
         require(statusOut, "Instasettle: Failed to transfer tokens to settler");
+        console.log("Instasettle: statusOut: %s", statusOut);
         emit TradeSettled(
             trade.tradeId,
             msg.sender,
@@ -344,6 +349,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             settlerPayment,
             remainingAmountOut - settlerPayment // totalFees is the difference
         );
+        console.log("Instasettle: TradeSettle Event Emitted");
     }
 
     function getPairIdTradeIds(bytes32 pairId) external view returns (uint256[] memory) {
