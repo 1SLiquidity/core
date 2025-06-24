@@ -13,11 +13,18 @@ This guide provides step-by-step instructions for setting up the complete develo
 
 ### 1.1 Start Local Blockchain (Anvil)
 
-First, start a local Ethereum blockchain using Anvil, use any RPC. If forking from a specific block number, make sure to update that in the `subgraph.yaml`:
+First, start a local Ethereum blockchain using Anvil, make sure to update that in the `subgraph.yaml`:
 
 ```bash
 # From the project root directory
-anvil --fork-url https://ethereum-rpc.publicnode.com --fork-block-number 22734792
+anvil --fork-url https://mainnet.infura.io/v3/YOUR_API_KEY
+```
+
+If forking from a specific block number:
+
+```bash
+# From the project root directory
+anvil --fork-url https://mainnet.infura.io/v3/YOUR_API_KEY --fork-block-number 22771179
 ```
 
 Keep this terminal running. The blockchain will be available at `http://localhost:8545`.

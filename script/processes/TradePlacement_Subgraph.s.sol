@@ -34,7 +34,7 @@ interface ICore {
 
 contract TradePlacement is Script {
     // === Replace these with your deployed contract addresses ===
-    address constant CORE = 0xB049183063EA129b321022e7F664e91849BD41Ae;
+    address constant CORE = 0x2451c39ED4f33D0a9A786445C41e68396f7cd80c;
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
