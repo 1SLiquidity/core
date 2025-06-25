@@ -28,7 +28,6 @@ const TIMER_DURATION = 10 // 10 seconds
 const StreamDetails: React.FC<StreamDetailsProps> = ({
   onBack,
   selectedStream,
-  walletAddress = 'GY68234nasmd234asfKT21',
   isUser = false,
   isLoading = false,
   onClose,
@@ -359,7 +358,9 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             <AmountTag
               title="BPS Savings"
               amount={
-                selectedStream.isInstasettlable ? '20 BPS ($190.54)' : 'N/A'
+                selectedStream.isInstasettlable
+                  ? `5 BPS ($${(amountInUsd * 0.05).toFixed(2)})`
+                  : 'N/A'
               }
               infoDetail="Info"
               titleClassName="text-white52"
@@ -388,16 +389,16 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               titleClassName="text-white52"
               isLoading={isLoading}
             />
-            <AmountTag
+            {/* <AmountTag
               title="Output Fee"
               amount="$190.54"
               infoDetail="Info"
               titleClassName="text-white52"
               isLoading={isLoading}
-            />
+            /> */}
             <AmountTag
               title="Network Fee"
-              amount="20 BPS ($190.54)"
+              amount={`5 BPS ($${(amountInUsd * 0.05).toFixed(2)})`}
               infoDetail="Info"
               titleClassName="text-white52"
               isLoading={isLoading}

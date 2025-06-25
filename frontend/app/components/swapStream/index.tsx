@@ -20,6 +20,7 @@ type Trade = {
   isInstasettlable: boolean
   realisedAmountOut: string
   lastSweetSpot: string
+  executions: any[]
 }
 
 type Props = {
@@ -136,7 +137,9 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
             <div
               className="h-[3px] bg-primary absolute top-0 left-0"
               style={{
-                width: '25%', // Hardcoded for now as requested
+                width: `${
+                  (trade.executions.length / Number(trade.lastSweetSpot)) * 100
+                }%`, // Hardcoded for now as requested
               }}
             />
           )}
@@ -159,7 +162,8 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
           ) : (
             <>
               <p className="">
-                25/100 completed {/* Hardcoded as requested */}
+                {/* 25/100 completed {/* Hardcoded as requested */}
+                {trade.executions.length} / {trade.lastSweetSpot} completed
               </p>
               <div className="flex gap-2">
                 <div className="flex items-center">

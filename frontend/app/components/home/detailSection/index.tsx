@@ -169,11 +169,6 @@ const DetailSection: React.FC<Props> = ({
               isLoading={isCalculating}
             />
           )}
-          {/* <AmountTag
-            title="Protocol Fee (20 BPS)"
-            amount={'$42.16'}
-            infoDetail="Estimated"
-          /> */}
           <AmountTag
             title="Bot Gas Allowance"
             amount={
