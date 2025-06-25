@@ -27,7 +27,38 @@ import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { formatRelativeTime } from '@/app/lib/utils/time'
 
+// Constants
 const LIMIT = 10
+
+// Helper functions for trade calculations
+const calculateEffectivePrice = (trade: Trade) => {
+  const minAmountOutBN = BigInt(trade.minAmountOut || '0')
+  const amountInBN = BigInt(trade.amountIn || '1') // Use 1 as denominator if amountIn is 0 to avoid division by zero
+  return Number(minAmountOutBN) / Number(amountInBN)
+}
+
+const calculateSavings = (trade: Trade, amountInUsd: number) => {
+  // For now using dummy targetAmountOut as 120% of minAmountOut
+  const targetAmountOut =
+    (BigInt(trade.minAmountOut || '0') * BigInt(120)) / BigInt(100)
+  const realisedAmountOutBN = BigInt(trade.realisedAmountOut || '0')
+  const instasettleBpsBN = BigInt(trade.instasettleBps || '0')
+
+  // Calculate amountOut savings
+  const amountOutSavings =
+    ((targetAmountOut - realisedAmountOutBN) *
+      (BigInt(10000) - instasettleBpsBN)) /
+    BigInt(10000)
+
+  // Calculate network fee (15% of amountInUsd)
+  const networkFee = Number((amountInUsd * 0.15).toFixed(2))
+
+  return {
+    amountOutSavings: Number(amountOutSavings),
+    networkFee,
+    totalSavings: Number(amountOutSavings) + networkFee,
+  }
+}
 
 const SortIcon = ({
   active,
@@ -128,6 +159,8 @@ const TradesTable = ({
     }
   }
 
+  console.log('All trades ======>', trades)
+
   // Filter and sort trades
   const displayData = useMemo(() => {
     if (isChartFiltered) {
@@ -136,7 +169,147 @@ const TradesTable = ({
 
     if (!trades.length) return []
 
-    let filteredTrades = [...trades]
+    let filteredTrades = [...trades].map((trade) => {
+      try {
+        // Find token information for this trade
+        const tokenIn = tokenList.find(
+          (t: TOKENS_TYPE) =>
+            t.token_address?.toLowerCase() === trade.tokenIn?.toLowerCase()
+        )
+        const tokenOut = tokenList.find(
+          (t: TOKENS_TYPE) =>
+            t.token_address?.toLowerCase() === trade.tokenOut?.toLowerCase()
+        )
+
+        // Format amounts using token decimals - default to 18 decimals if not found
+        const formattedAmountIn = tokenIn
+          ? formatUnits(BigInt(trade.amountIn || '0'), tokenIn.decimals || 18)
+          : '0'
+
+        // Calculate USD values
+        const amountInUsd =
+          tokenIn && !isNaN(Number(formattedAmountIn))
+            ? Number(formattedAmountIn) * (tokenIn.usd_price || 0)
+            : 0
+
+        // Calculate sum of realisedAmountOut from executions
+        const realisedAmountOutSum = (trade.executions || []).reduce(
+          (sum, execution) => {
+            try {
+              return sum + BigInt(execution.realisedAmountOut || '0')
+            } catch {
+              return sum
+            }
+          },
+          BigInt(0)
+        )
+
+        // Safely convert values to BigInt with fallbacks
+        const safeConvertToBigInt = (
+          value: string | null | undefined,
+          fallback: string = '0'
+        ): bigint => {
+          try {
+            return BigInt(value || fallback)
+          } catch {
+            return BigInt(fallback)
+          }
+        }
+
+        // amountOut: ((targetAmountOut - realisedAmountOut) * (10000 - trade.instasettleBps)) / 10000
+        // amountIn: (amountRemaining * (10000 - NETWORK_FEE) / 1000
+        // effective price = amountOut / amountIn
+
+        // Calculate amountOut
+        const targetAmountOut = trade.minAmountOut
+        const realisedAmountOut = trade.realisedAmountOut
+        const instasettleBps = trade.instasettleBps
+
+        let amountOut: bigint
+        try {
+          amountOut =
+            ((BigInt(targetAmountOut) - BigInt(realisedAmountOut)) *
+              (BigInt(10000) - BigInt(instasettleBps))) /
+            BigInt(10000)
+
+          // Use minAmountOut directly for effective price calculation
+          // amountOut =
+          //   (minAmountOutBN * (BigInt(10000) - instasettleBpsBN)) /
+          //   BigInt(10000)
+        } catch {
+          amountOut = BigInt(0)
+        }
+
+        // Calculate amountIn
+        const amountRemaining = trade.amountRemaining
+        let amountIn: bigint
+        // Calculate network fee (15% of amountInUsd)
+        // Calculate network fee (15 basis points = 0.15%)
+        const NETWORK_FEE_BPS = BigInt(15) // 15 basis points
+        const networkFee =
+          (BigInt(trade.amountIn) * NETWORK_FEE_BPS) / BigInt(10000)
+
+        console.log('networkFee ======>', networkFee)
+
+        try {
+          amountIn =
+            (BigInt(amountRemaining) * (BigInt(10000) - NETWORK_FEE_BPS)) /
+            BigInt(10000)
+        } catch {
+          amountIn = BigInt(1) // Use 1 to avoid division by zero
+        }
+
+        // Calculate effective price - convert to proper decimals before division
+        let effectivePrice = 0
+        try {
+          if (amountIn > BigInt(0)) {
+            // Convert amounts to proper decimal representation before division
+            const amountOutDecimals = tokenOut?.decimals || 6 // Default to 6 for USDC
+            const amountInDecimals = tokenIn?.decimals || 18 // Default to 18 for ETH
+
+            const amountOutFloat =
+              Number(amountOut) / Math.pow(10, amountOutDecimals)
+            const amountInFloat =
+              Number(amountIn) / Math.pow(10, amountInDecimals)
+
+            effectivePrice = amountOutFloat / amountInFloat
+
+            // effectivePrice = Number(amountOut) / Number(amountIn)
+          }
+        } catch {
+          effectivePrice = 0
+        }
+
+        console.log('Trade calculation:', {
+          // minAmountOut: amountOut,
+          // realisedAmountOut: Number(realisedAmountOutBN),
+          amountOut: Number(amountOut),
+          amountIn: Number(amountIn),
+          effectivePrice,
+        })
+
+        // Update trade object with calculated values
+        return {
+          ...trade,
+          effectivePrice: isFinite(effectivePrice) ? effectivePrice : 0,
+          networkFee: isFinite(Number(networkFee)) ? Number(networkFee) : 0,
+          amountInUsd: isFinite(amountInUsd) ? amountInUsd : 0,
+          tokenInDetails: tokenIn || null,
+          tokenOutDetails: tokenOut || null,
+        }
+      } catch (error) {
+        console.error('Error processing trade:', error)
+        // Return trade with safe default values if anything fails
+        return {
+          ...trade,
+          effectivePrice: 0,
+          networkFee: 0,
+          amountInUsd: 0,
+          tokenInDetails: null,
+          tokenOutDetails: null,
+        }
+      }
+    })
 
     // Apply ownership filter
     if (activeTab === 'myInstasettles') {
@@ -163,7 +336,14 @@ const TradesTable = ({
     })
 
     return filteredTrades
-  }, [trades, activeTab, activeTimeframe, isChartFiltered, selectedTrade])
+  }, [
+    trades,
+    activeTab,
+    activeTimeframe,
+    isChartFiltered,
+    selectedTrade,
+    tokenList,
+  ])
 
   const handleStreamClick = (item: Trade) => {
     setInitialStream(item)
@@ -371,31 +551,28 @@ const TradesTable = ({
               </TableRow>
             ) : (
               displayData.map((item) => {
-                // Find token information
-                const tokenIn = tokenList.find(
-                  (t: TOKENS_TYPE) =>
-                    t.token_address.toLowerCase() === item.tokenIn.toLowerCase()
-                )
-                const tokenOut = tokenList.find(
-                  (t: TOKENS_TYPE) =>
-                    t.token_address.toLowerCase() ===
-                    item.tokenOut.toLowerCase()
-                )
-
                 // Format amounts using token decimals
-                const formattedAmountIn = tokenIn
-                  ? formatUnits(BigInt(item.amountIn), tokenIn.decimals)
+                const formattedAmountIn = item.tokenInDetails
+                  ? formatUnits(
+                      BigInt(item.amountIn),
+                      item.tokenInDetails.decimals
+                    )
                   : '0'
-                const formattedMinAmountOut = tokenOut
-                  ? formatUnits(BigInt(item.minAmountOut), tokenOut.decimals)
+                const formattedMinAmountOut = item.tokenOutDetails
+                  ? formatUnits(
+                      BigInt(item.minAmountOut),
+                      item.tokenOutDetails.decimals
+                    )
                   : '0'
 
                 // Calculate USD values (using token price from tokenList)
-                const amountInUsd = tokenIn
-                  ? Number(formattedAmountIn) * (tokenIn.usd_price || 0)
+                const amountInUsd = item.tokenInDetails
+                  ? Number(formattedAmountIn) *
+                    (item.tokenInDetails.usd_price || 0)
                   : 0
-                const amountOutUsd = tokenOut
-                  ? Number(formattedMinAmountOut) * (tokenOut.usd_price || 0)
+                const amountOutUsd = item.tokenOutDetails
+                  ? Number(formattedMinAmountOut) *
+                    (item.tokenOutDetails.usd_price || 0)
                   : 0
 
                 return (
@@ -404,18 +581,18 @@ const TradesTable = ({
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <Image
-                            src={tokenIn?.icon || '/tokens/eth.svg'}
+                            src={item.tokenInDetails?.icon || '/tokens/eth.svg'}
                             width={32}
                             height={32}
                             className="w-6 h-6"
-                            alt={tokenIn?.symbol || 'eth'}
+                            alt={item.tokenInDetails?.symbol || 'eth'}
                           />
                           <div>
                             <p className="text-white">
-                              {tokenIn?.symbol || 'ETH'}
+                              {item.tokenInDetails?.symbol || 'ETH'}
                             </p>
                             <p className="text-white52">
-                              ${amountInUsd.toFixed(2)}
+                              ${item.amountInUsd?.toFixed(2)}
                             </p>
                           </div>
                         </div>
@@ -428,15 +605,17 @@ const TradesTable = ({
                         />
                         <div className="flex items-center gap-2">
                           <Image
-                            src={tokenOut?.icon || '/tokens/usdc.svg'}
+                            src={
+                              item.tokenOutDetails?.icon || '/tokens/usdc.svg'
+                            }
                             width={32}
                             height={32}
-                            alt={tokenOut?.symbol || 'usdc'}
+                            alt={item.tokenOutDetails?.symbol || 'usdc'}
                             className="w-6 h-6"
                           />
                           <div>
                             <p className="text-white">
-                              {tokenOut?.symbol || 'USDC'}
+                              {item.tokenOutDetails?.symbol || 'USDC'}
                             </p>
                             <p className="text-white52">
                               ${amountOutUsd.toFixed(2)}
@@ -447,17 +626,19 @@ const TradesTable = ({
                     </TableCell>
                     <TableCell>
                       <Button
-                        text={item.isInstasettlable ? 'INSTASETTLE' : 'STREAM'}
-                        className="h-[2.15rem] hover:bg-tabsGradient"
+                        text={
+                          item.isInstasettlable ? 'INSTASETTLE' : 'INSTASETTLE'
+                        }
+                        className="h-[2.15rem] hover:bg-primaryGradient hover:text-black"
                       />
                     </TableCell>
                     <TableCell className="text-center">
-                      ${amountInUsd.toFixed(2)}
+                      ${item.amountInUsd?.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-center">${6.88}</TableCell>
                     <TableCell className="text-center">
-                      ${parseFloat(item.instasettleBps || '0').toFixed(2)}
+                      ${item.effectivePrice?.toFixed(2)}
                     </TableCell>
+                    <TableCell className="text-center">${44}</TableCell>
                     <TableCell className="text-center">
                       {item.instasettleBps || '0'}
                     </TableCell>

@@ -24,6 +24,14 @@ export interface Trade {
   realisedAmountOut: string
   id: string
   executions: Execution[]
+  // Calculated fields
+  effectivePrice?: number
+  networkFee?: number
+  amountOutSavings?: number
+  totalSavings?: number
+  amountInUsd?: number
+  tokenInDetails?: any // Using any for now since we don't have the token type here
+  tokenOutDetails?: any // Using any for now since we don't have the token type here
 }
 
 export interface TradesResponse {
