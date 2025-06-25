@@ -20,14 +20,14 @@ contract SweetSpotAlgoTest is Deploys {
 
         // Deploy mock tokens with different decimals
         tokenIn = new MockERC20("Token In", "TKI", 18);
-        tokenOut = new MockERC20("Token Out", "TKO", 6);
+        tokenOut = new MockERC20("Token Out", "TKO", 18);
     }
 
     function test_SweetSpotAlgo_NormalCase() public {
         // Setup: 1M tokens in reserves, 100k volume
-        uint256 reserveIn = 1_000_000 * 10 ** 18; // 1M tokens with 18 decimals
-        uint256 reserveOut = 1_000_000 * 10 ** 6; // 1M tokens with 6 decimals
-        uint256 volume = 100_000 * 10 ** 18; // 100k tokens
+        uint256 reserveIn = 100_000_000 * 10 ** 18; // 1M tokens with 18 decimals
+        uint256 reserveOut = 10_000 * 10 ** 18; // 1M tokens with 18 decimals
+        uint256 volume = 1_000_000 * 10 ** 18; // 100k tokens
         uint256 effectiveGas = 1; // $1 gas
 
         uint256 sweetSpot = streamDaemon._sweetSpotAlgo(
@@ -41,7 +41,7 @@ contract SweetSpotAlgoTest is Deploys {
     function test_SweetSpotAlgo_MinimumSweetSpot() public {
         // Setup: Very small reserves and volume to test minimum sweet spot
         uint256 reserveIn = 100 * 10 ** 18; // 100 tokens
-        uint256 reserveOut = 100 * 10 ** 6; // 100 tokens
+        uint256 reserveOut = 100 * 10 ** 18; // 100 tokens
         uint256 volume = 1 * 10 ** 18; // 1 token
         uint256 effectiveGas = 1; // $1 gas
 
@@ -55,7 +55,7 @@ contract SweetSpotAlgoTest is Deploys {
     function test_SweetSpotAlgo_MaximumSweetSpot() public {
         // Setup: Very large reserves and volume to test maximum sweet spot
         uint256 reserveIn = 1_000_000_000 * 10 ** 18; // 1B tokens
-        uint256 reserveOut = 1_000_000_000 * 10 ** 6; // 1B tokens
+        uint256 reserveOut = 1_000_000_000 * 10 ** 18; // 1B tokens
         uint256 volume = 1_000_000 * 10 ** 18; // 1M tokens
         uint256 effectiveGas = 1; // $1 gas
 
