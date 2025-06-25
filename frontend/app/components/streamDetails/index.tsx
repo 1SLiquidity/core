@@ -118,6 +118,17 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     ? Number(swappedAmountIn) * (tokenIn.usd_price || 0)
     : 0
 
+  const NETWORK_FEE_BPS = 5 // 5 basis points
+  console.log('selectedStream.amountIn ===>', selectedStream.amountIn)
+
+  const networkFeeInToken = tokenIn
+    ? Number(formatUnits(BigInt(selectedStream.amountIn), tokenIn.decimals)) *
+      (NETWORK_FEE_BPS / 10000)
+    : 0
+  const networkFeeUsd = tokenIn
+    ? networkFeeInToken * (tokenIn.usd_price || 0)
+    : 0
+
   console.log('selectedStream ===>', selectedStream)
 
   return (
@@ -398,7 +409,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             /> */}
             <AmountTag
               title="Network Fee"
-              amount={`5 BPS ($${(amountInUsd * 0.05).toFixed(2)})`}
+              amount={`5 BPS ($${networkFeeUsd.toFixed(2)})`}
               infoDetail="Info"
               titleClassName="text-white52"
               isLoading={isLoading}
