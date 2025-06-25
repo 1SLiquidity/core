@@ -30,34 +30,15 @@ import { formatRelativeTime } from '@/app/lib/utils/time'
 // Constants
 const LIMIT = 10
 
-// Helper functions for trade calculations
-const calculateEffectivePrice = (trade: Trade) => {
-  const minAmountOutBN = BigInt(trade.minAmountOut || '0')
-  const amountInBN = BigInt(trade.amountIn || '1') // Use 1 as denominator if amountIn is 0 to avoid division by zero
-  return Number(minAmountOutBN) / Number(amountInBN)
-}
-
-const calculateSavings = (trade: Trade, amountInUsd: number) => {
-  // For now using dummy targetAmountOut as 120% of minAmountOut
-  const targetAmountOut =
-    (BigInt(trade.minAmountOut || '0') * BigInt(120)) / BigInt(100)
-  const realisedAmountOutBN = BigInt(trade.realisedAmountOut || '0')
-  const instasettleBpsBN = BigInt(trade.instasettleBps || '0')
-
-  // Calculate amountOut savings
-  const amountOutSavings =
-    ((targetAmountOut - realisedAmountOutBN) *
-      (BigInt(10000) - instasettleBpsBN)) /
-    BigInt(10000)
-
-  // Calculate network fee (15% of amountInUsd)
-  const networkFee = Number((amountInUsd * 0.15).toFixed(2))
-
-  return {
-    amountOutSavings: Number(amountOutSavings),
-    networkFee,
-    totalSavings: Number(amountOutSavings) + networkFee,
-  }
+// Extended Trade type with calculated fields
+interface ExtendedTrade extends Trade {
+  effectivePrice: number
+  networkFee: number
+  amountInUsd: number
+  tokenInDetails: TOKENS_TYPE | null
+  tokenOutDetails: TOKENS_TYPE | null
+  formattedAmountRemaining: string
+  cost: number
 }
 
 const SortIcon = ({
@@ -109,7 +90,7 @@ const TradesTable = ({
   const [activeTimeframe, setActiveTimeframe] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [initialStream, setInitialStream] = useState<Trade | undefined>(
+  const [initialStream, setInitialStream] = useState<ExtendedTrade | undefined>(
     undefined
   )
   const { isMobile, isTablet } = useScreenSize()
@@ -162,9 +143,9 @@ const TradesTable = ({
   console.log('All trades ======>', trades)
 
   // Filter and sort trades
-  const displayData = useMemo(() => {
+  const displayData = useMemo((): ExtendedTrade[] => {
     if (isChartFiltered) {
-      return selectedTrade ? [selectedTrade] : []
+      return selectedTrade ? [selectedTrade as ExtendedTrade] : []
     }
 
     if (!trades.length) return []
@@ -191,6 +172,13 @@ const TradesTable = ({
           tokenIn && !isNaN(Number(formattedAmountIn))
             ? Number(formattedAmountIn) * (tokenIn.usd_price || 0)
             : 0
+
+        const formattedAmountRemaining = tokenIn
+          ? formatUnits(
+              BigInt(trade.amountRemaining || '0'),
+              tokenIn.decimals || 18
+            )
+          : '0'
 
         // Calculate sum of realisedAmountOut from executions
         const realisedAmountOutSum = (trade.executions || []).reduce(
@@ -225,6 +213,16 @@ const TradesTable = ({
         const realisedAmountOut = trade.realisedAmountOut
         const instasettleBps = trade.instasettleBps
 
+        console.log('targetAmountOut ======>', targetAmountOut)
+        console.log('realisedAmountOut ======>', realisedAmountOut)
+
+        const cost = BigInt(targetAmountOut) - BigInt(realisedAmountOut)
+        const formatCost = tokenOut
+          ? formatUnits(BigInt(cost || '0'), tokenOut.decimals || 18)
+          : '0'
+
+        console.log('formatCost ======>', formatCost)
+
         let amountOut: bigint
         try {
           amountOut =
@@ -242,6 +240,13 @@ const TradesTable = ({
 
         // Calculate amountIn
         const amountRemaining = trade.amountRemaining
+
+        console.log('tokenInAmountRemaining ======>', amountRemaining)
+        console.log(
+          'tokenOutAmountRemaining ======>',
+          Number(targetAmountOut) - Number(realisedAmountOut)
+        )
+
         let amountIn: bigint
         // Calculate network fee (15% of amountInUsd)
         // Calculate network fee (15 basis points = 0.15%)
@@ -264,13 +269,13 @@ const TradesTable = ({
         try {
           if (amountIn > BigInt(0)) {
             // Convert amounts to proper decimal representation before division
-            const amountOutDecimals = tokenOut?.decimals || 6 // Default to 6 for USDC
-            const amountInDecimals = tokenIn?.decimals || 18 // Default to 18 for ETH
+            const tokenOutDecimals = tokenOut?.decimals || 6 // Default to 6 for USDC
+            const tokenInDecimals = tokenIn?.decimals || 18 // Default to 18 for ETH
 
             const amountOutFloat =
-              Number(amountOut) / Math.pow(10, amountOutDecimals)
+              Number(amountOut) / Math.pow(10, tokenOutDecimals)
             const amountInFloat =
-              Number(amountIn) / Math.pow(10, amountInDecimals)
+              Number(amountIn) / Math.pow(10, tokenInDecimals)
 
             effectivePrice = amountOutFloat / amountInFloat
 
@@ -296,6 +301,8 @@ const TradesTable = ({
           amountInUsd: isFinite(amountInUsd) ? amountInUsd : 0,
           tokenInDetails: tokenIn || null,
           tokenOutDetails: tokenOut || null,
+          formattedAmountRemaining: formattedAmountRemaining,
+          cost: Number(formatCost),
         }
       } catch (error) {
         console.error('Error processing trade:', error)
@@ -307,7 +314,9 @@ const TradesTable = ({
           amountInUsd: 0,
           tokenInDetails: null,
           tokenOutDetails: null,
-        }
+          formattedAmountRemaining: '0',
+          cost: 0,
+        } as ExtendedTrade
       }
     })
 
@@ -345,7 +354,7 @@ const TradesTable = ({
     tokenList,
   ])
 
-  const handleStreamClick = (item: Trade) => {
+  const handleStreamClick = (item: ExtendedTrade) => {
     setInitialStream(item)
     setIsSidebarOpen(true)
   }
@@ -488,6 +497,7 @@ const TradesTable = ({
             <TableRow>
               <TableHead className="text-center">Token Pair</TableHead>
               <TableHead></TableHead>
+              <TableHead className="text-center">Cost</TableHead>
               <TableHead className="text-center">Volume</TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
@@ -587,14 +597,14 @@ const TradesTable = ({
                             className="w-6 h-6"
                             alt={item.tokenInDetails?.symbol || 'eth'}
                           />
-                          <div>
+                          {/* <div>
                             <p className="text-white">
                               {item.tokenInDetails?.symbol || 'ETH'}
                             </p>
                             <p className="text-white52">
                               ${item.amountInUsd?.toFixed(2)}
                             </p>
-                          </div>
+                          </div> */}
                         </div>
                         <Image
                           src="/icons/right-arrow.svg"
@@ -613,14 +623,14 @@ const TradesTable = ({
                             alt={item.tokenOutDetails?.symbol || 'usdc'}
                             className="w-6 h-6"
                           />
-                          <div>
+                          {/* <div>
                             <p className="text-white">
                               {item.tokenOutDetails?.symbol || 'USDC'}
                             </p>
                             <p className="text-white52">
                               ${amountOutUsd.toFixed(2)}
                             </p>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     </TableCell>
@@ -633,7 +643,10 @@ const TradesTable = ({
                       />
                     </TableCell>
                     <TableCell className="text-center">
-                      ${item.amountInUsd?.toFixed(2)}
+                      ${item.cost.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.formattedAmountRemaining}
                     </TableCell>
                     <TableCell className="text-center">
                       ${item.effectivePrice?.toFixed(2)}
