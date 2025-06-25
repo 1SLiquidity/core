@@ -245,7 +245,7 @@ const TradesTable = ({
   }
 
   return (
-    <div className="mt-16">
+    <div className="mt-16 relative">
       <div className="flex justify-between mb-6">
         <div className="flex gap-2">
           <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex gap-[6px]">

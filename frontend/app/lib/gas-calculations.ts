@@ -1,4 +1,7 @@
 import { ethers, providers } from 'ethers'
+import { Contract } from 'ethers'
+import { CONTRACT_ADDRESSES } from './config/contracts'
+import { UniswapV2RouterABI, UniswapV3QuoterABI } from './config/abis'
 
 interface GasCalculationResult {
   botGasLimit: bigint
@@ -219,5 +222,108 @@ export async function calculateGasAndStreams(
   } catch (error) {
     console.error('Error in calculateGasAndStreams:', error)
     throw error
+  }
+}
+
+export async function calculateSlippageSavings(
+  provider: providers.Provider,
+  tradeVolume: bigint,
+  dex: string,
+  feeTier: number,
+  reserveA: bigint,
+  reserveB: bigint,
+  decimalsA: number,
+  decimalsB: number,
+  tokenIn: string,
+  tokenOut: string,
+  sweetSpot: number
+): Promise<number> {
+  try {
+    if (dex === 'uniswap-v2' || dex === 'sushiswap') {
+      // Calculate getAmountsOut from UniswapV2Router
+      const routerAddress =
+        dex === 'uniswap-v2'
+          ? CONTRACT_ADDRESSES.UNISWAP_V2.ROUTER
+          : CONTRACT_ADDRESSES.SUSHISWAP.ROUTER
+
+      const router = new Contract(routerAddress, UniswapV2RouterABI, provider)
+
+      // Get quote for full amount
+      const amountOut = await router.getAmountOut(
+        tradeVolume,
+        reserveA,
+        reserveB
+      )
+      const amountOutInETH = Number(amountOut) / 10 ** decimalsB
+
+      // Get quote for (tradeVolume / sweetSpot)
+      const sweetSpotAmountOut = await router.getAmountOut(
+        tradeVolume / BigInt(sweetSpot),
+        reserveA,
+        reserveB
+      )
+      const sweetSpotAmountOutInETH =
+        Number(sweetSpotAmountOut) / 10 ** decimalsB
+
+      // Scale up the sweet spot quote
+      const scaledSweetSpotAmountOutInETH = sweetSpotAmountOutInETH * sweetSpot
+
+      return scaledSweetSpotAmountOutInETH - amountOutInETH
+    }
+
+    if (dex.startsWith('uniswap-v3')) {
+      // Calculate getAmountsOut from UniswapV3Quoter
+      const quoter = new Contract(
+        CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+        UniswapV3QuoterABI,
+        provider
+      )
+
+      // Get quote for full amount
+      const data = quoter.interface.encodeFunctionData(
+        'quoteExactInputSingle',
+        [tokenIn, tokenOut, feeTier, tradeVolume, 0]
+      )
+
+      const result = await provider.call({
+        to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+        data,
+      })
+
+      const dexQuoteAmountOut = quoter.interface.decodeFunctionResult(
+        'quoteExactInputSingle',
+        result
+      )[0]
+
+      const dexQuoteAmountOutInETH = Number(dexQuoteAmountOut) / 10 ** decimalsB
+
+      // Get quote for (tradeVolume / sweetSpot)
+      const sweetSpotQuote = quoter.interface.encodeFunctionData(
+        'quoteExactInputSingle',
+        [tokenIn, tokenOut, feeTier, tradeVolume / BigInt(sweetSpot), 0]
+      )
+
+      const sweetSpotQuoteResult = await provider.call({
+        to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+        data: sweetSpotQuote,
+      })
+
+      const sweetSpotQuoteAmountOut = quoter.interface.decodeFunctionResult(
+        'quoteExactInputSingle',
+        sweetSpotQuoteResult
+      )[0]
+
+      const sweetSpotQuoteAmountOutInETH =
+        Number(sweetSpotQuoteAmountOut) / 10 ** decimalsB
+      const scaledSweetSpotQuoteAmountOutInETH =
+        sweetSpotQuoteAmountOutInETH * sweetSpot
+
+      return scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
+    }
+
+    return 0
+  } catch (error) {
+    console.error('Error calculating slippage savings:', error)
+    return 0
   }
 }

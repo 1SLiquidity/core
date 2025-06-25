@@ -22,6 +22,13 @@ export const useReserves = ({
   const [isFetchingReserves, setIsFetchingReserves] = useState(false)
   const [calculationError, setCalculationError] = useState<string | null>(null)
 
+  // Clear state when tokens change
+  const clearState = useCallback(() => {
+    setReserveData(null)
+    setDexCalculator(null)
+    setCalculationError(null)
+  }, [])
+
   const fetchReserves = useCallback(async () => {
     console.log('Fetching reserves with tokens:', {
       selectedTokenFrom,
@@ -29,13 +36,13 @@ export const useReserves = ({
     })
     if (!selectedTokenFrom || !selectedTokenTo) {
       console.log('Missing tokens, skipping fetch')
-      setReserveData(null)
-      setDexCalculator(null)
+      clearState()
       setIsFetchingReserves(false)
       return
     }
 
-    setCalculationError(null)
+    // Clear existing data before fetching new
+    clearState()
     setIsFetchingReserves(true)
 
     try {
@@ -44,10 +51,15 @@ export const useReserves = ({
         '0xdAC17F958D2ee523a2206206994597C13D831ec7'
       const toAddress =
         selectedTokenTo.token_address ||
-        '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' // Default to WETH if no address
+        '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+
+      // Add abort controller for cleanup
+      const controller = new AbortController()
+      const signal = controller.signal
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`,
+        { signal }
       )
 
       if (!response.ok) {
@@ -57,10 +69,24 @@ export const useReserves = ({
       const data = await response.json()
       console.log('Received reserve data:', data)
 
+      // Check if tokens are still the same after fetch completes
+      if (
+        !selectedTokenFrom ||
+        !selectedTokenTo ||
+        fromAddress !==
+          (selectedTokenFrom.token_address ||
+            '0xdAC17F958D2ee523a2206206994597C13D831ec7') ||
+        toAddress !==
+          (selectedTokenTo.token_address ||
+            '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
+      ) {
+        console.log('Tokens changed during fetch, discarding results')
+        return
+      }
+
       if (!data) {
         setCalculationError('No liquidity data received')
-        setReserveData(null)
-        setDexCalculator(null)
+        clearState()
         return
       }
 
@@ -77,8 +103,7 @@ export const useReserves = ({
         !(parseFloat(reserveDataWithDecimals.reserves.token1) > 0)
       ) {
         setCalculationError('No liquidity data received')
-        setReserveData(null)
-        setDexCalculator(null)
+        clearState()
         return
       }
 
@@ -91,23 +116,33 @@ export const useReserves = ({
       setReserveData(reserveDataWithDecimals)
       setDexCalculator(calculator)
       console.log('Successfully set reserve data and calculator')
-    } catch (error) {
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.log('Fetch aborted')
+        return
+      }
       console.error('Error fetching reserves:', error)
       setCalculationError('Error fetching liquidity data')
-      setReserveData(null)
-      setDexCalculator(null)
+      clearState()
     } finally {
       setIsFetchingReserves(false)
     }
-  }, [selectedTokenFrom, selectedTokenTo, chainId])
+  }, [selectedTokenFrom, selectedTokenTo, chainId, clearState])
 
   // Fetch reserves when tokens change
   useEffect(() => {
     if (selectedTokenFrom && selectedTokenTo) {
       console.log('Tokens changed, fetching reserves')
       fetchReserves()
+    } else {
+      clearState()
     }
-  }, [selectedTokenFrom, selectedTokenTo, chainId, fetchReserves])
+
+    return () => {
+      // Cleanup effect
+      clearState()
+    }
+  }, [selectedTokenFrom, selectedTokenTo, chainId, fetchReserves, clearState])
 
   return {
     reserveData,
