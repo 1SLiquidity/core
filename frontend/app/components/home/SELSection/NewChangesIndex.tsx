@@ -61,8 +61,8 @@ const SELSection = () => {
     isFetchingReserves,
     calculationError: reserveError,
     fetchReserves,
-    setReserveData,
-    setDexCalculator,
+    // setReserveData,
+    // setDexCalculator,
   } = useReserves({
     selectedTokenFrom,
     selectedTokenTo,
