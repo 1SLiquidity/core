@@ -18,6 +18,7 @@ type Props = {
   tokenToUsdPrice?: number
   estTime?: string
   isCalculating?: boolean
+  slippageSavings?: number | null
 }
 
 const DetailSection: React.FC<Props> = ({
@@ -33,6 +34,7 @@ const DetailSection: React.FC<Props> = ({
   tokenToUsdPrice = 0,
   estTime = '',
   isCalculating = false,
+  slippageSavings = null,
 }) => {
   const [showDetails, setShowDetails] = useState(true)
 
@@ -75,6 +77,25 @@ const DetailSection: React.FC<Props> = ({
       usdString = ` ($${usdValue.toFixed(2)})`
     }
     return `${minOutput.toFixed(4)} ${tokenToSymbol}${usdString}`
+  }
+
+  // Format slippage savings as percentage and USD value
+  const formatSlippageSavings = () => {
+    if (!slippageSavings || !buyAmount) return '0%'
+    const numericBuyAmount = parseFloat(buyAmount)
+    if (isNaN(numericBuyAmount) || numericBuyAmount === 0) return '0%'
+
+    // Format USD value
+    const usdString = `$${Math.abs(slippageSavings).toFixed(2)}`
+
+    // Calculate percentage
+    const savingsPercentage =
+      (slippageSavings / (numericBuyAmount * tokenToUsdPrice)) * 100
+    const percentString = `${Math.abs(savingsPercentage).toFixed(2)}%`
+
+    console.log('slippage savings ====>', usdString, percentString)
+
+    return `${usdString}`
   }
 
   const LoadingSkeleton = () => (
@@ -199,7 +220,7 @@ const DetailSection: React.FC<Props> = ({
           />
           <AmountTag
             title="Slippage Savings"
-            amount={isCalculating ? undefined : '1%'}
+            amount={isCalculating ? undefined : formatSlippageSavings()}
             infoDetail="Estimated"
             isLoading={isCalculating}
           />

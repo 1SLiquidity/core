@@ -3,7 +3,7 @@
 import { SEL_SECTION_TABS } from '@/app/lib/constants'
 import { useToast } from '@/app/lib/context/toastProvider'
 import { isNumberValid } from '@/app/lib/helper'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Button from '../../button'
 import NotifiSwapStream from '../../toasts/notifiSwapStream'
 import DetailSection from '../detailSection'
@@ -28,6 +28,10 @@ const SELSection = () => {
   const [invaliSelldAmount, setInvalidSellAmount] = useState(false)
   const [invalidBuyAmount, setInvalidBuyAmount] = useState(false)
   const [swap, setSwap] = useState(false)
+  const [isSwapOperation, setIsSwapOperation] = useState(false)
+  const [pendingSwapAmount, setPendingSwapAmount] = useState<number | null>(
+    null
+  )
 
   const { addToast } = useToast()
   const {
@@ -44,6 +48,13 @@ const SELSection = () => {
   const chainId = chainIdWithPrefix.split(':')[1]
   const pathname = usePathname()
   const router = useRouter()
+
+  const lastTokenChangeRef = useRef<{ from: string | null; to: string | null }>(
+    {
+      from: selectedTokenFrom?.token_address || null,
+      to: selectedTokenTo?.token_address || null,
+    }
+  )
 
   useEffect(() => {
     return () => {
@@ -73,20 +84,23 @@ const SELSection = () => {
     botGasLimit,
     streamCount,
     estTime,
+    slippageSavings,
     setCalculationError,
   } = useSwapCalculator({
     sellAmount,
     dexCalculator,
     reserveData: reserveData as any,
+    isSwapOperation,
+    selectedTokenTo,
   })
 
-  const { timeRemaining, timerActive } = useRefreshTimer({
-    duration: TIMER_DURATION,
-    onRefresh: fetchReserves,
-    isActive: sellAmount > 0 && !!selectedTokenFrom && !!selectedTokenTo,
-    sellAmount,
-    isCalculating,
-  })
+  // const { timeRemaining, timerActive } = useRefreshTimer({
+  //   duration: TIMER_DURATION,
+  //   onRefresh: fetchReserves,
+  //   isActive: sellAmount > 0 && !!selectedTokenFrom && !!selectedTokenTo,
+  //   sellAmount,
+  //   isCalculating,
+  // })
 
   // Combine errors from both hooks
   const calculationError = reserveError || swapError
@@ -104,18 +118,59 @@ const SELSection = () => {
     }
   }, [selectedTokenFrom, selectedTokenTo])
 
-  const handleSwap = (): void => {
-    if (sellAmount > 0 || buyAmount > 0) {
-      // setSellAmount(buyAmount)
+  // Add an effect to handle pending swap amount
+  useEffect(() => {
+    if (pendingSwapAmount !== null && !isFetchingReserves) {
+      // Only set the sell amount if we're not fetching reserves
+      setSellAmount(pendingSwapAmount)
+      setPendingSwapAmount(null)
+      setIsSwapOperation(false)
+    }
+  }, [isFetchingReserves, pendingSwapAmount])
+
+  // Reset values when tokens change
+  useEffect(() => {
+    const currentFrom = selectedTokenFrom?.token_address || null
+    const currentTo = selectedTokenTo?.token_address || null
+    const lastFrom = lastTokenChangeRef.current.from
+    const lastTo = lastTokenChangeRef.current.to
+
+    // Only reset if one token changed but not both (swap changes both)
+    if (
+      (currentFrom !== lastFrom && currentTo === lastTo) ||
+      (currentFrom === lastFrom && currentTo !== lastTo)
+    ) {
       setSellAmount(0)
-      const tempToken = selectedTokenFrom
-      setSelectedTokenFrom(selectedTokenTo)
-      setSelectedTokenTo(tempToken)
-    } else if (selectedTokenFrom && selectedTokenTo) {
-      // If no values but tokens are selected, swap the tokens
-      const tempToken = selectedTokenFrom
-      setSelectedTokenFrom(selectedTokenTo)
-      setSelectedTokenTo(tempToken)
+      setInvalidSellAmount(false)
+      setInvalidBuyAmount(false)
+    }
+
+    // Update the ref with current values
+    lastTokenChangeRef.current = {
+      from: currentFrom,
+      to: currentTo,
+    }
+  }, [selectedTokenFrom, selectedTokenTo])
+
+  const handleSwap = (): void => {
+    setIsSwapOperation(true)
+
+    // Store current values
+    const currentBuyAmount = buyAmount
+
+    // First reset amounts to prevent stale calculations
+    setSellAmount(0)
+
+    // Swap tokens
+    const tempToken = selectedTokenFrom
+    setSelectedTokenFrom(selectedTokenTo)
+    setSelectedTokenTo(tempToken)
+
+    // Store the amount to set after reserves are fetched
+    if (currentBuyAmount > 0) {
+      setPendingSwapAmount(currentBuyAmount)
+    } else {
+      setIsSwapOperation(false)
     }
   }
 
@@ -197,7 +252,7 @@ const SELSection = () => {
       >
         <div className="w-full flex justify-end gap-2 mb-4">
           <div className="flex items-center gap-2">
-            {timerActive && (
+            {/* {timerActive && (
               <div className="flex items-center justify-end">
                 <div className="flex items-center gap-2 bg-white hover:bg-tabsGradient bg-opacity-[12%] px-2 py-1 rounded-full">
                   <div className="text-sm text-white/70">Auto refresh in</div>
@@ -232,7 +287,7 @@ const SELSection = () => {
                   </div>
                 </div>
               </div>
-            )}
+            )} */}
             <TradingSettings />
           </div>
         </div>
@@ -258,16 +313,26 @@ const SELSection = () => {
           <div
             onClick={handleSwap}
             className={`absolute items-center flex border-[#1F1F1F] border-[2px] border-opacity-[1.5] bg-black justify-center rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50 ${
-              !selectedTokenFrom || !selectedTokenTo
+              !selectedTokenFrom ||
+              !selectedTokenTo ||
+              isFetchingReserves ||
+              isCalculating
                 ? 'cursor-not-allowed'
                 : 'cursor-pointer'
-            }`}
+            }
+            
+            `}
           >
             <div className="w-[25.3px] h-[22.8px] absolute bg-transparent md:bg-black -rotate-45 -z-30 -left-[14px] top-[50.8px]" />
             <div className="w-[26.4px] h-[22.8px] absolute bg-transparent md:bg-black -rotate-45 -z-30 -right-[11.8px] -top-[13.2px]" />
             <SwapBox
               active={sellAmount > 0 || buyAmount > 0}
-              disabled={!selectedTokenFrom || !selectedTokenTo}
+              disabled={
+                !selectedTokenFrom ||
+                !selectedTokenTo ||
+                isFetchingReserves ||
+                isCalculating
+              }
             />
           </div>
           {swap ? (
@@ -312,6 +377,7 @@ const SELSection = () => {
               tokenToUsdPrice={selectedTokenTo?.usd_price || 0}
               estTime={estTime}
               isCalculating={isCalculating}
+              slippageSavings={slippageSavings}
             />
           )}
 
