@@ -17,6 +17,21 @@ const Instasettle = () => {
         <TradesChart />
       </div>
 
+      <motion.div
+        className="absolute bottom-[20%] left-1/2 transform -translate-x-1/2 w-full h-full pointer-events-none z-0"
+        initial={{ bottom: '-100%', opacity: 0 }}
+        animate={{ bottom: '-60%', opacity: 1 }}
+        transition={{ duration: 1.2, ease: 'easeOut' }}
+      >
+        <Image
+          src="/heros/circle.svg"
+          alt="hero background"
+          fill
+          className="object-contain object-bottom"
+          priority
+        />
+      </motion.div>
+
       {/* <div className="absolute inset-0 w-full h-full pointer-events-none">
         <Image
           src="/heros/gradient-overlay.svg"
