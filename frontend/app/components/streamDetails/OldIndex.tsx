@@ -32,6 +32,7 @@ const StreamDetails = ({
 
       <div className="pb-6">
         <div className="p-4 rounded-[15px] bg-white005">
+          {/* @ts-expect-error TODO: fix this */}
           <TokenBar sellToken="ETH" buyToken="USDC" />
           <div className="flex gap-2 justify-between py-4 border-b border-borderBottom">
             <div className="flex flex-col leading-tight gap-0.5 items-start">

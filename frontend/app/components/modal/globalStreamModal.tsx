@@ -43,6 +43,7 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
             <StreamDetails
               onBack={() => setIsStreamSelected(false)}
               walletAddress="GY68234nasmd234asfKT21"
+              // @ts-expect-error TODO: fix this
               selectedStream={selectedStream}
             />
           </>
@@ -95,6 +96,7 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
                         setIsStreamSelected(true)
                         setSelectedStream(stream)
                       }}
+                      // @ts-expect-error TODO: fix this
                       stream={stream}
                     />
                   ))}

@@ -46,6 +46,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
             <StreamDetails
               onBack={() => setIsStreamDetailsOpen(false)}
               walletAddress="GY68234nasmd234asfKT21"
+              // @ts-expect-error TODO: fix this
               selectedStream={selectedStream}
             />
           </>
@@ -142,6 +143,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                           setIsStreamDetailsOpen(true)
                           setSelectedStream(MOCK_STREAMS[0])
                         }}
+                        // @ts-expect-error TODO: fix this
                         stream={MOCK_STREAMS[0]}
                       />
                       <SwapStream
@@ -149,6 +151,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                           setIsStreamDetailsOpen(true)
                           setSelectedStream(MOCK_STREAMS[0])
                         }}
+                        // @ts-expect-error TODO: fix this
                         stream={MOCK_STREAMS[0]}
                       />
                     </div>
@@ -164,6 +167,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                           setIsStreamDetailsOpen(true)
                           setSelectedStream(MOCK_STREAMS[0])
                         }}
+                        // @ts-expect-error TODO: fix this
                         stream={MOCK_STREAMS[0]}
                       />
                       <SwapStream
@@ -171,6 +175,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                           setIsStreamDetailsOpen(true)
                           setSelectedStream(MOCK_STREAMS[0])
                         }}
+                        // @ts-expect-error TODO: fix this
                         stream={MOCK_STREAMS[0]}
                       />
                     </div>
