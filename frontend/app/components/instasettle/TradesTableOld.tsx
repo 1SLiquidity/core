@@ -324,9 +324,9 @@ const TradesTable = ({
     setIsSidebarOpen(true)
   }
 
-  if (status === 'error') {
+  if (true) {
     return (
-      <div className="text-red-500">
+      <div className="text-red-500 flex justify-center items-center h-full">
         Error loading trades: {(error as Error).message}
       </div>
     )
