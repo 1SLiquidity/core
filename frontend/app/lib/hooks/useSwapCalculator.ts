@@ -101,7 +101,8 @@ export const useSwapCalculator = ({
                       token0: reserves.decimals.token0,
                       token1: reserves.decimals.token1,
                     },
-                  }
+                  },
+                  currentSellAmount.current
                 )
                 setBotGasLimit(gasResult.botGasLimit)
                 setStreamCount(gasResult.streamCount)
@@ -221,6 +222,7 @@ export const useSwapCalculator = ({
     botGasLimit,
     streamCount,
     estTime,
+    setBuyAmount,
     setCalculationError,
   }
 }

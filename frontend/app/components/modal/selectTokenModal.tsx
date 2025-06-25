@@ -176,7 +176,24 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
   // Get popular tokens based on market cap
   const getPopularTokens = () => {
-    const popularTokens = displayTokens.filter((token) => token.popular)
+    // First, find WETH in the displayTokens array
+    const weth = displayTokens.find(
+      (token) => token.symbol.toLowerCase() === 'weth'
+    )
+
+    // Get other popular tokens
+    const otherPopularTokens = displayTokens.filter(
+      (token) =>
+        token.popular &&
+        token.symbol.toLowerCase() !== 'weth' &&
+        token.symbol.toLowerCase() !== 'steth'
+    )
+
+    // Combine WETH with other popular tokens, ensuring WETH is first if it exists
+    const popularTokens = weth
+      ? [weth, ...otherPopularTokens]
+      : otherPopularTokens
+
     // Only return up to 5 popular tokens
     return popularTokens.slice(0, 5)
   }

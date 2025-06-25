@@ -1,30 +1,30 @@
-import { ethers, providers } from 'ethers';
+import { ethers, providers } from 'ethers'
 
 interface GasCalculationResult {
-  botGasLimit: bigint;
-  streamCount: number;
+  botGasLimit: bigint
+  streamCount: number
 }
 
 interface Reserves {
-  token0: string;
-  token1: string;
+  token0: string
+  token1: string
 }
 
 interface TokenDecimals {
-  token0: number;
-  token1: number;
+  token0: number
+  token1: number
 }
 
 interface ReservesResponse {
-  reserves: Reserves;
-  decimals: TokenDecimals;
+  reserves: Reserves
+  decimals: TokenDecimals
 }
 
 // Utility to normalize amount based on decimals
 function normalizeAmount(amount: string, decimals: number): bigint {
-  const [whole, fraction = ''] = amount.split('.');
-  const paddedFraction = fraction.padEnd(decimals, '0');
-  return BigInt(whole + paddedFraction);
+  const [whole, fraction = ''] = amount.split('.')
+  const paddedFraction = fraction.padEnd(decimals, '0')
+  return BigInt(whole + paddedFraction)
 }
 
 function calculateSweetSpot(
@@ -32,136 +32,172 @@ function calculateSweetSpot(
   reserveA: bigint,
   reserveB: bigint,
   decimalsA: number,
-  decimalsB: number
+  decimalsB: number,
+  sellAmount: number
 ): number {
   // Convert all values to ETH format (not wei)
-  const scaledReserveA = Number(reserveA) / (10 ** decimalsA);
-  const scaledReserveB = Number(reserveB) / (10 ** decimalsB);
-  const scaledVolume = Number(tradeVolume) / (10 ** decimalsA);
-  
+  const scaledReserveA = Number(reserveA) / 10 ** decimalsA
+  const scaledReserveB = Number(reserveB) / 10 ** decimalsB
+  const scaledVolume = Number(tradeVolume) / 10 ** decimalsA
+
+  console.log('Reserves: ==>', {
+    reserveA,
+    reserveB,
+    scaledReserveA,
+    scaledReserveB,
+    scaledVolume,
+    sellAmount,
+  })
+
   // Calculate alpha based on which reserve is larger
-  const alpha = scaledReserveA > scaledReserveB 
-    ? scaledReserveA / (scaledReserveB * scaledReserveB)
-    : scaledReserveB / (scaledReserveA * scaledReserveA);
+  const alpha =
+    scaledReserveA > scaledReserveB
+      ? scaledReserveA / (scaledReserveB * scaledReserveB)
+      : scaledReserveB / (scaledReserveA * scaledReserveA)
 
-  console.log('alpha', alpha);
+  // const alpha = scaledReserveB / (scaledReserveA * scaledReserveA)
 
+  let streamCount = 0
   // Calculate V^2 using ETH format values
-  const volumeSquared = scaledVolume * scaledVolume;
-  console.log('volumeSquared', volumeSquared);
-
-  let streamCount = 0;
+  const volumeSquared = scaledVolume * scaledVolume
 
   // Check if reserve ratio is less than 0.001
-  const reserveRatio = (scaledReserveB / scaledReserveA) * 100;
-  console.log('reserveRatio', reserveRatio);
+  const reserveRatio = (scaledReserveB / scaledReserveA) * 100
+  console.log('reserveRatio', reserveRatio)
   if (reserveRatio < 0.001) {
     // Calculate N = sqrt(alpha * V^2)
-    streamCount = Math.sqrt(alpha * volumeSquared);
-    console.log('Reserve ratio less than 0.001, streamCount = ', streamCount);
+    streamCount = Math.sqrt(alpha * volumeSquared)
   } else {
     // Calculate N = sqrt(V^2 / Rin)
-    streamCount = Math.sqrt(volumeSquared / scaledReserveA);
-    console.log('Reserve ratio greater than 0.001, streamCount = ', streamCount);
+    streamCount = Math.sqrt(volumeSquared / scaledReserveA)
   }
 
   // If pool depth < 0.2%, set streamCount to 1
-  let poolDepth = scaledVolume / scaledReserveA;
-  console.log('poolDepth%', poolDepth);
+  let poolDepth = scaledVolume / scaledReserveA
+  console.log('poolDepth%', poolDepth)
   if (poolDepth < 0.2) {
-    console.log('Pool depth less than 0.2%, streamCount = 4');
-    streamCount = 4;
+    streamCount = 4
   }
 
-  console.log('streamCount', streamCount);
+  console.log('streamCount ====>', Math.max(4, Math.round(streamCount)))
+
+  // Calculate N = sqrt(alpha * V^2)
+  // const streamCount = Math.sqrt(alpha * volumeSquared)
 
   // Round to nearest integer and ensure minimum value of 1
-  return Math.max(4, Math.round(streamCount));
+  return Math.max(4, Math.round(streamCount))
 }
 
 // Cache for ETH price to avoid too many API calls
-let cachedEthPrice: bigint | null = null;
-let lastEthPriceFetch = 0;
-const ETH_PRICE_CACHE_MS = 60_000; // 1 minute
+let cachedEthPrice: bigint | null = null
+let lastEthPriceFetch = 0
+const ETH_PRICE_CACHE_MS = 60_000 // 1 minute
 
 async function getEthPrice(): Promise<bigint> {
-  const now = Date.now();
+  const now = Date.now()
   if (cachedEthPrice && now - lastEthPriceFetch < ETH_PRICE_CACHE_MS) {
-    return cachedEthPrice;
+    return cachedEthPrice
   }
 
   try {
     const response = await fetch(
       'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd'
-    );
+    )
     if (!response.ok) {
-      throw new Error('Failed to fetch ETH price');
+      throw new Error('Failed to fetch ETH price')
     }
-    const data = await response.json();
-    const price = BigInt(Math.floor(data.ethereum.usd));
-    cachedEthPrice = price;
-    lastEthPriceFetch = now;
-    return price;
+    const data = await response.json()
+    const price = BigInt(Math.floor(data.ethereum.usd))
+    cachedEthPrice = price
+    lastEthPriceFetch = now
+    return price
   } catch (error) {
-    console.error('Error fetching ETH price:', error);
+    console.error('Error fetching ETH price:', error)
     // Fallback to a reasonable default if API fails
-    return BigInt(2000);
+    return BigInt(2000)
   }
 }
 
 async function calculateGasAllowance(
   provider: providers.Provider,
-  streamCount: number,
+  streamCount: number
 ): Promise<bigint> {
   // Get current gas price
-  const gasPrice = await provider.getFeeData();
+  const gasPrice = await provider.getFeeData()
   if (!gasPrice.gasPrice) {
-    throw new Error('Failed to get gas price');
+    throw new Error('Failed to get gas price')
   }
 
   // Get current ETH price from CoinGecko
-  const ETH_PRICE_USD = await getEthPrice();
-  const ONE_DOLLAR_IN_WEI = BigInt(10) ** BigInt(18) / ETH_PRICE_USD; // Convert $1 to wei
-  const gasPriceBigInt = BigInt(gasPrice.gasPrice.toString());
-  const nominalGas = ONE_DOLLAR_IN_WEI / gasPriceBigInt;
-  
+  const ETH_PRICE_USD = await getEthPrice()
+  const ONE_DOLLAR_IN_WEI = BigInt(10) ** BigInt(18) / ETH_PRICE_USD // Convert $1 to wei
+  const gasPriceBigInt = BigInt(gasPrice.gasPrice.toString())
+  const nominalGas = ONE_DOLLAR_IN_WEI / gasPriceBigInt
+
   // Calculate total gas cost for all streams
-  const totalGasCost = gasPriceBigInt * nominalGas * BigInt(streamCount);
-  
-  return totalGasCost;
+  const totalGasCost = gasPriceBigInt * nominalGas * BigInt(streamCount)
+
+  return totalGasCost
 }
 
 // Utility to fetch and cache average block time
-let cachedBlockTime: number | null = null;
-let lastBlockTimeFetch = 0;
-const BLOCK_TIME_CACHE_MS = 60_000; // 1 minute
+let cachedBlockTime: number | null = null
+let lastBlockTimeFetch = 0
+const BLOCK_TIME_CACHE_MS = 60_000 // 1 minute
 
-export async function getAverageBlockTime(provider: any, numBlocks: number = 20): Promise<number> {
-  const now = Date.now();
-  if (cachedBlockTime && now - lastBlockTimeFetch < BLOCK_TIME_CACHE_MS) {
-    return cachedBlockTime;
+export async function getAverageBlockTime(
+  provider: any,
+  numBlocks: number = 20
+): Promise<number> {
+  try {
+    console.log('Getting average block time with provider:', provider)
+    const now = Date.now()
+    if (cachedBlockTime && now - lastBlockTimeFetch < BLOCK_TIME_CACHE_MS) {
+      console.log('Using cached block time:', cachedBlockTime)
+      return cachedBlockTime
+    }
+
+    console.log('Fetching latest block number...')
+    const latestBlock = await provider.getBlockNumber()
+    console.log('Latest block:', latestBlock)
+
+    console.log('Fetching latest block details...')
+    const latest = await provider.getBlock(latestBlock)
+    console.log('Latest block details:', latest)
+
+    console.log('Fetching earlier block details...')
+    const first = await provider.getBlock(latestBlock - numBlocks)
+    console.log('Earlier block details:', first)
+
+    if (!latest || !first) {
+      console.log('Missing block details, using fallback time of 12s')
+      return 12 // fallback to 12s
+    }
+
+    const avg = (latest.timestamp - first.timestamp) / numBlocks
+    console.log('Calculated average block time:', avg)
+
+    cachedBlockTime = avg
+    lastBlockTimeFetch = now
+    return avg
+  } catch (error) {
+    console.error('Error in getAverageBlockTime:', error)
+    return 12 // fallback to 12s on error
   }
-  const latestBlock = await provider.getBlockNumber();
-  const latest = await provider.getBlock(latestBlock);
-  const first = await provider.getBlock(latestBlock - numBlocks);
-  if (!latest || !first) return 12; // fallback to 12s
-  const avg = (latest.timestamp - first.timestamp) / numBlocks;
-  cachedBlockTime = avg;
-  lastBlockTimeFetch = now;
-  return avg;
 }
 
 export async function calculateGasAndStreams(
   provider: providers.Provider,
   tradeVolume: string,
-  reserves: ReservesResponse
+  reserves: ReservesResponse,
+  sellAmount: number
 ): Promise<GasCalculationResult> {
   try {
-    const reserve0 = BigInt(reserves.reserves.token0);
-    const reserve1 = BigInt(reserves.reserves.token1);
+    const reserve0 = BigInt(reserves.reserves.token0)
+    const reserve1 = BigInt(reserves.reserves.token1)
 
     // Convert trade volume to BigInt using token decimals
-    const tradeVolumeBN = normalizeAmount(tradeVolume, reserves.decimals.token0);
+    const tradeVolumeBN = normalizeAmount(tradeVolume, reserves.decimals.token0)
 
     // Calculate sweet spot
     const sweetSpot = calculateSweetSpot(
@@ -169,21 +205,19 @@ export async function calculateGasAndStreams(
       reserve0,
       reserve1,
       reserves.decimals.token0,
-      reserves.decimals.token1
-    );
+      reserves.decimals.token1,
+      sellAmount
+    )
 
     // Calculate gas allowance
-    const gasAllowance = await calculateGasAllowance(
-      provider,
-      sweetSpot
-    );
+    const gasAllowance = await calculateGasAllowance(provider, sweetSpot)
 
     return {
       botGasLimit: gasAllowance,
       streamCount: sweetSpot,
-    };
+    }
   } catch (error) {
-    console.error('Error in calculateGasAndStreams:', error);
-    throw error;
+    console.error('Error in calculateGasAndStreams:', error)
+    throw error
   }
-} 
+}

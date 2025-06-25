@@ -5,6 +5,7 @@ import { headers } from 'next/headers'
 import HomeLayout from './components/layouts'
 import './globals.css'
 import ReactQueryProvider from './context/ReactQueryProvider'
+import { ApolloProvider } from './lib/providers/ApolloProvider'
 
 const afacadVariable = localFont({
   src: './fonts/Afacad-Medium.ttf',
@@ -31,7 +32,9 @@ export default async function RootLayout({
       >
         <Web3ModalProvider cookies={cookies}>
           <ReactQueryProvider>
-            <HomeLayout>{children}</HomeLayout>
+            <ApolloProvider>
+              <HomeLayout>{children}</HomeLayout>
+            </ApolloProvider>
           </ReactQueryProvider>
         </Web3ModalProvider>
       </body>
