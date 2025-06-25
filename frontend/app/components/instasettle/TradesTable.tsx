@@ -427,12 +427,6 @@ const TradesTable = ({
     )
   }
 
-  if (error) {
-    return (
-      <div className="text-red-500">Error loading trades: {error.message}</div>
-    )
-  }
-
   return (
     <div className="mt-16 relative">
       <div className="flex justify-between mb-6">
@@ -551,7 +545,15 @@ const TradesTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayData.length === 0 && !isLoading ? (
+            {error ? (
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <div className="text-red-500 text-center py-8">
+                    Error loading trades: {(error as Error).message}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : displayData.length === 0 && !isLoading ? (
               <TableRow>
                 <TableCell colSpan={8}>
                   <div className="text-white52 text-center py-8">
