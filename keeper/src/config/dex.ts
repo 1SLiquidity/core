@@ -20,7 +20,8 @@ export const CONTRACT_ADDRESSES = {
 export const CONTRACT_ABIS = {
   UNISWAP_V2: {
     ROUTER: [
-      'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)'
+      'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)',
+      'function getAmountOut(uint amountIn, uint256 reserveIn, uint256 reserveOut) public view returns (uint amountOut)'
     ],
     FACTORY: [
       'function getPair(address tokenA, address tokenB) external view returns (address pair)'

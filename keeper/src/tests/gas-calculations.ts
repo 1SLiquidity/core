@@ -3,6 +3,9 @@ import { createProvider } from '../utils/provider';
 import { DecimalUtils } from '../utils/decimals';
 import * as dotenv from 'dotenv';
 import axios from 'axios';
+import {
+  CONTRACT_ADDRESSES, CONTRACT_ABIS
+} from '../config/dex'
 
 // Load environment variables
 dotenv.config();
@@ -90,6 +93,7 @@ function calculateSweetSpot(
   const alpha = scaledReserveA > scaledReserveB 
     ? scaledReserveA / (scaledReserveB * scaledReserveB)
     : scaledReserveB / (scaledReserveA * scaledReserveA);
+  console.log('alpha', alpha);
 
   // Calculate V^2 using ETH format values
   const volumeSquared = scaledVolume * scaledVolume;
@@ -103,21 +107,24 @@ function calculateSweetSpot(
   if (reserveRatio < 0.001) {
     // Calculate N = sqrt(alpha * V^2)
     streamCount = Math.sqrt(alpha * volumeSquared);
+    console.log('Reserve ratio less than 0.001, streamCount = ', streamCount);
   } else {
     // Calculate N = sqrt(V^2 / Rin)
     streamCount = Math.sqrt(volumeSquared / scaledReserveA);
+    console.log('Reserve ratio greater than 0.001, streamCount = ', streamCount);
   }
 
-  // If pool depth < 0.2%, set streamCount to 1
+  // If pool depth < 0.2%, set streamCount to 4
   let poolDepth = scaledVolume / scaledReserveA;
   console.log('poolDepth%', poolDepth);
   if (poolDepth < 0.2) {
+    console.log('Pool depth less than 0.2%, streamCount = 4');
     streamCount = 4;
   }
 
   console.log('streamCount', streamCount);
 
-  // Round to nearest integer and ensure minimum value of 1
+  // Round to nearest integer and ensure minimum value of 4
   return Math.max(4, Math.round(streamCount));
 }
 
@@ -180,6 +187,160 @@ export async function testGasCalculations(
     throw error;
   }
 }
+
+async function calculateSlippageSavings(
+  tradeVolume: bigint,
+  dex: string,
+  feeTier: number,
+  reserveA: bigint,
+  reserveB: bigint,
+  decimalsA: number,
+  decimalsB: number,
+  tokenIn: string,
+  tokenOut: string,
+  sweetSpot: number
+) {
+
+  console.log('dex', dex);
+  console.log('feeTier', feeTier);
+  console.log('reserveA', reserveA);
+  console.log('reserveB', reserveB);
+  console.log('decimalsA', decimalsA);
+  console.log('decimalsB', decimalsB);
+  console.log('tokenIn', tokenIn);
+  if (dex === 'uniswap-v2') {
+    // Calculate getAmountsOut from UniswapV2Router
+    const router = new ethers.Contract(
+      CONTRACT_ADDRESSES.UNISWAP_V2.ROUTER,
+      CONTRACT_ABIS.UNISWAP_V2.ROUTER,
+      provider
+    );
+    const amountOut = await router.getAmountOut(
+      tradeVolume,
+      reserveA,
+      reserveB
+    );
+    return amountOut;
+  }
+  if (dex === 'uniswap-v3-3000' || dex === 'uniswap-v3-500' || dex === 'uniswap-v3-10000') {
+    // Calculate getAmountsOut from UniswapV3Quoter
+    const quoter = new ethers.Contract(
+      CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+      CONTRACT_ABIS.UNISWAP_V3.QUOTER,
+      provider
+    );
+
+    const data = quoter.interface.encodeFunctionData(
+      'quoteExactInputSingle',
+      [tokenIn, tokenOut, feeTier, tradeVolume, 0]
+    )
+
+    const result = await provider.call({
+      to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+      data,
+    })
+    // Decode the result
+    const dexQuoteAmountOut = quoter.interface.decodeFunctionResult(
+      'quoteExactInputSingle',
+      result
+    )[0]
+
+    const dexQuoteAmountOutinETH = Number(dexQuoteAmountOut) / (10 ** decimalsB);
+    console.log('dexQuoteAmountOutinETH', dexQuoteAmountOutinETH);
+
+    // Get a quote for (tradevolume / sweetSpot)
+    const sweetSpotQuote = quoter.interface.encodeFunctionData(
+      'quoteExactInputSingle',
+      [tokenIn, tokenOut, feeTier, tradeVolume / BigInt(sweetSpot), 0]
+    )
+
+    const sweetSpotQuoteResult = await provider.call({
+      to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+      data: sweetSpotQuote,
+    })
+
+    const sweetSpotQuoteAmountOut = quoter.interface.decodeFunctionResult(
+      'quoteExactInputSingle',
+      sweetSpotQuoteResult
+    )[0]
+
+    const sweetSpotQuoteAmountOutinETH = Number(sweetSpotQuoteAmountOut) / (10 ** decimalsB);
+    console.log('sweetSpotQuoteAmountOutinETH', sweetSpotQuoteAmountOutinETH);
+
+    // get scaled sweetSpotQuoteAmountOut by multiplying by sweetSpot
+    const scaledSweetSpotQuoteAmountOutinETH = sweetSpotQuoteAmountOutinETH * sweetSpot;
+    console.log('scaledSweetSpotQuoteAmountOutinETH', scaledSweetSpotQuoteAmountOutinETH);
+
+    return scaledSweetSpotQuoteAmountOutinETH - dexQuoteAmountOutinETH;
+  }
+  
+}
+
+export async function testSlippageSavings(
+  tokenA: string,
+  tokenB: string,
+  tradeVolume: string
+) {
+  try {
+    // 1. Get reserves from the API endpoint
+    console.log('Fetching reserves from API...');
+    const response = await axios.get('http://localhost:3001/dev/reserves', {
+      params: {
+        tokenA,
+        tokenB
+      }
+    });
+
+    if (!response.data) {
+      throw new Error('No reserves found for the token pair');
+    }
+
+    const reserves = response.data;
+
+    const reserve0 = BigInt(reserves.reserves.token0);
+    const reserve1 = BigInt(reserves.reserves.token1);
+
+    console.log('reserves decimals', reserves.decimals);
+
+    const tokenDecimals = reserves.decimals || { token0: 18, token1: 18 };
+    const tradeVolumeBN = DecimalUtils.normalizeAmount(tradeVolume, tokenDecimals.token0); 
+
+    const dex = reserves.dex;
+    const feeTier = parseInt(dex.split('-')[2]) || 3000;
+
+    // 2. Calculate sweet spot
+    console.log('Calculating sweet spot...');
+    const sweetSpot = calculateSweetSpot(
+      tradeVolumeBN,
+      reserve0,
+      reserve1,
+      tokenDecimals.token0,
+      tokenDecimals.token1
+    );
+
+    // 2. Calculate slippage savings
+    console.log('Calculating slippage savings...');
+    const slippageSavings = await calculateSlippageSavings(
+      tradeVolumeBN,
+      dex,
+      feeTier,
+      reserve0,
+      reserve1,
+      tokenDecimals.token0,
+      tokenDecimals.token1,
+      tokenA,
+      tokenB,
+      sweetSpot
+    );
+
+    console.log('Slippage savings:', slippageSavings);
+    return slippageSavings;
+  } catch (error) {
+    console.error('Error in testSlippageSavings:', error);
+    throw error;
+  }
+}
+
 
 // Example usage:
 // const result = await testGasCalculations(

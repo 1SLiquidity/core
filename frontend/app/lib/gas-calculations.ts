@@ -44,14 +44,39 @@ function calculateSweetSpot(
     ? scaledReserveA / (scaledReserveB * scaledReserveB)
     : scaledReserveB / (scaledReserveA * scaledReserveA);
 
+  console.log('alpha', alpha);
+
   // Calculate V^2 using ETH format values
   const volumeSquared = scaledVolume * scaledVolume;
+  console.log('volumeSquared', volumeSquared);
 
-  // Calculate N = sqrt(alpha * V^2)
-  const streamCount = Math.sqrt(alpha * volumeSquared);
+  let streamCount = 0;
+
+  // Check if reserve ratio is less than 0.001
+  const reserveRatio = (scaledReserveB / scaledReserveA) * 100;
+  console.log('reserveRatio', reserveRatio);
+  if (reserveRatio < 0.001) {
+    // Calculate N = sqrt(alpha * V^2)
+    streamCount = Math.sqrt(alpha * volumeSquared);
+    console.log('Reserve ratio less than 0.001, streamCount = ', streamCount);
+  } else {
+    // Calculate N = sqrt(V^2 / Rin)
+    streamCount = Math.sqrt(volumeSquared / scaledReserveA);
+    console.log('Reserve ratio greater than 0.001, streamCount = ', streamCount);
+  }
+
+  // If pool depth < 0.2%, set streamCount to 1
+  let poolDepth = scaledVolume / scaledReserveA;
+  console.log('poolDepth%', poolDepth);
+  if (poolDepth < 0.2) {
+    console.log('Pool depth less than 0.2%, streamCount = 4');
+    streamCount = 4;
+  }
+
+  console.log('streamCount', streamCount);
 
   // Round to nearest integer and ensure minimum value of 1
-  return Math.max(1, Math.round(streamCount));
+  return Math.max(4, Math.round(streamCount));
 }
 
 // Cache for ETH price to avoid too many API calls
