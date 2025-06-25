@@ -63,26 +63,27 @@ function calculateSweetSpot(
   let streamCount = 0
   // Calculate V^2 using ETH format values
   const volumeSquared = scaledVolume * scaledVolume
+  streamCount = Math.sqrt(alpha * volumeSquared)
 
   // Check if reserve ratio is less than 0.001
-  const reserveRatio = (scaledReserveB / scaledReserveA) * 100
-  console.log('reserveRatio', reserveRatio)
-  if (reserveRatio < 0.001) {
-    // Calculate N = sqrt(alpha * V^2)
-    streamCount = Math.sqrt(alpha * volumeSquared)
-  } else {
-    // Calculate N = sqrt(V^2 / Rin)
-    streamCount = Math.sqrt(volumeSquared / scaledReserveA)
-  }
+  // const reserveRatio = (scaledReserveB / scaledReserveA) * 100
+  // console.log('reserveRatio', reserveRatio)
+  // if (reserveRatio < 0.001) {
+  //   // Calculate N = sqrt(alpha * V^2)
+  //   streamCount = Math.sqrt(alpha * volumeSquared)
+  // } else {
+  //   // Calculate N = sqrt(V^2 / Rin)
+  //   streamCount = Math.sqrt(volumeSquared / scaledReserveA)
+  // }
 
-  // If pool depth < 0.2%, set streamCount to 1
-  let poolDepth = scaledVolume / scaledReserveA
-  console.log('poolDepth%', poolDepth)
-  if (poolDepth < 0.2) {
-    streamCount = 4
-  }
+  // // If pool depth < 0.2%, set streamCount to 1
+  // let poolDepth = scaledVolume / scaledReserveA
+  // console.log('poolDepth%', poolDepth)
+  // if (poolDepth < 0.2) {
+  //   streamCount = 4
+  // }
 
-  console.log('streamCount ====>', Math.max(4, Math.round(streamCount)))
+  // console.log('streamCount ====>', Math.max(4, Math.round(streamCount)))
 
   // Calculate N = sqrt(alpha * V^2)
   // const streamCount = Math.sqrt(alpha * volumeSquared)
