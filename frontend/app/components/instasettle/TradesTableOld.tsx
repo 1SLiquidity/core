@@ -426,7 +426,7 @@ const TradesTable = ({
                 onClick={() => handleSort('volume')}
               >
                 <div className="flex items-center justify-center">
-                  bps
+                  BPS
                   <SortIcon
                     active={sortField === 'volume'}
                     direction={sortField === 'volume' ? sortDirection : null}

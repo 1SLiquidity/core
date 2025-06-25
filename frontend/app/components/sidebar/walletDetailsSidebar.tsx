@@ -16,6 +16,9 @@ import {
   getOngoingStreams,
   getCompletedStreams,
 } from '../../lib/constants/streams'
+import { useTrades } from '@/app/lib/hooks/useTrades'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { formatUnits } from 'viem'
 
 type WalletDetailsSidebarProps = {
   isOpen: boolean
@@ -46,7 +49,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState(WALLET_TABS[0])
   const [isStreamDetailsOpen, setIsStreamDetailsOpen] = useState(false)
-  const [selectedStream, setSelectedStream] = useState<Stream | null>(null)
+  const [selectedStream, setSelectedStream] = useState<any>(null)
   const [totalBalance, setTotalBalance] = useState<number | null>(null)
   // Track average percentage change across tokens
   const [averagePercentChange, setAveragePercentChange] = useState<
@@ -75,6 +78,19 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     refetch,
     isFetching,
   } = useWalletTokens(address, moralisChain)
+
+  // Fetch trades data
+  const {
+    trades,
+    isLoading: isLoadingTrades,
+    error: tradesError,
+  } = useTrades({
+    first: 10,
+    skip: 0,
+  })
+
+  // Fetch token list for conversion
+  const { tokens: tokenList, isLoading: isLoadingTokensList } = useTokenList()
 
   // Calculate total balance whenever token data changes
   useEffect(() => {
@@ -168,10 +184,10 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
         {isStreamDetailsOpen ? (
           <StreamDetails
             onBack={() => setIsStreamDetailsOpen(false)}
-            // @ts-expect-error TODO: fix this
             selectedStream={selectedStream}
             walletAddress={address}
             isUser={true}
+            onClose={onClose}
           />
         ) : (
           <>
@@ -317,37 +333,48 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                   <div className="mt-4">
                     <p className="text-[20px]">Ongoing Streams</p>
                     <div className="flex flex-col gap-2.5 mt-4">
-                      {ongoingStreams.map((stream) => (
-                        <SwapStream
-                          key={stream.id}
-                          stream={stream}
-                          // @ts-expect-error TODO: fix this
-                          onClick={(selectedStream: Stream) => {
-                            setSelectedStream(selectedStream)
-                            setIsStreamDetailsOpen(true)
-                          }}
-                          isUser={true}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Past Streams */}
-                  <div className="mt-4">
-                    <p className="text-[20px]">Past Streams</p>
-                    <div className="flex flex-col gap-2.5 mt-4">
-                      {completedStreams.map((stream) => (
-                        <SwapStream
-                          key={stream.id}
-                          stream={stream}
-                          // @ts-expect-error TODO: fix this
-                          onClick={(selectedStream: Stream) => {
-                            setSelectedStream(selectedStream)
-                            setIsStreamDetailsOpen(true)
-                          }}
-                          isUser={false}
-                        />
-                      ))}
+                      {!isLoadingTrades && trades.length === 0 ? (
+                        <div className="text-white52 text-center py-8">
+                          No trades found
+                        </div>
+                      ) : (
+                        <>
+                          {trades.map((trade, index) => (
+                            <SwapStream
+                              key={index}
+                              onClick={() => {
+                                setSelectedStream(trade)
+                                setIsStreamDetailsOpen(true)
+                              }}
+                              trade={trade}
+                              isLoading={isLoadingTrades}
+                              isUser={true}
+                            />
+                          ))}
+                          {isLoadingTrades &&
+                            Array(5)
+                              .fill(0)
+                              .map((_, index) => (
+                                <SwapStream
+                                  key={`skeleton-${index}`}
+                                  trade={{
+                                    id: '',
+                                    lastSweetSpot: '',
+                                    amountIn: '0',
+                                    amountRemaining: '0',
+                                    minAmountOut: '0',
+                                    tokenIn: '',
+                                    tokenOut: '',
+                                    isInstasettlable: false,
+                                    realisedAmountOut: '0',
+                                    executions: [],
+                                  }}
+                                  isLoading={true}
+                                  isUser={true}
+                                />
+                              ))}
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

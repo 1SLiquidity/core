@@ -192,6 +192,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                                 tokenOut: '',
                                 isInstasettlable: false,
                                 realisedAmountOut: '0',
+                                executions: [],
                               }}
                               isLoading={true}
                             />

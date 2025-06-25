@@ -1,11 +1,13 @@
-import { formatWalletAddress } from '@/app/lib/helper'
 import Image from 'next/image'
 import Modal from '.'
 import SwapStream from '../swapStream'
 import { useState } from 'react'
 import StreamDetails from '../streamDetails'
-import { Stream } from '@/app/lib/types/stream'
-import { MOCK_STREAMS } from '@/app/lib/constants/streams'
+import { useTrades } from '@/app/lib/hooks/useTrades'
+import { Skeleton } from '@/components/ui/skeleton'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { formatUnits } from 'viem'
+import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 
 type GlobalStreamModalProps = {
   isOpen: boolean
@@ -17,7 +19,45 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
   onClose,
 }) => {
   const [isStreamSelected, setIsStreamSelected] = useState(false)
-  const [selectedStream, setSelectedStream] = useState<Stream | null>(null)
+  const [selectedStream, setSelectedStream] = useState<any>(null)
+
+  // Fetch trades data
+  const {
+    trades,
+    isLoading: isLoadingTrades,
+    error: tradesError,
+  } = useTrades({
+    first: 10,
+    skip: 0,
+  })
+
+  // Fetch token list for price data
+  const { tokens, isLoading: isLoadingTokens } = useTokenList()
+
+  // Calculate total USD value of trades
+  const calculateTotalTradesValue = () => {
+    if (!trades || trades.length === 0 || !tokens || tokens.length === 0)
+      return 0
+
+    return trades.reduce((total, trade) => {
+      const tokenIn = tokens.find(
+        (t: TOKENS_TYPE) =>
+          t.token_address.toLowerCase() === trade.tokenIn.toLowerCase()
+      )
+
+      if (!tokenIn) return total
+
+      const formattedAmountIn = formatUnits(
+        BigInt(trade.amountIn),
+        tokenIn.decimals
+      )
+      const amountInUsd = Number(formattedAmountIn) * (tokenIn.usd_price || 0)
+
+      return total + amountInUsd
+    }, 0)
+  }
+
+  const totalTradesValue = calculateTotalTradesValue()
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -42,9 +82,8 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
           <>
             <StreamDetails
               onBack={() => setIsStreamSelected(false)}
-              walletAddress="GY68234nasmd234asfKT21"
-              // @ts-expect-error TODO: fix this
               selectedStream={selectedStream}
+              onClose={onClose}
             />
           </>
         ) : (
@@ -73,14 +112,24 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
               <div className="p-4 rounded-[15px] bg-white005">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col leading-tight gap-0.5 items-start">
-                    <p className="text-white">Scheduled</p>
-                    <p className="text-[20px]">99</p>
-                    <p className="text-white52 text-[14px]">$99,999,922.39</p>
-                  </div>
-                  <div className="flex flex-col leading-tight gap-0.5 items-start">
                     <p className="text-white">Ongoing</p>
-                    <p className="text-[20px]">99</p>
-                    <p className="text-white52 text-[14px]">$99,999,922.39</p>
+                    {isLoadingTrades || isLoadingTokens ? (
+                      <>
+                        <Skeleton className="h-6 w-16 mt-1" />
+                        <Skeleton className="h-4 w-24 mt-2" />
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[20px]">{trades.length}</p>
+                        <p className="text-white52 text-[14px]">
+                          $
+                          {totalTradesValue.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
@@ -89,17 +138,46 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
                 <p className="text-[20px] pb-3.5">Global Streams</p>
 
                 <div className="flex flex-col gap-2">
-                  {MOCK_STREAMS.map((stream, index) => (
-                    <SwapStream
-                      key={index}
-                      onClick={() => {
-                        setIsStreamSelected(true)
-                        setSelectedStream(stream)
-                      }}
-                      // @ts-expect-error TODO: fix this
-                      stream={stream}
-                    />
-                  ))}
+                  {!isLoadingTrades && trades.length === 0 ? (
+                    <div className="text-white52 text-center py-8">
+                      No trades found
+                    </div>
+                  ) : (
+                    <>
+                      {trades.map((trade, index) => (
+                        <SwapStream
+                          key={index}
+                          onClick={() => {
+                            setIsStreamSelected(true)
+                            setSelectedStream(trade)
+                          }}
+                          trade={trade}
+                          isLoading={isLoadingTrades}
+                        />
+                      ))}
+                      {isLoadingTrades &&
+                        Array(5)
+                          .fill(0)
+                          .map((_, index) => (
+                            <SwapStream
+                              key={`skeleton-${index}`}
+                              trade={{
+                                id: '',
+                                lastSweetSpot: '',
+                                amountIn: '0',
+                                amountRemaining: '0',
+                                minAmountOut: '0',
+                                tokenIn: '',
+                                tokenOut: '',
+                                isInstasettlable: false,
+                                realisedAmountOut: '0',
+                                executions: [],
+                              }}
+                              isLoading={true}
+                            />
+                          ))}
+                    </>
+                  )}
                 </div>
               </div>
             </div>

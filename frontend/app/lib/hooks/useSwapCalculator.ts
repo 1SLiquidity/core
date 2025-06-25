@@ -189,7 +189,7 @@ export const useSwapCalculator = ({
           const avgBlockTime = await getAverageBlockTime(
             dexCalculator.getProvider()
           )
-          const totalSeconds = Math.round(avgBlockTime * streamCount)
+          const totalSeconds = Math.round(avgBlockTime * 2 * streamCount)
 
           let formatted = ''
           if (totalSeconds < 60) {

@@ -30,7 +30,7 @@ export function useStreamTime(streamCount: number | undefined) {
         const avgBlockTime = await getAverageBlockTime(provider)
         console.log('Average block time:', avgBlockTime)
 
-        const totalSeconds = Math.round(avgBlockTime * streamCount)
+        const totalSeconds = Math.round(avgBlockTime * 2 * streamCount)
         console.log('Total seconds calculated:', totalSeconds)
 
         if (totalSeconds <= 0) {
@@ -43,7 +43,9 @@ export function useStreamTime(streamCount: number | undefined) {
         if (totalSeconds < 60) {
           formatted = `${totalSeconds}s`
         } else if (totalSeconds < 3600) {
-          formatted = `${Math.floor(totalSeconds / 60)} min`
+          const minutes = Math.floor(totalSeconds / 60)
+          const seconds = totalSeconds % 60
+          formatted = `${minutes}m${seconds > 0 ? ' ' + seconds + 's' : ''}`
         } else {
           const h = Math.floor(totalSeconds / 3600)
           const m = Math.floor((totalSeconds % 3600) / 60)

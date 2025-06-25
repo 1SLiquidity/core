@@ -8,19 +8,38 @@ import SwapStream from '../swapStream'
 import Tabs from '../tabs'
 import { MOCK_STREAMS } from '@/app/lib/constants/streams'
 import { Stream } from '@/app/lib/types/stream'
+import { useTrades } from '@/app/lib/hooks/useTrades'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { formatUnits } from 'viem'
+import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 
 type WalletDetailsModalProps = {
   isOpen: boolean
   onClose: () => void
+  walletAddress?: string
 }
 
 const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
   isOpen,
   onClose,
+  walletAddress = 'GY68234nasmd234asfKT21',
 }) => {
   const [activeTab, setActiveTab] = useState(WALLET_TABS[0])
   const [isStreamDetailsOpen, setIsStreamDetailsOpen] = useState(false)
-  const [selectedStream, setSelectedStream] = useState<Stream | null>(null)
+  const [selectedStream, setSelectedStream] = useState<any>(null)
+
+  // Fetch trades data
+  const {
+    trades,
+    isLoading: isLoadingTrades,
+    error: tradesError,
+  } = useTrades({
+    first: 10,
+    skip: 0,
+  })
+
+  // Fetch token list for conversion
+  const { tokens: tokenList, isLoading: isLoadingTokens } = useTokenList()
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -45,9 +64,8 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
           <>
             <StreamDetails
               onBack={() => setIsStreamDetailsOpen(false)}
-              walletAddress="GY68234nasmd234asfKT21"
-              // @ts-expect-error TODO: fix this
               selectedStream={selectedStream}
+              onClose={onClose}
             />
           </>
         ) : (
@@ -138,36 +156,58 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                   <div className="mt-4">
                     <p className="text-[20px]">Ongoing Streams</p>
                     <div className="flex flex-col gap-2.5 mt-4">
-                      <SwapStream
-                        onClick={() => {
-                          setIsStreamDetailsOpen(true)
-                          setSelectedStream(MOCK_STREAMS[0])
-                        }}
-                        // @ts-expect-error TODO: fix this
-                        stream={MOCK_STREAMS[0]}
-                      />
-                      <SwapStream
-                        onClick={() => {
-                          setIsStreamDetailsOpen(true)
-                          setSelectedStream(MOCK_STREAMS[0])
-                        }}
-                        // @ts-expect-error TODO: fix this
-                        stream={MOCK_STREAMS[0]}
-                      />
+                      {!isLoadingTrades && trades.length === 0 ? (
+                        <div className="text-white52 text-center py-8">
+                          No trades found
+                        </div>
+                      ) : (
+                        <>
+                          {trades.map((trade, index) => (
+                            <SwapStream
+                              key={index}
+                              onClick={() => {
+                                setIsStreamDetailsOpen(true)
+                                setSelectedStream(trade)
+                              }}
+                              trade={trade}
+                              isLoading={isLoadingTrades}
+                            />
+                          ))}
+                          {isLoadingTrades &&
+                            Array(5)
+                              .fill(0)
+                              .map((_, index) => (
+                                <SwapStream
+                                  key={`skeleton-${index}`}
+                                  trade={{
+                                    id: '',
+                                    lastSweetSpot: '',
+                                    amountIn: '0',
+                                    amountRemaining: '0',
+                                    minAmountOut: '0',
+                                    tokenIn: '',
+                                    tokenOut: '',
+                                    isInstasettlable: false,
+                                    realisedAmountOut: '0',
+                                    executions: [],
+                                  }}
+                                  isLoading={true}
+                                />
+                              ))}
+                        </>
+                      )}
                     </div>
                   </div>
 
                   {/* Past Streams */}
-                  <div className="mt-4">
+                  {/* <div className="mt-4">
                     <p className="text-[20px]">Past Streams</p>
-                    {/* ongoing streams */}
                     <div className="flex flex-col gap-2.5 mt-4">
                       <SwapStream
                         onClick={() => {
                           setIsStreamDetailsOpen(true)
                           setSelectedStream(MOCK_STREAMS[0])
                         }}
-                        // @ts-expect-error TODO: fix this
                         stream={MOCK_STREAMS[0]}
                       />
                       <SwapStream
@@ -175,11 +215,10 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                           setIsStreamDetailsOpen(true)
                           setSelectedStream(MOCK_STREAMS[0])
                         }}
-                        // @ts-expect-error TODO: fix this
                         stream={MOCK_STREAMS[0]}
                       />
                     </div>
-                  </div>
+                  </div> */}
                 </div>
               ) : (
                 <div className="flex flex-col gap-2.5 my-[13px]">

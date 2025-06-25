@@ -81,11 +81,11 @@ const StreamDetails = ({
               amount={'19min 2 sec'}
               infoDetail="Estimated"
             />
-            <AmountTag
+            {/* <AmountTag
               title="Output Fee"
               amount={'$190.54'}
               infoDetail="Estimated"
-            />
+            /> */}
             <AmountTag
               title="Wallet Address"
               amount={formatWalletAddress('0X2A324324324642F')}
