@@ -1,5 +1,7 @@
 import { formatCustomTime, formatWalletAddress } from '@/app/lib/helper'
 import Image from 'next/image'
+import { cn } from '@/lib/utils'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type Props = {
   status: 'ongoing' | 'scheduled' | 'completed'
@@ -10,7 +12,8 @@ type Props = {
   date: Date
   walletAddress?: string
   isInstasettle?: boolean
-  timeRemaining?: number
+  timeRemaining?: string
+  isLoading?: boolean
 }
 
 const StreamCard: React.FC<Props> = ({
@@ -20,6 +23,7 @@ const StreamCard: React.FC<Props> = ({
   walletAddress,
   isInstasettle,
   timeRemaining,
+  isLoading = false,
 }) => {
   const renderStreams = (streams: Props['stream']) => {
     if (streams.length > 4) {
@@ -56,7 +60,7 @@ const StreamCard: React.FC<Props> = ({
   )
 
   return (
-    <div className="w-full p-4 border-[1px] border-white12 rounded-[15px] mt-2.5">
+    <div className="w-full p-4 border-[1px] border-white12 rounded-[15px] mt-2.5 hover:bg-tabsGradient transition-all duration-300">
       <div className="w-full flex justify-between gap-1 items-center">
         <div
           className={`${
@@ -98,8 +102,14 @@ const StreamCard: React.FC<Props> = ({
       <div className="flex flex-col gap-1 mt-2.5">{renderStreams(stream)}</div>
 
       <div className="mt-1.5 text-[14px] text-white">
-        {isInstasettle ? 'Trade settled in' : ''}{' '}
-        {timeRemaining ? `${timeRemaining} mins ago` : formatCustomTime(date)}
+        {isLoading ? (
+          <Skeleton className="h-4 w-24" />
+        ) : (
+          <>
+            {isInstasettle ? 'Trade settled in' : ''}{' '}
+            {timeRemaining || formatCustomTime(date)}
+          </>
+        )}
       </div>
     </div>
   )

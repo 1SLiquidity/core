@@ -3,7 +3,7 @@
 import { SEL_SECTION_TABS } from '@/app/lib/constants'
 import { useToast } from '@/app/lib/context/toastProvider'
 import { isNumberValid } from '@/app/lib/helper'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Button from '../../button'
 import NotifiSwapStream from '../../toasts/notifiSwapStream'
 import DetailSection from '../detailSection'
@@ -28,6 +28,7 @@ const SELSection = () => {
   const [invaliSelldAmount, setInvalidSellAmount] = useState(false)
   const [invalidBuyAmount, setInvalidBuyAmount] = useState(false)
   const [swap, setSwap] = useState(false)
+  const [isSwapping, setIsSwapping] = useState(false)
 
   const { addToast } = useToast()
   const {
@@ -60,6 +61,8 @@ const SELSection = () => {
     isFetchingReserves,
     calculationError: reserveError,
     fetchReserves,
+    setReserveData,
+    setDexCalculator,
   } = useReserves({
     selectedTokenFrom,
     selectedTokenTo,
@@ -68,6 +71,7 @@ const SELSection = () => {
 
   const {
     buyAmount,
+    setBuyAmount,
     isCalculating,
     calculationError: swapError,
     botGasLimit,
@@ -97,22 +101,34 @@ const SELSection = () => {
     setInvalidBuyAmount(!isNumberValid(buyAmount))
   }, [sellAmount, buyAmount])
 
-  // Reset sell amount when tokens change
+  // Add effect to handle buy amount during swap
   useEffect(() => {
-    if (sellAmount > 0) {
-      setSellAmount(0)
+    if (isSwapping && !isFetchingReserves && dexCalculator && reserveData) {
+      // Reset swap state
+      setIsSwapping(false)
     }
-  }, [selectedTokenFrom, selectedTokenTo])
+  }, [isSwapping, isFetchingReserves, dexCalculator, reserveData])
 
   const handleSwap = (): void => {
     if (sellAmount > 0 || buyAmount > 0) {
-      // setSellAmount(buyAmount)
-      setSellAmount(0)
+      // Set swapping state
+      setIsSwapping(true)
+      // Store current buy amount
+      const buyAmountValue = buyAmount
+
+      // Reset calculation state
+      setBuyAmount(0)
+      setCalculationError(null)
+
+      // Swap tokens
       const tempToken = selectedTokenFrom
       setSelectedTokenFrom(selectedTokenTo)
       setSelectedTokenTo(tempToken)
+
+      // Set new sell amount
+      setSellAmount(buyAmountValue)
     } else if (selectedTokenFrom && selectedTokenTo) {
-      // If no values but tokens are selected, swap the tokens
+      // If no values but tokens are selected, just swap the tokens
       const tempToken = selectedTokenFrom
       setSelectedTokenFrom(selectedTokenTo)
       setSelectedTokenTo(tempToken)
@@ -238,23 +254,12 @@ const SELSection = () => {
         </div>
 
         <div className="w-full mt-4 flex flex-col relative gap-[23px]">
-          {swap ? (
-            <CoinBuySection
-              amount={buyAmount}
-              setAmount={handleBuyAmountChange}
-              inValidAmount={invalidBuyAmount}
-              swap={swap}
-              disabled={true}
-              isLoading={false}
-            />
-          ) : (
-            <CoinSellSection
-              amount={sellAmount}
-              setAmount={handleSellAmountChange}
-              inValidAmount={invaliSelldAmount}
-              disabled={isFetchingReserves}
-            />
-          )}
+          <CoinSellSection
+            amount={sellAmount}
+            setAmount={handleSellAmountChange}
+            inValidAmount={invaliSelldAmount}
+            disabled={isFetchingReserves}
+          />
           <div
             onClick={handleSwap}
             className={`absolute items-center flex border-[#1F1F1F] border-[2px] border-opacity-[1.5] bg-black justify-center rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50 ${
@@ -270,24 +275,14 @@ const SELSection = () => {
               disabled={!selectedTokenFrom || !selectedTokenTo}
             />
           </div>
-          {swap ? (
-            <CoinSellSection
-              amount={sellAmount}
-              setAmount={handleSellAmountChange}
-              inValidAmount={invaliSelldAmount}
-              swap={swap}
-              disabled={isFetchingReserves}
-            />
-          ) : (
-            <CoinBuySection
-              amount={buyAmount}
-              setAmount={handleBuyAmountChange}
-              inValidAmount={invalidBuyAmount}
-              swap={swap}
-              disabled={true}
-              isLoading={isCalculating}
-            />
-          )}
+          <CoinBuySection
+            amount={isSwapping ? 0 : buyAmount}
+            setAmount={handleBuyAmountChange}
+            inValidAmount={invalidBuyAmount}
+            swap={swap}
+            disabled={true}
+            isLoading={isCalculating || isSwapping}
+          />
         </div>
 
         {calculationError && (

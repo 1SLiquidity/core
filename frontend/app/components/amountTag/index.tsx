@@ -1,76 +1,78 @@
-import Image from 'next/image'
-import React from 'react'
+import { cn } from '@/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import Image from 'next/image'
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
 
 type Props = {
   title: string
-  amount?: string | null
+  amount: string | undefined
   infoDetail?: string
-  error?: boolean
-  isLoading?: boolean
   titleClassName?: string
   amountClassName?: string
   showInstaIcon?: boolean
+  isLoading?: boolean
 }
 
 const AmountTag: React.FC<Props> = ({
   title,
   amount,
   infoDetail,
-  error,
-  isLoading = false,
   titleClassName,
   amountClassName,
   showInstaIcon = false,
+  isLoading = false,
 }) => {
   return (
-    <div className="w-full flex justify-between items-center">
-      <div className="flex gap-1.5 items-center">
-        {showInstaIcon && (
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-4 h-4"
-          >
-            <path
-              d="M13 2L6 14H11V22L18 10H13V2Z"
-              fill="#40f798"
-              fillOpacity="0.72"
-            />
-          </svg>
-        )}
-        {error && (
-          <Image
-            src="/icons/warning.svg"
-            alt="error"
-            className="w-5"
-            width={20}
-            height={20}
-          />
-        )}
-        <p className={`${error ? 'text-primaryRed' : titleClassName}`}>
-          {title}
-        </p>
+    <div className="flex justify-between items-center">
+      <div className="flex items-center gap-1">
+        <p className={cn('text-[14px]', titleClassName)}>{title}</p>
         {infoDetail && (
-          <Image
-            src="/icons/info.svg"
-            alt="info"
-            className="w-5"
-            width={20}
-            height={20}
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Image
+                  src="/icons/info.svg"
+                  alt="info"
+                  className="w-4 h-4 cursor-pointer"
+                  width={20}
+                  height={20}
+                />
+              </TooltipTrigger>
+              <TooltipContent className="bg-neutral-700 z-50">
+                <p>Info</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
-      <div className={`${error ? 'text-primaryRed' : amountClassName}`}>
+      <div className="flex items-center gap-1">
         {isLoading ? (
-          <Skeleton className="h-4 w-24 bg-white/10" />
-        ) : amount ? (
-          amount
+          <Skeleton className="h-4 w-24" />
         ) : (
-          'Calculating...'
+          <>
+            <p className={cn('text-[14px]', amountClassName)}>{amount}</p>
+            {showInstaIcon && (
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+                className="w-4 h-4"
+              >
+                <path
+                  d="M13 2L6 14H11V22L18 10H13V2Z"
+                  fill="#40f798"
+                  fillOpacity="0.72"
+                />
+              </svg>
+            )}
+          </>
         )}
       </div>
     </div>

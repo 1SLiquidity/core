@@ -1,19 +1,70 @@
+'use client'
+
 import { Badge } from '@/components/ui/badge'
-import { Stream } from '../../lib/types/stream'
 import Image from 'next/image'
 import React from 'react'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatUnits } from 'viem'
+import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
+import { cn } from '@/lib/utils'
+import { useStreamTime } from '@/app/lib/hooks/useStreamTime'
 
-type Props = {
-  stream: Stream
-  onClick?: (stream: Stream) => void
-  isUser?: boolean
+type Trade = {
+  id: string
+  amountIn: string
+  amountRemaining: string
+  minAmountOut: string
+  tokenIn: string
+  tokenOut: string
+  isInstasettlable: boolean
+  realisedAmountOut: string
+  lastSweetSpot: string
 }
 
-const SwapStream: React.FC<Props> = ({ stream, onClick, isUser }) => {
+type Props = {
+  trade: Trade
+  onClick?: (trade: Trade) => void
+  isUser?: boolean
+  isLoading?: boolean
+}
+
+const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
+  const { tokens, isLoading: isLoadingTokens } = useTokenList()
+  const estimatedTime = useStreamTime(Number(trade?.lastSweetSpot) || 0)
+
+  console.log('estimatedTime', estimatedTime)
+
+  // Find token information
+  const tokenIn = tokens.find(
+    (t: TOKENS_TYPE) =>
+      t.token_address.toLowerCase() === trade.tokenIn.toLowerCase()
+  )
+  const tokenOut = tokens.find(
+    (t: TOKENS_TYPE) =>
+      t.token_address.toLowerCase() === trade.tokenOut.toLowerCase()
+  )
+
+  // Format amounts using token decimals
+  const formattedAmountIn = tokenIn
+    ? formatUnits(BigInt(trade.amountIn), tokenIn.decimals)
+    : '0'
+  const formattedMinAmountOut = tokenOut
+    ? formatUnits(BigInt(trade.minAmountOut), tokenOut.decimals)
+    : '0'
+
+  if (isLoadingTokens) {
+    return (
+      <div className="w-full border border-white14 relative bg-white005 p-4 rounded-[15px]">
+        <Skeleton className="h-[100px] w-full" />
+      </div>
+    )
+  }
+
   return (
     <div
-      className="w-full border border-white14 relative bg-white005 p-4 rounded-[15px] cursor-pointer"
-      onClick={() => onClick?.(stream)}
+      className="w-full border border-white14 relative bg-white005 p-4 rounded-[15px] cursor-pointer hover:bg-tabsGradient transition-all duration-300"
+      onClick={() => onClick?.(trade)}
     >
       <div className="flex mr-8 items-center gap-1.5 absolute top-4 left-2">
         <Image
@@ -28,16 +79,25 @@ const SwapStream: React.FC<Props> = ({ stream, onClick, isUser }) => {
       <div className="ml-[27px] flex flex-col">
         <div className="flex gap-[6px] items-center">
           <div className="flex items-center gap-1">
-            <Image
-              src={stream.fromToken.icon}
-              width={2400}
-              height={2400}
-              alt={stream.fromToken.symbol}
-              className="w-[18px] h-[18px]"
-            />
-            <p className="text-white uppercase">
-              {stream.fromToken.amount} {stream.fromToken.symbol}
-            </p>
+            {isLoading ? (
+              <>
+                <Skeleton className="w-[18px] h-[18px] rounded-full" />
+                <Skeleton className="w-24 h-4" />
+              </>
+            ) : (
+              <>
+                <Image
+                  src={tokenIn?.icon || '/icons/default-token.svg'}
+                  width={2400}
+                  height={2400}
+                  alt={tokenIn?.symbol || 'token'}
+                  className="w-[18px] h-[18px]"
+                />
+                <p className="text-white uppercase">
+                  {formattedAmountIn} {tokenIn?.symbol}
+                </p>
+              </>
+            )}
           </div>
           <Image
             src="/icons/right-arrow.svg"
@@ -47,79 +107,96 @@ const SwapStream: React.FC<Props> = ({ stream, onClick, isUser }) => {
             className="w-[10px]"
           />
           <div className="flex items-center gap-1">
-            <Image
-              src={stream.toToken.icon}
-              width={2400}
-              height={2400}
-              alt={stream.toToken.symbol}
-              className="w-[18px] h-[18px]"
-            />
-            <p className="text-white uppercase">
-              {stream.toToken.estimatedAmount} {stream.toToken.symbol} (Est)
-            </p>
-          </div>
-        </div>
-
-        <div className="w-full h-[3px] bg-white005 mt-[12px] relative">
-          <div
-            className="h-[3px] bg-primary absolute top-0 left-0"
-            style={{
-              width: `${
-                (stream.progress.completed / stream.progress.total) * 100
-              }%`,
-            }}
-          />
-        </div>
-
-        <div className="mt-1.5 flex justify-between items-center gap-2 text-white52">
-          <p className="">
-            {stream.progress.completed}/{stream.progress.total} completed
-          </p>
-          <div className="flex gap-2">
-            <div className="flex items-center">
-              <Image
-                src="/icons/time.svg"
-                alt="clock"
-                className="w-5"
-                width={20}
-                height={20}
-              />
-              <p>{stream.timeRemaining} min</p>
-            </div>
-            {stream.isInstasettle && (
-              <div className="flex items-center text-sm gap-1 bg-zinc-900 pl-1 pr-1.5 text-primary rounded-full leading-none">
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="w-4 h-4 sm:w-5 sm:h-5"
-                >
-                  <path
-                    d="M13 2L6 14H11V22L18 10H13V2Z"
-                    fill="#40f798"
-                    fillOpacity="0.72"
-                  />
-                </svg>
-                <span className="text-xs sm:inline-block hidden">
-                  Instasettle
-                </span>
-              </div>
+            {isLoading ? (
+              <>
+                <Skeleton className="w-[18px] h-[18px] rounded-full" />
+                <Skeleton className="w-24 h-4" />
+              </>
+            ) : (
+              <>
+                <Image
+                  src={tokenOut?.icon || '/icons/default-token.svg'}
+                  width={2400}
+                  height={2400}
+                  alt={tokenOut?.symbol || 'token'}
+                  className="w-[18px] h-[18px]"
+                />
+                <p className="text-white uppercase">
+                  {formattedMinAmountOut} {tokenOut?.symbol} (EST)
+                </p>
+              </>
             )}
           </div>
         </div>
 
-        {stream.limit && (
-          <div className="flex gap-1.5 mt-1 items-center">
-            <div className="p-[3px] rounded-[4px] !text-[12px] flex items-center justify-center bg-primary uppercase text-black">
-              Limit
-            </div>
-            <div className="text-white52 text-[14px]">
-              {stream.limit.price} {stream.limit.token}
-            </div>
-          </div>
-        )}
+        <div className="w-full h-[3px] bg-white005 mt-[12px] relative">
+          {isLoading ? (
+            <Skeleton className="h-[3px] w-1/4 absolute top-0 left-0" />
+          ) : (
+            <div
+              className="h-[3px] bg-primary absolute top-0 left-0"
+              style={{
+                width: '25%', // Hardcoded for now as requested
+              }}
+            />
+          )}
+        </div>
+
+        <div
+          className={cn(
+            'flex justify-between items-center gap-2 text-white52',
+            isLoading ? 'mt-3.5' : 'mt-1.5'
+          )}
+        >
+          {isLoading ? (
+            <>
+              <Skeleton className="h-4 w-24" />
+              <div className="flex gap-2">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="">
+                25/100 completed {/* Hardcoded as requested */}
+              </p>
+              <div className="flex gap-2">
+                <div className="flex items-center">
+                  <Image
+                    src="/icons/time.svg"
+                    alt="clock"
+                    className="w-5"
+                    width={20}
+                    height={20}
+                  />
+                  <p>{estimatedTime || '..'}</p>
+                </div>
+                {trade.isInstasettlable && (
+                  <div className="flex items-center text-sm gap-1 bg-zinc-900 pl-1 pr-1.5 text-primary rounded-full leading-none">
+                    <svg
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="w-4 h-4 sm:w-5 sm:h-5"
+                    >
+                      <path
+                        d="M13 2L6 14H11V22L18 10H13V2Z"
+                        fill="#40f798"
+                        fillOpacity="0.72"
+                      />
+                    </svg>
+                    <span className="text-xs sm:inline-block hidden">
+                      Instasettle
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -16,10 +16,11 @@ import { Info } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 
 type Props = {
-  amountReceived?: string
-  fee?: string
-  isEnabled?: boolean
-  isUser?: boolean
+  amountReceived: string
+  fee: string
+  isEnabled: boolean
+  isUser: boolean
+  isLoading?: boolean
 }
 
 const ConfigTrade: React.FC<Props> = ({
@@ -27,6 +28,7 @@ const ConfigTrade: React.FC<Props> = ({
   fee,
   isEnabled,
   isUser,
+  isLoading = false,
 }) => {
   const [showDetails, setShowDetails] = useState(false)
 

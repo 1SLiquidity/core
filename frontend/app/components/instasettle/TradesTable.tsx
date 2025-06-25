@@ -1,3 +1,5 @@
+'use client'
+
 import { useState, useEffect, useMemo } from 'react'
 import { Search, ArrowRight, X } from 'lucide-react'
 import {
@@ -15,96 +17,17 @@ import Image from 'next/image'
 import GlobalStreamSidebar from '../sidebar/globalStreamSidebar'
 import { Stream } from '@/app/lib/types/stream'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
-import { Trade } from '@/app/lib/types/trade'
+import { Trade } from '@/app/lib/graphql/types/trade'
 import { useScreenSize } from '@/app/lib/hooks/useScreenSize'
 import { useInView } from 'react-intersection-observer'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import tradesApi from '@/api/trades'
-import { Spinner } from '../ui/spinner'
+import { useTrades } from '@/app/lib/hooks/useTrades'
+import { Skeleton } from '@/components/ui/skeleton'
+import { formatUnits } from 'viem'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
+import { formatRelativeTime } from '@/app/lib/utils/time'
 
 const LIMIT = 10
-
-type SortField = 'streams' | 'output' | 'volume' | 'timestamp' | null
-type SortDirection = 'asc' | 'desc' | null
-
-interface TradeResponse {
-  trades: Trade[]
-  total: number
-  skip: number
-  limit: number
-}
-
-interface TradesTableProps {
-  selectedTrade: Trade | null
-  selectedVolume: number | null
-  isChartFiltered: boolean
-  onClearSelection: () => void
-}
-
-// Helper function to get timestamp for relative dates
-const getTimestamp = (daysAgo: number): number => {
-  const date = new Date()
-  date.setDate(date.getDate() - daysAgo)
-  return date.getTime()
-}
-
-const tableData: Trade[] = [
-  {
-    invoice: 'INV001',
-    action: 'INSTASETTLE',
-    amount1: '$4.56',
-    amount2: '$56.78',
-    savings: '40',
-    duration: '4 mins',
-    bps: '45',
-    isOwner: true,
-    timestamp: getTimestamp(0), // Today
-  },
-  {
-    invoice: 'INV002',
-    action: 'INSTASETTLE',
-    amount1: '$3.21',
-    amount2: '$43.65',
-    savings: '30',
-    duration: '6 mins',
-    bps: '70',
-    isOwner: false,
-    timestamp: getTimestamp(2), // 2 days ago
-  },
-  {
-    invoice: 'INV003',
-    action: 'INSTASETTLE',
-    amount1: '$3.21',
-    amount2: '$37.65',
-    savings: '30',
-    duration: '6 mins',
-    bps: '30',
-    isOwner: true,
-    timestamp: getTimestamp(5), // 5 days ago
-  },
-  {
-    invoice: 'INV004',
-    action: 'INSTASETTLE',
-    amount1: '$3.21',
-    amount2: '$47.65',
-    savings: '30',
-    duration: '6 mins',
-    bps: '40',
-    isOwner: true,
-    timestamp: getTimestamp(15), // 15 days ago
-  },
-  {
-    invoice: 'INV005',
-    action: 'INSTASETTLE',
-    amount1: '$3.21',
-    amount2: '$22.65',
-    savings: '30',
-    duration: '6 mins',
-    bps: '50',
-    isOwner: false,
-    timestamp: getTimestamp(200), // 200 days ago
-  },
-]
 
 const SortIcon = ({
   active,
@@ -134,6 +57,16 @@ const SortIcon = ({
   </svg>
 )
 
+type SortField = 'streams' | 'output' | 'volume' | 'timestamp' | null
+type SortDirection = 'asc' | 'desc' | null
+
+interface TradesTableProps {
+  selectedTrade: Trade | null
+  selectedVolume: number | null
+  isChartFiltered: boolean
+  onClearSelection: () => void
+}
+
 const TradesTable = ({
   selectedTrade,
   selectedVolume,
@@ -145,7 +78,7 @@ const TradesTable = ({
   const [activeTimeframe, setActiveTimeframe] = useState('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [initialStream, setInitialStream] = useState<Stream | undefined>(
+  const [initialStream, setInitialStream] = useState<Trade | undefined>(
     undefined
   )
   const { isMobile, isTablet } = useScreenSize()
@@ -153,34 +86,20 @@ const TradesTable = ({
   const [sortDirection, setSortDirection] = useState<SortDirection>(null)
   const { ref, inView } = useInView()
 
-  const {
-    data,
-    status,
-    error,
-    fetchNextPage,
-    isFetchingNextPage,
-    hasNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['trades', activeTab, activeTimeframe],
-    queryFn: async ({ pageParam = 0 }) => {
-      const response = await tradesApi.fetchTrades(LIMIT, pageParam * LIMIT)
-      return response
-    },
-    initialPageParam: 0,
-    getNextPageParam: (lastPage: TradeResponse, allPages: TradeResponse[]) => {
-      if (isChartFiltered) return undefined
-      const nextPage =
-        lastPage.trades.length === LIMIT ? allPages.length : undefined
-      return nextPage
-    },
-    enabled: !isChartFiltered,
+  // Get token list
+  const { tokens: tokenList, isLoading: isLoadingTokenList } = useTokenList()
+
+  // Use the useTrades hook for GraphQL queries
+  const { trades, isLoading, error, loadMore } = useTrades({
+    first: LIMIT,
+    skip: 0,
   })
 
   useEffect(() => {
-    if (inView && hasNextPage && !isChartFiltered) {
-      fetchNextPage()
+    if (inView && !isChartFiltered && !isLoading) {
+      loadMore()
     }
-  }, [inView, hasNextPage, fetchNextPage, isChartFiltered])
+  }, [inView, isChartFiltered, isLoading, loadMore])
 
   // Reset filters and sorting when chart selection changes
   useEffect(() => {
@@ -211,124 +130,117 @@ const TradesTable = ({
 
   // Filter and sort trades
   const displayData = useMemo(() => {
-    console.log('selectedTrade ====>', selectedTrade)
-    console.log('isChartFiltered ====>', isChartFiltered)
-
-    // If chart is filtered, only show selected trade or nothing
     if (isChartFiltered) {
-      console.log('Returning only selected trade')
       return selectedTrade ? [selectedTrade] : []
     }
 
-    console.log('========================================')
-    console.log('========== continue ==========')
-    console.log('========================================')
+    if (!trades.length) return []
 
-    if (!data?.pages) return []
-
-    let trades = data.pages.flatMap((page) => page.trades)
-    console.log('Total trades after flattening:', trades.length)
+    let filteredTrades = [...trades]
 
     // Apply ownership filter
     if (activeTab === 'myInstasettles') {
-      trades = trades.filter((trade) => trade.isOwner)
-      console.log('Trades after ownership filter:', trades.length)
+      filteredTrades = filteredTrades.filter((trade) => trade.isInstasettlable)
     }
 
     // Apply timeframe filter
     const now = Date.now()
-    trades = trades.filter((trade) => {
+    filteredTrades = filteredTrades.filter((trade) => {
+      const tradeDate = new Date(trade.createdAt).getTime()
       switch (activeTimeframe) {
         case '1D':
-          return now - trade.timestamp <= 24 * 60 * 60 * 1000
+          return now - tradeDate <= 24 * 60 * 60 * 1000
         case '1W':
-          return now - trade.timestamp <= 7 * 24 * 60 * 60 * 1000
+          return now - tradeDate <= 7 * 24 * 60 * 60 * 1000
         case '1M':
-          return now - trade.timestamp <= 30 * 24 * 60 * 60 * 1000
+          return now - tradeDate <= 30 * 24 * 60 * 60 * 1000
         case '1Y':
-          return now - trade.timestamp <= 365 * 24 * 60 * 60 * 1000
+          return now - tradeDate <= 365 * 24 * 60 * 60 * 1000
         case 'ALL':
-          return true
         default:
           return true
       }
     })
-    console.log('Trades after timeframe filter:', trades.length)
 
-    // Apply sorting
-    if (sortField && sortDirection) {
-      trades.sort((a, b) => {
-        let compareA: number, compareB: number
-
-        switch (sortField) {
-          case 'streams':
-            compareA = parseInt(a.savings)
-            compareB = parseInt(b.savings)
-            break
-          case 'output':
-            compareA = parseFloat(a.amount2.replace('$', ''))
-            compareB = parseFloat(b.amount2.replace('$', ''))
-            break
-          case 'volume':
-            compareA = parseFloat(a.bps)
-            compareB = parseFloat(b.bps)
-            break
-          case 'timestamp':
-            compareA = a.timestamp
-            compareB = b.timestamp
-            break
-          default:
-            return 0
-        }
-
-        return sortDirection === 'asc'
-          ? compareA - compareB
-          : compareB - compareA
-      })
-      console.log('Trades after sorting:', trades.length)
-    }
-
-    return trades
-  }, [
-    data?.pages,
-    activeTab,
-    activeTimeframe,
-    isChartFiltered,
-    selectedTrade,
-    sortField,
-    sortDirection,
-  ])
+    return filteredTrades
+  }, [trades, activeTab, activeTimeframe, isChartFiltered, selectedTrade])
 
   const handleStreamClick = (item: Trade) => {
-    // Create a dummy stream from the table data
-    const dummyStream: Stream = {
-      id: item.invoice,
-      fromToken: {
-        symbol: 'ETH',
-        amount: parseFloat(item.amount1.replace('$', '')),
-        icon: '/tokens/eth.svg',
-      },
-      toToken: {
-        symbol: 'USDC',
-        estimatedAmount: parseFloat(item.amount2.replace('$', '')),
-        icon: '/tokens/usdc.svg',
-      },
-      progress: {
-        completed: 0,
-        total: parseInt(item.savings),
-      },
-      timeRemaining: parseInt(item.duration.split(' ')[0]), // Extract number from "4 mins"
-      isInstasettle: item.action === 'INSTASETTLE',
-    }
-    setInitialStream(MOCK_STREAMS[0])
+    setInitialStream(item)
     setIsSidebarOpen(true)
   }
 
-  if (status === 'error') {
+  // Loading skeleton
+  if (isLoading && !displayData.length) {
     return (
-      <div className="text-red-500">
-        Error loading trades: {(error as Error).message}
-      </div>
+      <Table className="min-w-[800px]">
+        <TableHeader>
+          <TableRow>
+            <TableHead className="text-center">Token Pair</TableHead>
+            <TableHead></TableHead>
+            <TableHead className="text-center">Volume</TableHead>
+            <TableHead className="text-center">Effective Price</TableHead>
+            <TableHead className="text-center">Savings</TableHead>
+            <TableHead className="text-center">bps</TableHead>
+            <TableHead className="text-center">Timestamp</TableHead>
+            <TableHead className="text-center"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array(5)
+            .fill(0)
+            .map((_, index) => (
+              <TableRow key={`skeleton-${index}`}>
+                <TableCell>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="w-6 h-6 rounded-full" />
+                      <div>
+                        <Skeleton className="w-12 h-4 mb-1" />
+                        <Skeleton className="w-16 h-4" />
+                      </div>
+                    </div>
+                    <Skeleton className="w-4 h-2" />
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="w-6 h-6 rounded-full" />
+                      <div>
+                        <Skeleton className="w-12 h-4 mb-1" />
+                        <Skeleton className="w-16 h-4" />
+                      </div>
+                    </div>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="w-16 h-4" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="w-16 h-4 mx-auto" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="w-16 h-4 mx-auto" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="w-16 h-4 mx-auto" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="w-12 h-4 mx-auto" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="w-16 h-4 mx-auto" />
+                </TableCell>
+                <TableCell className="text-center">
+                  <Skeleton className="w-5 h-5 mx-auto" />
+                </TableCell>
+              </TableRow>
+            ))}
+        </TableBody>
+      </Table>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="text-red-500">Error loading trades: {error.message}</div>
     )
   }
 
@@ -399,7 +311,7 @@ const TradesTable = ({
               <TableHead className="text-center">Volume</TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
-                onClick={() => handleSort('output')}
+                // onClick={() => handleSort('output')}
               >
                 <div className="flex items-center justify-center">
                   Effective Price
@@ -411,7 +323,7 @@ const TradesTable = ({
               </TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
-                onClick={() => handleSort('streams')}
+                // onClick={() => handleSort('streams')}
               >
                 <div className="flex items-center justify-center">
                   Savings
@@ -423,7 +335,7 @@ const TradesTable = ({
               </TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
-                onClick={() => handleSort('volume')}
+                // onClick={() => handleSort('volume')}
               >
                 <div className="flex items-center justify-center">
                   bps
@@ -435,7 +347,7 @@ const TradesTable = ({
               </TableHead>
               <TableHead
                 className="text-center cursor-pointer group"
-                onClick={() => handleSort('timestamp')}
+                // onClick={() => handleSort('timestamp')}
               >
                 <div className="flex items-center justify-center">
                   Timestamp
@@ -449,74 +361,131 @@ const TradesTable = ({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {displayData.map((item, index) => (
-              <TableRow key={item.invoice}>
-                <TableCell className="font-medium text-center">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/tokens/eth.svg"
-                        width={32}
-                        height={32}
-                        className="w-6 h-6"
-                        alt="eth"
-                      />
-                      <div>
-                        <p className="text-white">ETH</p>
-                        <p className="text-white52">{item.amount1}</p>
-                      </div>
-                    </div>
-                    <Image
-                      src="/icons/right-arrow.svg"
-                      width={24}
-                      height={24}
-                      alt="to"
-                      className="w-4 h-4"
-                    />
-                    <div className="flex items-center gap-2">
-                      <Image
-                        src="/tokens/usdc.svg"
-                        width={32}
-                        height={32}
-                        alt="usdc"
-                        className="w-6 h-6"
-                      />
-                      <div>
-                        <p className="text-white">USDC</p>
-                        <p className="text-white52">{item.amount2}</p>
-                      </div>
-                    </div>
+            {displayData.length === 0 && !isLoading ? (
+              <TableRow>
+                <TableCell colSpan={8}>
+                  <div className="text-white52 text-center py-8">
+                    No trades found
                   </div>
                 </TableCell>
-                <TableCell>
-                  <Button
-                    text={item.action}
-                    className="h-[2.15rem] hover:bg-tabsGradient"
-                  />
-                </TableCell>
-                <TableCell className="text-center">{item.amount1}</TableCell>
-                <TableCell className="text-center">{item.amount2}</TableCell>
-                <TableCell className="text-center">${item.savings}</TableCell>
-                <TableCell className="text-center">{item.bps}</TableCell>
-                <TableCell className="text-center">{item.duration}</TableCell>
-                <TableCell className="text-center group">
-                  <ArrowRight
-                    className="h-5 w-5 text-zinc-400 group-hover:text-white cursor-pointer"
-                    onClick={() => handleStreamClick(item)}
-                  />
-                </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              displayData.map((item) => {
+                // Find token information
+                const tokenIn = tokenList.find(
+                  (t: TOKENS_TYPE) =>
+                    t.token_address.toLowerCase() === item.tokenIn.toLowerCase()
+                )
+                const tokenOut = tokenList.find(
+                  (t: TOKENS_TYPE) =>
+                    t.token_address.toLowerCase() ===
+                    item.tokenOut.toLowerCase()
+                )
+
+                // Format amounts using token decimals
+                const formattedAmountIn = tokenIn
+                  ? formatUnits(BigInt(item.amountIn), tokenIn.decimals)
+                  : '0'
+                const formattedMinAmountOut = tokenOut
+                  ? formatUnits(BigInt(item.minAmountOut), tokenOut.decimals)
+                  : '0'
+
+                // Calculate USD values (using token price from tokenList)
+                const amountInUsd = tokenIn
+                  ? Number(formattedAmountIn) * (tokenIn.usd_price || 0)
+                  : 0
+                const amountOutUsd = tokenOut
+                  ? Number(formattedMinAmountOut) * (tokenOut.usd_price || 0)
+                  : 0
+
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium text-center">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Image
+                            src={tokenIn?.icon || '/tokens/eth.svg'}
+                            width={32}
+                            height={32}
+                            className="w-6 h-6"
+                            alt={tokenIn?.symbol || 'eth'}
+                          />
+                          <div>
+                            <p className="text-white">
+                              {tokenIn?.symbol || 'ETH'}
+                            </p>
+                            <p className="text-white52">
+                              ${amountInUsd.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                        <Image
+                          src="/icons/right-arrow.svg"
+                          width={24}
+                          height={24}
+                          alt="to"
+                          className="w-4 h-4 mx-2"
+                        />
+                        <div className="flex items-center gap-2">
+                          <Image
+                            src={tokenOut?.icon || '/tokens/usdc.svg'}
+                            width={32}
+                            height={32}
+                            alt={tokenOut?.symbol || 'usdc'}
+                            className="w-6 h-6"
+                          />
+                          <div>
+                            <p className="text-white">
+                              {tokenOut?.symbol || 'USDC'}
+                            </p>
+                            <p className="text-white52">
+                              ${amountOutUsd.toFixed(2)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        text={item.isInstasettlable ? 'INSTASETTLE' : 'STREAM'}
+                        className="h-[2.15rem] hover:bg-tabsGradient"
+                      />
+                    </TableCell>
+                    <TableCell className="text-center">
+                      ${amountInUsd.toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-center">${6.88}</TableCell>
+                    <TableCell className="text-center">
+                      ${parseFloat(item.instasettleBps || '0').toFixed(2)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.instasettleBps || '0'}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {formatRelativeTime(item.createdAt)}
+                    </TableCell>
+                    <TableCell className="text-center group">
+                      <ArrowRight
+                        className="h-5 w-5 text-zinc-400 group-hover:text-white cursor-pointer"
+                        onClick={() => handleStreamClick(item)}
+                      />
+                    </TableCell>
+                  </TableRow>
+                )
+              })
+            )}
           </TableBody>
         </Table>
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
 
       {/* Intersection Observer target */}
-      {!isChartFiltered && hasNextPage && (
+      {!isChartFiltered && (
         <div ref={ref}>
-          {isFetchingNextPage && (
-            <Spinner className="flex justify-center items-center" />
+          {isLoading && (
+            <div className="flex justify-center items-center py-4">
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </div>
           )}
         </div>
       )}

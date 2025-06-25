@@ -213,7 +213,9 @@ const formatCoingeckoTokens = (
         name: token.name,
         symbol: token.symbol.toUpperCase(),
         icon: token.image || `/tokens/${token.symbol.toLowerCase()}.svg`,
-        popular: token.market_cap_rank ? token.market_cap_rank <= 100 : false,
+        popular:
+          token.symbol.toLowerCase() === 'weth' ||
+          (token.market_cap_rank ? token.market_cap_rank <= 20 : false),
         value: 0, // Default value, will be updated when wallet balance is available
         status:
           token.price_change_percentage_24h >= 0 ? 'increase' : 'decrease',
@@ -291,7 +293,7 @@ const topTokens = [
     image: 'https://assets.coingecko.com/coins/images/2518/large/weth.png',
     current_price: 0,
     price_change_percentage_24h: 0,
-    market_cap_rank: 3,
+    market_cap_rank: 1, // Changed from 3 to 1 to ensure it appears in popular tokens
     // Add decimals explicitly for top tokens
     detail_platforms: {
       ethereum: {

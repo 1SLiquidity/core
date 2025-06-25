@@ -27,13 +27,33 @@ const TopTokens = ({
   tokens,
   isVisible,
   onTokenSelect,
+  selectedTokenFrom,
+  selectedTokenTo,
+  inputField,
 }: {
   tokens: TOKENS_TYPE[]
   isVisible: boolean
   onTokenSelect: (token: TOKENS_TYPE) => void
+  selectedTokenFrom: TOKENS_TYPE | null
+  selectedTokenTo: TOKENS_TYPE | null
+  inputField: 'from' | 'to'
 }) => {
-  // Get only 5 tokens and reverse the array to display from right to left
-  const tokensToShow = [...tokens].slice(0, 5).reverse()
+  // Get only 5 tokens, exclude STETH, and reverse the array to display from right to left
+  const tokensToShow = [...tokens]
+    .filter((token) => token.symbol.toLowerCase() !== 'steth')
+    .slice(0, 5)
+    .reverse()
+
+  // Function to check if a token should be disabled
+  const isTokenDisabled = (token: TOKENS_TYPE) => {
+    if (inputField === 'from' && selectedTokenTo) {
+      return token.token_address === selectedTokenTo.token_address
+    }
+    if (inputField === 'to' && selectedTokenFrom) {
+      return token.token_address === selectedTokenFrom.token_address
+    }
+    return false
+  }
 
   return (
     <AnimatePresence>
@@ -45,38 +65,51 @@ const TopTokens = ({
           exit={{ opacity: 0, y: -5 }}
           transition={{ duration: 0.2 }}
         >
-          {tokensToShow.map((token: TOKENS_TYPE, index) => (
-            <motion.div
-              key={token.token_address || index}
-              className="cursor-pointer relative group"
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.3, delay: index * 0.08 }}
-              onClick={(e) => {
-                e.stopPropagation()
-                onTokenSelect(token)
-              }}
-              whileHover={{ scale: 1.1 }}
-            >
-              <div className="w-8 h-8 rounded-full overflow-hidden border border-neutral-700 bg-[#111] shadow-lg">
-                <Image
-                  src={token.icon || '/icons/default-token.svg'}
-                  alt={token.name || ''}
-                  width={32}
-                  height={32}
-                  className="w-full h-full object-contain"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement
-                    target.src = '/icons/default-token.svg'
-                  }}
-                />
-              </div>
-              {/* <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-black/90 px-2 py-1 rounded-md text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
-                {token.symbol}
-              </div> */}
-            </motion.div>
-          ))}
+          {tokensToShow.map((token: TOKENS_TYPE, index) => {
+            const disabled = isTokenDisabled(token)
+            return (
+              <motion.div
+                key={token.token_address || index}
+                className={`cursor-pointer relative group ${
+                  disabled ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.3, delay: index * 0.08 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (!disabled) {
+                    onTokenSelect(token)
+                  }
+                }}
+                whileHover={{ scale: disabled ? 1 : 1.1 }}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full overflow-hidden border border-neutral-700 bg-[#111] shadow-lg ${
+                    disabled ? 'grayscale' : ''
+                  }`}
+                >
+                  <Image
+                    src={token.icon || '/icons/default-token.svg'}
+                    alt={token.name || ''}
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement
+                      target.src = '/icons/default-token.svg'
+                    }}
+                  />
+                </div>
+                {/* {disabled && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
+                    <span className="text-[6px] text-white">Selected</span>
+                  </div>
+                )} */}
+              </motion.div>
+            )
+          })}
         </motion.div>
       )}
     </AnimatePresence>
@@ -129,19 +162,19 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   const topTokens = useMemo(() => {
     if (!allTokens || allTokens.length === 0) return []
 
-    // Filter out tokens that are already selected in either section
+    // Find WETH first
+    const weth = allTokens.find(
+      (token: TOKENS_TYPE) => token.symbol.toLowerCase() === 'weth'
+    )
+
+    // Filter out STETH but keep selected tokens
     const filteredTokens = allTokens.filter((token: TOKENS_TYPE) => {
-      // Skip tokens selected in either section
-      if (
-        selectedTokenFrom &&
-        token.token_address === selectedTokenFrom.token_address
-      ) {
+      // Skip STETH
+      if (token.symbol.toLowerCase() === 'steth') {
         return false
       }
-      if (
-        selectedTokenTo &&
-        token.token_address === selectedTokenTo.token_address
-      ) {
+      // Skip WETH as we'll add it separately
+      if (token.symbol.toLowerCase() === 'weth') {
         return false
       }
       return true
@@ -149,17 +182,23 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
 
     // First try to find the popular tokens
     const popular = filteredTokens.filter((token: TOKENS_TYPE) => token.popular)
-    if (popular.length >= 5) {
-      return popular.slice(0, 5)
+
+    // If we have WETH, add it at the start of the list
+    const topTokensList = weth ? [weth, ...popular] : popular
+
+    if (topTokensList.length >= 5) {
+      return topTokensList.slice(0, 5)
     }
 
     // If not enough popular tokens, sort by market cap (using usd_price as a proxy)
-    return [...filteredTokens]
-      .sort(
-        (a: TOKENS_TYPE, b: TOKENS_TYPE) =>
-          (b.usd_price || 0) - (a.usd_price || 0)
-      )
-      .slice(0, 5)
+    const byMarketCap = [...filteredTokens].sort(
+      (a: TOKENS_TYPE, b: TOKENS_TYPE) =>
+        (b.usd_price || 0) - (a.usd_price || 0)
+    )
+
+    // Combine WETH with market cap sorted tokens
+    const finalList = weth ? [weth, ...byMarketCap] : byMarketCap
+    return finalList.slice(0, 5)
   }, [allTokens, selectedTokenFrom, selectedTokenTo])
 
   // Find matching wallet token when selected token changes
@@ -356,6 +395,9 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
                 showTopTokens && !isLoadingTokenList && topTokens.length > 0
               }
               onTokenSelect={handleQuickTokenSelect}
+              selectedTokenFrom={selectedTokenFrom}
+              selectedTokenTo={selectedTokenTo}
+              inputField={inputField}
             />
           </div>
         )}
