@@ -1,18 +1,62 @@
+'use client'
+
+import { useEffect } from 'react'
+import { useAnimation } from 'framer-motion'
 import Image from 'next/image'
-import { motion } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import Navbar from '../navbar'
 import TradesChart from './TradesChart'
 import TokenSelector from './TokenSelector'
 
 const Instasettle = () => {
+  const controls = useAnimation()
+
+  useEffect(() => {
+    controls.start('visible')
+  }, [controls])
+
+  const titleVariants: Variants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.3,
+        ease: 'easeOut',
+        delay: 0,
+      },
+    },
+  }
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Navbar and SELSection */}
       <Navbar />
       <div className="mt-[60px] mb-10 mx-auto relative z-10 w-full px-4 md:max-w-4xl">
-        <h1 className="text-4xl md:text-6xl font-bold mb-6 sm:mb-16 text-white text-center">
+        {/* <h1 className="text-4xl md:text-6xl font-bold mb-4 sm:mb-4 text-white text-center">
           Instasettle
         </h1>
+        <h2 className="text-3xl md:text-5xl font-bold mb-6 sm:mb-16 text-white text-center">
+          Peer to peer otc trades. Beat market prices. Instantly.
+        </h2> */}
+
+        <div className="flex flex-col items-center justify-center gap-2">
+          <motion.h1
+            className="text-5xl md:text-6xl font-bold text-white text-center"
+            initial="hidden"
+            animate={controls}
+            variants={titleVariants}
+          >
+            Instasettle
+          </motion.h1>
+          <motion.h2
+            className="text-3xl md:text-5xl font-bold mb-10 sm:mb-16 text-white text-center"
+            initial="hidden"
+            animate={controls}
+            variants={titleVariants}
+          >
+            Peer-to-peer OTC trades. Beat market prices. Instantly.
+          </motion.h2>
+        </div>
         <TokenSelector />
         <TradesChart />
       </div>
