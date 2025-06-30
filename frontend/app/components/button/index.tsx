@@ -44,11 +44,15 @@ const Button: React.FC<Props> = ({
             : theme == 'destructive'
             ? 'bg-red-700 text-red-200 hover:bg-red-600'
             : 'bg-secondary text-primary'
+        } ${
+          loading
+            ? 'cursor-not-allowed bg-[#0d0d0d] opacity-100 border-[2px] border-white12'
+            : ''
         }`,
         className
       )}
     >
-      {`${error ? 'Error Also Here' : text}`}
+      {`${error ? (!!text ? text : 'Something went wrong') : text}`}
       {loading && <Loader2 className="ml-2 w-4 h-4 animate-spin" />}
     </button>
   )

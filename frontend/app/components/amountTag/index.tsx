@@ -43,8 +43,19 @@ const AmountTag: React.FC<Props> = ({
                   height={20}
                 />
               </TooltipTrigger>
-              <TooltipContent className="bg-neutral-700 z-50">
-                <p>Info</p>
+              <TooltipContent className="bg-[#0D0D0D] z-50 max-w-[280px] border-[2px] border-white12">
+                <p>
+                  Lorem Ipsum is simply dummy text of the printing and
+                  typesetting industry. Lorem Ipsum has been the industry's
+                  standard dummy text ever since the 1500 &nbsp;{' '}
+                  <a
+                    href="https://www.lipsum.com/"
+                    target="_blank"
+                    className="text-[#aeabab] underline"
+                  >
+                    Learn more
+                  </a>
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

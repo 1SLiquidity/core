@@ -54,7 +54,7 @@ const Instasettle = () => {
             animate={controls}
             variants={titleVariants}
           >
-            Peer-to-peer OTC trades. Beat market prices. Instantly.
+            Peer-to-Peer OTC Trades. Beat Market Prices. Instantly.
           </motion.h2>
         </div>
         <TokenSelector />

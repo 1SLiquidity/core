@@ -105,7 +105,7 @@ const DetailSection: React.FC<Props> = ({
   )
 
   return (
-    <div className="w-full p-5 border-[2px] border-white12 bg-[#0D0D0D] mt-[26px] rounded-[15px]">
+    <div className="w-full p-5 border-[2px] border-white12 bg-[#0D0D0D] my-[26px] mt-[20px] rounded-[15px]">
       <div
         className={`w-full flex justify-between gap-1 duration-300 ease-in-out cursor-pointer`}
         onClick={toggleDetails}

@@ -232,7 +232,7 @@ const SELSection = () => {
             animate={controls}
             variants={titleVariants}
           >
-            Stream your trades
+            Stream Your Trades.
           </motion.h1>
           <motion.h2
             className="text-3xl md:text-5xl font-bold mb-10 sm:mb-16 text-white text-center"
@@ -240,7 +240,7 @@ const SELSection = () => {
             animate={controls}
             variants={titleVariants}
           >
-            Save 10's of $1000s In minutes
+            Save 10's of $1000s. In Minutes
           </motion.h2>
         </div>
       )}
@@ -368,30 +368,16 @@ const SELSection = () => {
           </div>
         )}
 
-        {buyAmount > 0 &&
-          sellAmount > 0 &&
-          selectedTokenFrom &&
-          selectedTokenTo && (
-            <DetailSection
-              sellAmount={`${swap ? buyAmount : sellAmount}`}
-              buyAmount={`${swap ? sellAmount : buyAmount}`}
-              inValidAmount={invaliSelldAmount || invalidBuyAmount}
-              reserves={reserveData}
-              botGasLimit={botGasLimit}
-              streamCount={streamCount}
-              tokenFromSymbol={selectedTokenFrom?.symbol || ''}
-              tokenToSymbol={selectedTokenTo?.symbol || ''}
-              tokenToUsdPrice={selectedTokenTo?.usd_price || 0}
-              estTime={estTime}
-              isCalculating={isCalculating}
-              slippageSavings={slippageSavings}
-            />
-          )}
-
-        <div className="w-full my-[20px]">
+        <div className="w-full mt-[14px] mb-[20px]">
           {isConnected && pathname === '/swaps' ? (
             <Button
-              text={isFetchingReserves ? 'Fetching reserves...' : 'Swap'}
+              text={
+                isFetchingReserves
+                  ? 'Fetching reserves...'
+                  : calculationError
+                  ? calculationError
+                  : 'Swap'
+              }
               theme="gradient"
               onClick={() => addToast(<NotifiSwapStream />)}
               error={
@@ -411,12 +397,18 @@ const SELSection = () => {
                 pathname === '/'
                   ? isFetchingReserves
                     ? 'Fetching reserves...'
+                    : calculationError
+                    ? calculationError
                     : 'Get Started'
                   : isFetchingReserves
                   ? 'Fetching reserves...'
+                  : calculationError
+                  ? calculationError
                   : 'Connect Wallet'
               }
-              error={invaliSelldAmount || invalidBuyAmount}
+              error={
+                invaliSelldAmount || invalidBuyAmount || !!calculationError
+              }
               onClick={() => {
                 if (pathname === '/') {
                   router.push('/swaps')
@@ -429,6 +421,26 @@ const SELSection = () => {
             />
           )}
         </div>
+
+        {buyAmount > 0 &&
+          sellAmount > 0 &&
+          selectedTokenFrom &&
+          selectedTokenTo && (
+            <DetailSection
+              sellAmount={`${swap ? buyAmount : sellAmount}`}
+              buyAmount={`${swap ? sellAmount : buyAmount}`}
+              inValidAmount={invaliSelldAmount || invalidBuyAmount}
+              reserves={reserveData}
+              botGasLimit={botGasLimit}
+              streamCount={streamCount}
+              tokenFromSymbol={selectedTokenFrom?.symbol || ''}
+              tokenToSymbol={selectedTokenTo?.symbol || ''}
+              tokenToUsdPrice={selectedTokenTo?.usd_price || 0}
+              estTime={estTime}
+              isCalculating={isCalculating}
+              slippageSavings={slippageSavings}
+            />
+          )}
 
         {pathname === '/' && (
           <div className="flex flex-col items-center justify-center z-20">
