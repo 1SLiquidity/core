@@ -231,7 +231,7 @@ const GatewaySection = () => {
           >
             <Image
               src="/assets/logo.svg"
-              alt="DECASWAP logo"
+              alt="DECAStream logo"
               width={180}
               height={180}
               className="w-auto h-auto"
@@ -272,11 +272,11 @@ const GatewaySection = () => {
           variants={textVariants}
         >
           <p className="text-lg md:text-xl mb-2">
-            DECASWAP is your portal to decentralised cross-chain swaps.
+            DECAStream is your portal to decentralised cross-chain swaps.
           </p>
           <p className="text-lg md:text-xl">
-            With support for 40+ chains and 5000+ tokens, you can call DECASWAP
-            home.
+            With support for 40+ chains and 5000+ tokens, you can call
+            DECAStream home.
           </p>
         </motion.div>
       </div>

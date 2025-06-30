@@ -130,7 +130,7 @@ const DetailSection: React.FC<Props> = ({
           {inValidAmount ? (
             <Image
               src="/icons/red-right-arrow.svg"
-              alt="swap"
+              alt="stream"
               className="w-2.5"
               width={20}
               height={20}
@@ -138,7 +138,7 @@ const DetailSection: React.FC<Props> = ({
           ) : (
             <Image
               src="/icons/right-arrow.svg"
-              alt="swap"
+              alt="stream"
               className="w-2.5"
               width={20}
               height={20}
