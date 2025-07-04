@@ -261,10 +261,12 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                 height={1000}
                 onClick={onClose}
               /> */}
-              <SwitchOffIcon
-                className="w-6 cursor-pointer text-[#808080] transition-all duration-300"
+              <div
+                className="p-0.5 rounded-md group hover:bg-[#222121] transition-all duration-300"
                 onClick={disconnectWallet}
-              />
+              >
+                <SwitchOffIcon className="w-6 cursor-pointer text-[#808080] transition-all duration-300" />
+              </div>
             </div>
 
             {/* Chain Indicator */}
