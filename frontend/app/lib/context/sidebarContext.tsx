@@ -2,7 +2,7 @@
 import GlobalStreamSidebar from '@/app/components/sidebar/globalStreamSidebar'
 import SelectTokenSidebar from '@/app/components/sidebar/selectTokenSidebar'
 import WalletDetailsSidebar from '@/app/components/sidebar/walletDetailsSidebar'
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useCallback } from 'react'
 
 type SidebarContextType = {
   showSelectTokenSidebar: (isOpen: boolean) => void
@@ -37,17 +37,79 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
   const [isGlobalStreamSidebarOpen, setIsGlobalStreamSidebarOpen] =
     useState(false)
 
-  const showSelectTokenSidebar = (isOpen: boolean) => {
-    setIsSelectTokenSidebarOpen(isOpen)
-  }
+  // Helper to check if any sidebar is open
+  const isAnySidebarOpen = useCallback(() => {
+    return (
+      isSelectTokenSidebarOpen ||
+      isWalletDetailsSidebarOpen ||
+      isGlobalStreamSidebarOpen
+    )
+  }, [
+    isSelectTokenSidebarOpen,
+    isWalletDetailsSidebarOpen,
+    isGlobalStreamSidebarOpen,
+  ])
 
-  const showWalletDetailsSidebar = (isOpen: boolean) => {
-    setIsWalletDetailsSidebarOpen(isOpen)
-  }
+  // Helper to close all sidebars
+  const closeAllSidebars = useCallback(() => {
+    setIsSelectTokenSidebarOpen(false)
+    setIsWalletDetailsSidebarOpen(false)
+    setIsGlobalStreamSidebarOpen(false)
+  }, [])
 
-  const showGlobalStreamSidebar = (isOpen: boolean) => {
-    setIsGlobalStreamSidebarOpen(isOpen)
-  }
+  // Handlers with conditional transition delay
+  const showSelectTokenSidebar = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) {
+        const anySidebarOpen = isAnySidebarOpen()
+        closeAllSidebars()
+        if (anySidebarOpen) {
+          // Only delay if switching between sidebars
+          setTimeout(() => setIsSelectTokenSidebarOpen(true), 300)
+        } else {
+          // Open immediately if no sidebar is open
+          setIsSelectTokenSidebarOpen(true)
+        }
+      } else {
+        setIsSelectTokenSidebarOpen(false)
+      }
+    },
+    [closeAllSidebars, isAnySidebarOpen]
+  )
+
+  const showWalletDetailsSidebar = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) {
+        const anySidebarOpen = isAnySidebarOpen()
+        closeAllSidebars()
+        if (anySidebarOpen) {
+          setTimeout(() => setIsWalletDetailsSidebarOpen(true), 300)
+        } else {
+          setIsWalletDetailsSidebarOpen(true)
+        }
+      } else {
+        setIsWalletDetailsSidebarOpen(false)
+      }
+    },
+    [closeAllSidebars, isAnySidebarOpen]
+  )
+
+  const showGlobalStreamSidebar = useCallback(
+    (isOpen: boolean) => {
+      if (isOpen) {
+        const anySidebarOpen = isAnySidebarOpen()
+        closeAllSidebars()
+        if (anySidebarOpen) {
+          setTimeout(() => setIsGlobalStreamSidebarOpen(true), 300)
+        } else {
+          setIsGlobalStreamSidebarOpen(true)
+        }
+      } else {
+        setIsGlobalStreamSidebarOpen(false)
+      }
+    },
+    [closeAllSidebars, isAnySidebarOpen]
+  )
 
   return (
     <SidebarContext.Provider
@@ -61,7 +123,8 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
       }}
     >
       {children}
-      {isSelectTokenSidebarOpen && (
+
+      {/* {isSelectTokenSidebarOpen && (
         <SelectTokenSidebar
           isOpen={isSelectTokenSidebarOpen}
           onClose={() => setIsSelectTokenSidebarOpen(false)}
@@ -78,7 +141,23 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
           isOpen={isGlobalStreamSidebarOpen}
           onClose={() => setIsGlobalStreamSidebarOpen(false)}
         />
-      )}
+      )} */}
+
+      {/* Always render sidebars but control visibility with isOpen prop */}
+      <SelectTokenSidebar
+        isOpen={isSelectTokenSidebarOpen}
+        onClose={() => setIsSelectTokenSidebarOpen(false)}
+      />
+
+      <WalletDetailsSidebar
+        isOpen={isWalletDetailsSidebarOpen}
+        onClose={() => setIsWalletDetailsSidebarOpen(false)}
+      />
+
+      <GlobalStreamSidebar
+        isOpen={isGlobalStreamSidebarOpen}
+        onClose={() => setIsGlobalStreamSidebarOpen(false)}
+      />
     </SidebarContext.Provider>
   )
 }

@@ -41,6 +41,7 @@ const SELSection = () => {
     setSelectedTokenTo,
   } = useModal()
   const { address, isConnected } = useAppKitAccount()
+  const [isInsufficientBalance, setIsInsufficientBalance] = useState(false)
 
   // Get current chain from AppKit
   const stateData = useAppKitState()
@@ -94,13 +95,15 @@ const SELSection = () => {
     selectedTokenTo,
   })
 
-  // const { timeRemaining, timerActive } = useRefreshTimer({
-  //   duration: TIMER_DURATION,
-  //   onRefresh: fetchReserves,
-  //   isActive: sellAmount > 0 && !!selectedTokenFrom && !!selectedTokenTo,
-  //   sellAmount,
-  //   isCalculating,
-  // })
+  console.log('reserveData =========>', reserveData)
+
+  const { timeRemaining, timerActive } = useRefreshTimer({
+    duration: TIMER_DURATION,
+    onRefresh: fetchReserves,
+    isActive: sellAmount > 0 && !!selectedTokenFrom && !!selectedTokenTo,
+    sellAmount,
+    isCalculating: isCalculating || isFetchingReserves,
+  })
 
   // Combine errors from both hooks
   const calculationError = reserveError || swapError
@@ -252,7 +255,7 @@ const SELSection = () => {
       >
         <div className="w-full flex justify-end gap-2 mb-4">
           <div className="flex items-center gap-2">
-            {/* {timerActive && (
+            {timerActive && (
               <div className="flex items-center justify-end">
                 <div className="flex items-center gap-2 bg-white hover:bg-tabsGradient bg-opacity-[12%] px-2 py-1 rounded-full">
                   <div className="text-sm text-white/70">Auto refresh in</div>
@@ -287,7 +290,7 @@ const SELSection = () => {
                   </div>
                 </div>
               </div>
-            )} */}
+            )}
             <TradingSettings />
           </div>
         </div>
@@ -308,6 +311,8 @@ const SELSection = () => {
               setAmount={handleSellAmountChange}
               inValidAmount={invaliSelldAmount}
               disabled={isFetchingReserves}
+              isInsufficientBalance={isInsufficientBalance}
+              setIsInsufficientBalance={setIsInsufficientBalance}
             />
           )}
           <div
@@ -372,14 +377,20 @@ const SELSection = () => {
           {isConnected && pathname === '/swaps' ? (
             <Button
               text={
-                isFetchingReserves
+                isConnected && isInsufficientBalance
+                  ? 'Insufficient Balance'
+                  : isFetchingReserves
                   ? 'Fetching reserves...'
                   : calculationError
                   ? calculationError
-                  : 'Swap'
+                  : 'STREAM'
               }
               theme="gradient"
-              onClick={() => addToast(<NotifiSwapStream />)}
+              onClick={
+                sellAmount > 0 && buyAmount > 0
+                  ? () => addToast(<NotifiSwapStream />)
+                  : () => {}
+              }
               error={
                 invaliSelldAmount || invalidBuyAmount || !!calculationError
               }
@@ -387,7 +398,9 @@ const SELSection = () => {
                 !selectedTokenFrom ||
                 !selectedTokenTo ||
                 !!calculationError ||
-                isFetchingReserves
+                isFetchingReserves ||
+                !(sellAmount > 0 && buyAmount > 0) ||
+                (isConnected && isInsufficientBalance)
               }
               loading={isFetchingReserves}
             />
@@ -438,6 +451,7 @@ const SELSection = () => {
               tokenToUsdPrice={selectedTokenTo?.usd_price || 0}
               estTime={estTime}
               isCalculating={isCalculating}
+              isFetchingReserves={isFetchingReserves}
               slippageSavings={slippageSavings}
             />
           )}

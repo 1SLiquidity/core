@@ -1,16 +1,27 @@
-import { formatWalletAddress } from '@/app/lib/helper';
-import Image from 'next/image';
+import { formatWalletAddress } from '@/app/lib/helper'
+import { cn } from '@/lib/utils'
+import Image from 'next/image'
 
 type Props = {
-  onClick?: () => void;
-  address: string;
-};
+  onClick?: () => void
+  address: string
+  isWalletDetailsSidebarOpen: boolean
+}
 
-const WalletButton: React.FC<Props> = ({ onClick, address }) => {
+const WalletButton: React.FC<Props> = ({
+  onClick,
+  address,
+  isWalletDetailsSidebarOpen,
+}) => {
   return (
     <div
       onClick={onClick}
-      className="min-w-12 w-fit h-10 gap-2 rounded-[12px] p-2 flex items-center justify-center border-primary border-[2px] cursor-pointer hover:border-success hover:bg-successGradient"
+      className={cn(
+        'min-w-12 w-fit h-10 gap-2 rounded-[12px] p-2 flex items-center transition-all duration-300 justify-center border-primary border-[2px] cursor-pointer',
+        isWalletDetailsSidebarOpen
+          ? 'border-success bg-successGradient'
+          : 'hover:bg-[#2a2a2a]'
+      )}
     >
       <div className="relative h-fit">
         <Image
@@ -30,7 +41,7 @@ const WalletButton: React.FC<Props> = ({ onClick, address }) => {
       </div>
       <p>{formatWalletAddress(address)}</p>
     </div>
-  );
-};
+  )
+}
 
-export default WalletButton;
+export default WalletButton

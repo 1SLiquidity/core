@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import AmountTag from '../../amountTag'
 import { ReserveData } from '@/app/lib/dex/calculators'
 import { formatEther } from 'ethers/lib/utils'
@@ -19,6 +19,7 @@ type Props = {
   estTime?: string
   isCalculating?: boolean
   slippageSavings?: number | null
+  isFetchingReserves?: boolean
 }
 
 const DetailSection: React.FC<Props> = ({
@@ -35,10 +36,17 @@ const DetailSection: React.FC<Props> = ({
   estTime = '',
   isCalculating = false,
   slippageSavings = null,
+  isFetchingReserves = false,
 }) => {
   const [showDetails, setShowDetails] = useState(true)
 
   const toggleDetails = () => setShowDetails(!showDetails)
+
+  useEffect(() => {
+    if (isFetchingReserves || isCalculating) {
+      setShowDetails(false)
+    }
+  }, [isFetchingReserves, isCalculating])
 
   // Calculate the fee amount based on sellAmount and fee percentage
   const calculateFeeAmount = () => {
@@ -209,16 +217,6 @@ const DetailSection: React.FC<Props> = ({
             infoDetail="Estimated"
           /> */}
           <AmountTag
-            title="Min. Output Correction"
-            amount={
-              isCalculating
-                ? undefined
-                : calculateMinOutputCorrection() || undefined
-            }
-            infoDetail="Estimated"
-            isLoading={isCalculating}
-          />
-          <AmountTag
             title="Slippage Savings"
             amount={isCalculating ? undefined : formatSlippageSavings()}
             infoDetail="Estimated"
@@ -236,6 +234,17 @@ const DetailSection: React.FC<Props> = ({
             amount={'$3,096.69'}
             infoDetail="Estimated"
           /> */}
+          <AmountTag
+            // title="Min. Output Correction"
+            title="Stream Volume"
+            amount={
+              isCalculating
+                ? undefined
+                : calculateMinOutputCorrection() || undefined
+            }
+            infoDetail="Estimated"
+            isLoading={isCalculating}
+          />
           <AmountTag
             title="Est. Stream Count"
             amount={isCalculating ? undefined : streamCount?.toString()}
