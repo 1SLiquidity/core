@@ -19,6 +19,13 @@ import {
 import { useTrades } from '@/app/lib/hooks/useTrades'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { formatUnits } from 'viem'
+import { SwitchOffIcon } from '@/app/lib/icons'
+import {
+  CheckIcon,
+  CircleCheckBigIcon,
+  CircleCheckIcon,
+  CopyIcon,
+} from 'lucide-react'
 
 type WalletDetailsSidebarProps = {
   isOpen: boolean
@@ -56,6 +63,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     number | null
   >(null)
   const [dayChange, setDayChange] = useState<number | null>(null)
+  const [showCopied, setShowCopied] = useState(false)
 
   const { address, isConnected, caipAddress, status, embeddedWalletInfo } =
     useAppKitAccount()
@@ -154,6 +162,18 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     await refetch()
   }
 
+  const handleCopyAddress = async () => {
+    if (address) {
+      try {
+        await navigator.clipboard.writeText(address)
+        setShowCopied(true)
+        setTimeout(() => setShowCopied(false), 1000) // Show tick for 1 second
+      } catch (err) {
+        console.error('Failed to copy address:', err)
+      }
+    }
+  }
+
   console.log('walletTokens', walletTokens)
   console.log('rawTokens', rawTokens)
   console.log('displayTokens', displayTokens)
@@ -167,7 +187,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
       {/* close icon */}
       <div
         onClick={onClose}
-        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-[0.7rem] z-50"
+        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[1.9rem] -left-[0.7rem] z-50"
       >
         <Image
           src={'/icons/close.svg'}
@@ -191,7 +211,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
           />
         ) : (
           <>
-            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 py-6 px-4 z-40">
+            <div className="flex justify-between gap-2 items-center h-full sticky bg-black top-0 py-6 z-40">
               <div className="flex gap-3 items-center">
                 <div className="relative h-fit">
                   <Image
@@ -209,29 +229,45 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                     height={200}
                   />
                 </div>
-                <p className="text-white">
-                  {formatWalletAddress(address || 'GY68234nasmd234asfKT21')}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-white">
+                    {formatWalletAddress(address || 'GY68234nasmd234asfKT21')}
+                  </p>
+                  <button
+                    onClick={handleCopyAddress}
+                    className="hover:opacity-80 transition-opacity"
+                    title="Copy address"
+                  >
+                    {showCopied ? (
+                      <CircleCheckBigIcon className="w-4 h-4 text-primary" />
+                    ) : (
+                      <CopyIcon className="w-4 h-4 text-white" />
+                    )}
+                  </button>
+                </div>
               </div>
-              <Image
+              {/* <Image
                 src={'/icons/switchoff.svg'}
                 alt="close"
                 className="w-6 cursor-pointer"
                 width={1000}
                 height={1000}
                 onClick={onClose}
+              /> */}
+              <SwitchOffIcon
+                className="w-6 cursor-pointer text-[#808080] transition-all duration-300"
+                onClick={onClose}
               />
             </div>
 
             {/* Chain Indicator */}
-            <div className="mt-4 flex justify-between items-center">
+            {/* <div className="mt-4 flex justify-between items-center">
               <div className="flex items-center">
                 <div className="text-sm text-white px-2 py-1 bg-neutral-800 rounded-full flex items-center">
                   <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
                   {chainName}
                 </div>
               </div>
-              {/* Refresh button */}
               <button
                 onClick={handleRefresh}
                 disabled={isLoadingTokens || isFetching}
@@ -248,11 +284,11 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                 />
                 Refresh
               </button>
-            </div>
+            </div> */}
 
             {/* wallet amount details */}
             <div className="pb-6">
-              <div className="mt-4">
+              <div className="">
                 {isLoadingTokens || isFetching ? (
                   <p className="text-[24px] font-bold">Loading balance...</p>
                 ) : tokensError ? (

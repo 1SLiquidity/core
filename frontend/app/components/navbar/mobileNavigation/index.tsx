@@ -1,5 +1,7 @@
 'use client'
 import { NAV_LINKS } from '@/app/lib/constants'
+import { HomeIcon, InstasettleIcon, SwapsIcon } from '@/app/lib/icons'
+import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -78,17 +80,17 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <a
                 key={link.title}
                 href={link.href}
-                className={`flex gap-[6px] justify-center items-center border-[2px] border-primary py-[10px] px-[9px] rounded-[8px] ${
+                className={`flex gap-[6px] justify-center items-center border-primary py-[10px] px-[9px] rounded-[8px] ${
                   (
                     link.href === '/'
                       ? pathname === link.href
                       : pathname.startsWith(link.href) && pathname !== '/'
                   )
-                    ? ' bg-primaryGradient text-black'
+                    ? ' bg-secondary text-primary'
                     : ''
                 }`}
               >
-                <Image
+                {/* <Image
                   src={
                     (
                       link.href === '/'
@@ -102,7 +104,32 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                   className="w-fit h-fit"
                   width={20}
                   height={20}
-                />
+                /> */}
+
+                {link.title === 'Home' && (
+                  <HomeIcon
+                    className={cn(
+                      'w-4.5 h-4.5 text-white',
+                      pathname === link.href && 'text-primary'
+                    )}
+                  />
+                )}
+                {link.title === 'Streams' && (
+                  <SwapsIcon
+                    className={cn(
+                      'w-4.5 h-4.5 text-white',
+                      pathname === link.href && 'text-primary'
+                    )}
+                  />
+                )}
+                {link.title === 'Instasettle' && (
+                  <InstasettleIcon
+                    className={cn(
+                      'w-4.5 h-4.5 text-white',
+                      pathname === link.href && 'text-primary'
+                    )}
+                  />
+                )}
                 <span>{link.title}</span>
               </a>
             ))}

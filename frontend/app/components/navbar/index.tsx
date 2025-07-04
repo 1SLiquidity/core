@@ -1,6 +1,12 @@
 'use client'
 
 import { NAV_LINKS } from '@/app/lib/constants'
+import {
+  HomeIcon,
+  InstasettleIcon,
+  SwapsIcon,
+  TypewriterIcon,
+} from '@/app/lib/icons'
 import { useSidebar } from '@/app/lib/context/sidebarContext'
 import { useAppKit } from '@reown/appkit/react'
 import Image from 'next/image'
@@ -12,6 +18,7 @@ import Button from '../button'
 import Searchbar from '../searchbar'
 import WalletButton from '../walletButton'
 import MobileNavigation from './mobileNavigation'
+import { cn } from '@/lib/utils'
 
 type Props = {
   isBack?: boolean
@@ -60,7 +67,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       <div className="gap-[18px] w-fit h-fit md:flex hidden">
         <Link
           href="/"
-          className="rounded-[12px] flex items-center hover:shadow-lg hover:shadow-secondary bg-opacity-[12%] group text-white transition-all duration-300 justify-center px-2"
+          className="rounded-[12px] flex items-center bg-opacity-[12%] group text-white transition-all duration-300 justify-center px-2"
         >
           <Image
             src="/assets/logo.svg"
@@ -90,7 +97,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
             <p>Back</p>
           </div>
         ) : (
-          <div className="w-fit h-10 border-[2px] border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
+          <div className="w-fit h-10 border-primary px-[6px] py-[3px] rounded-[12px] hidden md:flex gap-[6px]">
             {NAV_LINKS.map((link) =>
               link.title === '!' ? (
                 <span
@@ -111,17 +118,17 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                 <Link
                   key={link.title}
                   href={link.href}
-                  className={`flex gap-[6px] items-center py-[10px] bg-opacity-[12%] px-[9px] rounded-[8px] ${
+                  className={`flex gap-[6px] items-center py-[10px] transition-all duration-300 bg-opacity-[12%] px-[9px] rounded-[8px] ${
                     (
                       link.href === '/'
                         ? pathname === link.href
                         : pathname.startsWith(link.href) && pathname !== '/'
                     )
-                      ? ' bg-primaryGradient text-black'
-                      : 'hover:bg-tabsGradient'
+                      ? 'bg-secondary text-primary'
+                      : 'hover:bg-[#2a2a2a]'
                   }`}
                 >
-                  <Image
+                  {/* <Image
                     src={
                       (
                         link.href === '/'
@@ -135,7 +142,31 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                     className="w-fit h-fit"
                     width={20}
                     height={20}
-                  />
+                  /> */}
+                  {link.title === 'Home' && (
+                    <HomeIcon
+                      className={cn(
+                        'w-4.5 h-4.5 text-white',
+                        pathname === link.href && 'text-primary'
+                      )}
+                    />
+                  )}
+                  {link.title === 'Streams' && (
+                    <SwapsIcon
+                      className={cn(
+                        'w-4.5 h-4.5 text-white',
+                        pathname === link.href && 'text-primary'
+                      )}
+                    />
+                  )}
+                  {link.title === 'Instasettle' && (
+                    <InstasettleIcon
+                      className={cn(
+                        'w-4.5 h-4.5 text-white',
+                        pathname === link.href && 'text-primary'
+                      )}
+                    />
+                  )}
                   <span>{link.title}</span>
                 </Link>
               )
@@ -169,18 +200,25 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
             showWalletDetailsSidebar(false)
             showGlobalStreamSidebar(!isGlobalStreamSidebarOpen)
           }}
-          className="relative cursor-pointer w-12 h-10 rounded-[12px] flex items-center justify-center border-primary border-[2px]"
+          className={cn(
+            'relative cursor-pointer w-14 h-10 rounded-[12px] flex items-center justify-center border-primary border-[2px] transition-all duration-300',
+            isGlobalStreamSidebarOpen
+              ? 'border-success bg-successGradient'
+              : 'hover:bg-[#2a2a2a]'
+          )}
         >
-          <Image
+          {/* <Image
             src="/icons/live-statistics.svg"
             alt="logo"
-            className="w-6 h-6"
+            className="w-6 h-6 text-red"
             width={40}
             height={40}
-          />
-          <div className="absolute w-[24px] h-[12px] bg-primaryRed -bottom-1.5 text-xs font-semibold uppercase flex items-center justify-center rounded-[2px]">
+          /> */}
+          {/* <LiveStatisticsIcon className="w-6 h-6 text-primary" /> */}
+          <TypewriterIcon className="w-6 h-6 text-primary" />
+          {/* <div className="absolute w-[24px] h-[12px] bg-primaryRed -bottom-1.5 text-xs font-semibold uppercase flex items-center justify-center rounded-[2px]">
             LIVE
-          </div>
+          </div> */}
         </div>
 
         {/* connect button */}
@@ -195,6 +233,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
               showGlobalStreamSidebar(false)
               showWalletDetailsSidebar(!isWalletDetailsSidebarOpen)
             }}
+            isWalletDetailsSidebarOpen={isWalletDetailsSidebarOpen}
           />
         )}
       </div>

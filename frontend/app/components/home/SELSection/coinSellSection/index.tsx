@@ -10,6 +10,8 @@ interface Props {
   inValidAmount?: boolean
   swap?: boolean
   disabled?: boolean
+  isInsufficientBalance?: boolean
+  setIsInsufficientBalance?: (isInsufficientBalance: boolean) => void
 }
 
 const CoinSellSection: React.FC<Props> = ({
@@ -18,14 +20,16 @@ const CoinSellSection: React.FC<Props> = ({
   inValidAmount,
   swap,
   disabled,
+  isInsufficientBalance,
+  setIsInsufficientBalance,
 }) => {
-  const [active, setActive] = useState(false)
+  const [active, setActive] = useState(true)
   const sectionRef = useRef<HTMLDivElement>(null)
   const { selectedTokenFrom } = useModal()
 
-  useOnClickOutside(sectionRef, () => {
-    setActive(false)
-  })
+  // useOnClickOutside(sectionRef, () => {
+  //   setActive(false)
+  // })
 
   return (
     <div ref={sectionRef} className="w-fit h-fit relative">
@@ -77,6 +81,8 @@ const CoinSellSection: React.FC<Props> = ({
                 if (!active) setActive(true)
               }}
               disabled={disabled}
+              isInsufficientBalance={isInsufficientBalance}
+              setIsInsufficientBalance={setIsInsufficientBalance}
             />
           </div>
         </div>

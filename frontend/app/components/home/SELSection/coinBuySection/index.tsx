@@ -79,6 +79,7 @@ const CoinBuySection: React.FC<Props> = ({
             }}
             disabled={disabled}
             isLoading={isLoading} // Pass isLoading prop
+            isBuySection={true}
           />
         </div>
       </div>

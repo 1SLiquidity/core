@@ -61,9 +61,7 @@ const Tabs: React.FC<Props> = ({
     >
       <div
         className={`absolute top-0 left-0 h-full ${
-          theme === 'secondary'
-            ? 'bg-primaryGradient text-black'
-            : 'bg-neutral-800'
+          theme === 'secondary' ? 'bg-[#3b3a3a] text-white' : 'bg-neutral-800'
         } rounded-[7px] transition-all duration-300 border-[2px] border-black`}
         style={{
           width: `${activeTabWidth}px`,
@@ -78,12 +76,12 @@ const Tabs: React.FC<Props> = ({
           className={`relative z-10 ${
             activeTabIndex === index
               ? theme === 'secondary'
-                ? 'text-black'
+                ? 'text-white'
                 : 'text-white'
               : 'text-gray-500'
           } ${
             activeTabIndex !== index &&
-            'hover:bg-tabsGradient hover:text-primary -z-10'
+            'hover:bg-[#2a2a2a] hover:text-white -z-10'
           } ${
             tabHeight ? `h-[${tabHeight}px]` : 'h-[24px]'
           } h-full min-w-fit w-full px-[12px] rounded-[7px] cursor-pointer uppercase flex justify-center items-center transition-colors duration-300`}

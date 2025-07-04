@@ -7,7 +7,7 @@ export const NAV_LINKS: NAV_LINKS[] = [
     icon: '/icons/home.svg',
   },
   {
-    title: 'Swaps',
+    title: 'Streams',
     href: '/swaps',
     icon: '/icons/swaps.svg',
   },
@@ -118,7 +118,7 @@ export const TOKENS: TOKENS_TYPE[] = [
 
 export const WALLET_TABS: TABS[] = [
   {
-    title: 'Stream',
+    title: 'Streams',
   },
   {
     title: 'Tokens',

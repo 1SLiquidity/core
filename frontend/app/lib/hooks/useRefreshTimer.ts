@@ -5,7 +5,7 @@ interface UseRefreshTimerProps {
   onRefresh: () => void
   isActive: boolean
   sellAmount: number
-  isCalculating: boolean
+  isCalculating: boolean // This now represents both calculating and fetching states
 }
 
 export const useRefreshTimer = ({
@@ -23,16 +23,18 @@ export const useRefreshTimer = ({
 
   // Set timer active state based on conditions
   useEffect(() => {
-    if (isActive) {
+    if (isActive && !isCalculating) {
       setTimerActive(true)
     } else {
       setTimerActive(false)
+      // Reset timer when becoming inactive
+      setTimeRemaining(duration)
     }
-  }, [isActive])
+  }, [isActive, isCalculating, duration])
 
   // Handle timer countdown and refresh
   useEffect(() => {
-    if (!isActive || isRefreshingRef.current) {
+    if (!isActive || isCalculating) {
       return
     }
 
@@ -41,35 +43,33 @@ export const useRefreshTimer = ({
         clearInterval(timerIntervalRef.current)
       }
 
-      setTimeRemaining(duration)
+      // Only reset time if we're not currently refreshing and not calculating
+      if (!isRefreshingRef.current && !isCalculating) {
+        setTimeRemaining(duration)
+      }
 
       timerIntervalRef.current = setInterval(() => {
         setTimeRemaining((prev) => {
-          // If we're calculating and timer hits zero, just stay at zero
-          // without triggering a refresh
-          if (prev === 0 && isCalculating) {
-            return 0
+          // If we're calculating or refreshing, pause at current time
+          if (isCalculating || isRefreshingRef.current) {
+            return prev
           }
 
-          // Only trigger refresh at zero if we're not calculating
-          if (prev === 0) {
-            if (!isCalculating && !isRefreshingRef.current) {
+          // If timer hits zero
+          if (prev <= 0) {
+            // Start refresh if not already refreshing and not calculating
+            if (!isRefreshingRef.current && !isCalculating) {
               isRefreshingRef.current = true
               onRefresh()
-              // Reset after refresh is done
+              // Reset refreshing state after a delay
               setTimeout(() => {
                 isRefreshingRef.current = false
                 if (!isCalculating) {
                   setTimeRemaining(duration)
                 }
-              }, 100)
+              }, 1000) // Give enough time for refresh to complete
             }
             return 0
-          }
-
-          // If we're calculating, pause the countdown
-          if (isCalculating) {
-            return prev
           }
 
           return prev - 1
@@ -88,18 +88,17 @@ export const useRefreshTimer = ({
 
   // Handle sell amount changes
   useEffect(() => {
-    if (
-      sellAmount !== prevSellAmountRef.current &&
-      isActive &&
-      !isCalculating &&
-      !isRefreshingRef.current
-    ) {
+    if (sellAmount !== prevSellAmountRef.current && isActive) {
       prevSellAmountRef.current = sellAmount
-      setTimeRemaining(duration)
+      // Only reset timer if we're not currently refreshing and not calculating
+      if (!isRefreshingRef.current && !isCalculating) {
+        setTimeRemaining(duration)
+      }
     }
   }, [sellAmount, duration, isActive, isCalculating])
 
   const resetTimer = () => {
+    // Only reset if not currently refreshing and not calculating
     if (!isRefreshingRef.current && !isCalculating) {
       setTimeRemaining(duration)
       onRefresh()

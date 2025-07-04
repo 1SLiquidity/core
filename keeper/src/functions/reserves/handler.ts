@@ -1,5 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import { ReservesAggregator } from '../../services/reserves-aggregator'
+import { ReservesAggregator, DexType } from '../../services/reserves-aggregator'
 import { getCache, setCache, generateCacheKey } from '../../utils/redis'
 import { createProvider } from '../../utils/provider'
 
@@ -13,7 +13,7 @@ const CACHE_TTL = 10 // 10 seconds
 interface ReserveRequest {
   tokenA: string
   tokenB: string
-  dexes?: string[] // Optional: specify which DEXes to query
+  dex?: DexType // Optional: specify which DEX to query
 }
 
 function validateTokenAddress(address: string): boolean {
@@ -35,13 +35,13 @@ export const main = async (
   try {
     let tokenA: string | undefined
     let tokenB: string | undefined
-    let dexes: string[] | undefined
+    let dex: DexType | undefined
 
     // Handle both GET and POST requests
     if (event.httpMethod === 'GET') {
       tokenA = event.queryStringParameters?.tokenA
       tokenB = event.queryStringParameters?.tokenB
-      dexes = event.queryStringParameters?.dexes?.split(',')
+      dex = event.queryStringParameters?.dex as DexType | undefined
     } else if (event.httpMethod === 'POST') {
       const body = parseRequestBody(event)
       if (!body) {
@@ -52,7 +52,7 @@ export const main = async (
       }
       tokenA = body.tokenA
       tokenB = body.tokenB
-      dexes = body.dexes
+      dex = body.dex
     }
 
     if (!tokenA || !tokenB) {
@@ -79,16 +79,16 @@ export const main = async (
       }
     }
 
-    // Generate cache key based on tokens and dexes
+    // Generate cache key based on tokens and DEX if specified
     const cacheKey = generateCacheKey(
       'RESERVES',
-      `${tokenA}-${tokenB}${dexes ? `-${dexes.join(',')}` : ''}`
+      `${tokenA}-${tokenB}${dex ? `-${dex}` : ''}`
     )
 
     // Try to get from cache first
     const cachedData = await getCache<any>(cacheKey)
     if (cachedData) {
-      console.log(`Cache hit for reserves of ${tokenA}-${tokenB}`)
+      console.log(`Cache hit for reserves of ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}`)
       return {
         statusCode: 200,
         headers: {
@@ -101,9 +101,27 @@ export const main = async (
 
     // If not in cache, fetch from API
     console.log(
-      `Cache miss for reserves of ${tokenA}-${tokenB}, fetching from API...`
+      `Cache miss for reserves of ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}, fetching from API...`
     )
-    const reservesData = await reservesService.getAllReserves(tokenA, tokenB)
+    let reservesData
+    
+    if (dex) {
+      // Fetch reserves from specific DEX
+      reservesData = await reservesService.getReservesFromDex(tokenA, tokenB, dex)
+      if (!reservesData) {
+        return {
+          statusCode: 404,
+          headers: {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          },
+          body: JSON.stringify({ error: `No reserves found for ${tokenA}-${tokenB} on ${dex}` }),
+        }
+      }
+    } else {
+      // Fetch reserves from all DEXes
+      reservesData = await reservesService.getAllReserves(tokenA, tokenB)
+    }
 
     // Only store in cache if we have valid data
     if (
@@ -114,7 +132,7 @@ export const main = async (
     ) {
       await setCache(cacheKey, reservesData, CACHE_TTL)
     } else {
-      console.log(`Skipping cache for empty response: ${tokenA}-${tokenB}`)
+      console.log(`Skipping cache for empty response: ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}`)
     }
 
     return {

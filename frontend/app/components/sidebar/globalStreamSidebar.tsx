@@ -11,6 +11,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { formatUnits } from 'viem'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
+import { TypewriterIcon } from '@/app/lib/icons'
+import { Button } from '@/components/ui/button'
 
 type GlobalStreamSidebarProps = {
   isOpen: boolean
@@ -81,7 +83,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
         <div
           onClick={onClose}
           className={cn(
-            'bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-[0.7rem] z-50',
+            'bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[2.2rem] -left-[0.7rem] z-50',
             className
           )}
         >
@@ -109,20 +111,21 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
           </>
         ) : (
           <>
-            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 py-6 px-4 z-40">
+            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 py-6 z-40">
               <>
                 <div className="flex gap-3 items-center">
-                  <div className="relative cursor-pointer w-10 h-10 rounded-full flex items-center justify-center border-primary border-[2px]">
-                    <Image
+                  <div className="relative w-10 h-10 rounded-full flex items-center justify-center border-primary border-[2px]">
+                    {/* <Image
                       src="/icons/live-statistics.svg"
                       alt="logo"
                       className="w-6 h-6"
                       width={40}
                       height={40}
-                    />
-                    <div className="absolute w-[24px] h-[12px] bg-primaryRed -bottom-1.5 text-xs font-semibold uppercase flex items-center justify-center rounded-[2px]">
+                    /> */}
+                    <TypewriterIcon className="w-6 h-6 text-primary" />
+                    {/* <div className="absolute w-[24px] h-[12px] bg-primaryRed -bottom-1.5 text-xs font-semibold uppercase flex items-center justify-center rounded-[2px]">
                       LIVE
-                    </div>
+                    </div> */}
                   </div>
                   <p className="text-white text-[20px]">Global Stream</p>
                 </div>
@@ -133,15 +136,25 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
               <div className="p-4 rounded-[15px] bg-white005">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col leading-tight gap-0.5 items-start">
-                    <p className="text-white text-xl">Ongoing</p>
+                    <p className="text-white text-xl">Streams</p>
                     {isLoading || isLoadingTokens ? (
                       <>
                         <Skeleton className="h-6 w-16 mt-1" />
-                        <Skeleton className="h-4 w-24 mt-2" />
                       </>
                     ) : (
                       <>
                         <p className="text-[20px]">{trades.length}</p>
+                      </>
+                    )}
+                  </div>
+                  <div className="flex flex-col leading-tight gap-0.5 items-start">
+                    <p className="text-white text-xl">Volume</p>
+                    {isLoading || isLoadingTokens ? (
+                      <>
+                        <Skeleton className="h-6 w-16 mt-1" />
+                      </>
+                    ) : (
+                      <>
                         <p className="text-white52 text-[14px]">
                           $
                           {totalTradesValue.toLocaleString(undefined, {
@@ -156,7 +169,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
               </div>
 
               <div className="mt-7">
-                <p className="text-[20px] pb-3.5">Global Streams</p>
+                <p className="text-[20px] pb-3.5">Ongoing Streams</p>
 
                 <div className="flex flex-col gap-2">
                   {!isLoading && trades.length === 0 ? (

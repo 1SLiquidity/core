@@ -4,6 +4,8 @@ import { ReserveResult } from '../types/reserves'
 import { TokenInfo } from '../types/token'
 import { TokenService } from './token-service'
 
+export type DexType = 'uniswapV2' | 'uniswapV3_500' | 'uniswapV3_3000' | 'uniswapV3_10000' | 'sushiswap'
+
 export class ReservesAggregator {
   private uniswapV2: UniswapV2Service
   private uniswapV3_500: UniswapV3Service
@@ -86,6 +88,64 @@ export class ReservesAggregator {
       y = (x + value / x) / 2n
     }
     return x
+  }
+
+  async getReservesFromDex(tokenA: string, tokenB: string, dex: DexType): Promise<ReserveResult | null> {
+    // Get token decimals
+    const [token0Info, token1Info] = await Promise.all([
+      this.tokenService.getTokenInfo(tokenA),
+      this.tokenService.getTokenInfo(tokenB)
+    ])
+
+    let reserves: ReserveResult | null = null
+
+    switch (dex) {
+      case 'uniswapV2':
+        reserves = await this.fetchWithRetry(
+          () => this.uniswapV2.getReserves(tokenA, tokenB),
+          'Uniswap V2'
+        )
+        break
+      case 'uniswapV3_500':
+        reserves = await this.fetchWithRetry(
+          () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+          'Uniswap V3 (500)'
+        )
+        break
+      case 'uniswapV3_3000':
+        reserves = await this.fetchWithRetry(
+          () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+          'Uniswap V3 (3000)'
+        )
+        break
+      case 'uniswapV3_10000':
+        reserves = await this.fetchWithRetry(
+          () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+          'Uniswap V3 (10000)'
+        )
+        break
+      case 'sushiswap':
+        reserves = await this.fetchWithRetry(
+          () => this.sushiswap.getReserves(tokenA, tokenB),
+          'SushiSwap'
+        )
+        break
+      default:
+        throw new Error(`Unsupported DEX type: ${dex}`)
+    }
+
+    if (reserves) {
+      // Add decimals information to the result
+      return {
+        ...reserves,
+        decimals: {
+          token0: token0Info.decimals,
+          token1: token1Info.decimals
+        }
+      }
+    }
+
+    return null
   }
 
   async getAllReserves(
