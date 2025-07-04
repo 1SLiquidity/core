@@ -143,7 +143,9 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                       </>
                     ) : (
                       <>
-                        <p className="text-[20px]">{trades.length}</p>
+                        <p className="text-[20px] text-white52">
+                          {trades.length}
+                        </p>
                       </>
                     )}
                   </div>
@@ -155,7 +157,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                       </>
                     ) : (
                       <>
-                        <p className="text-white52 text-[14px]">
+                        <p className="text-white52 text-[20px]">
                           $
                           {totalTradesValue.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
