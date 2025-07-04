@@ -26,6 +26,7 @@ import {
   CircleCheckIcon,
   CopyIcon,
 } from 'lucide-react'
+import { useDisconnect } from '@reown/appkit/react'
 
 type WalletDetailsSidebarProps = {
   isOpen: boolean
@@ -67,6 +68,12 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
 
   const { address, isConnected, caipAddress, status, embeddedWalletInfo } =
     useAppKitAccount()
+  const { disconnect } = useDisconnect()
+
+  const disconnectWallet = async () => {
+    await disconnect()
+    onClose()
+  }
 
   // Get current chain from AppKit
   const stateData = useAppKitState()
@@ -256,7 +263,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
               /> */}
               <SwitchOffIcon
                 className="w-6 cursor-pointer text-[#808080] transition-all duration-300"
-                onClick={onClose}
+                onClick={disconnectWallet}
               />
             </div>
 

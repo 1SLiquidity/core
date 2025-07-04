@@ -201,10 +201,11 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
             showGlobalStreamSidebar(!isGlobalStreamSidebarOpen)
           }}
           className={cn(
-            'relative cursor-pointer w-14 h-10 rounded-[12px] flex items-center justify-center border-primary border-[2px] transition-all duration-300',
+            'relative cursor-pointer h-10 rounded-[12px] flex items-center justify-center border-primary border-[2px] transition-all duration-300',
             isGlobalStreamSidebarOpen
               ? 'border-success bg-successGradient'
-              : 'hover:bg-[#2a2a2a]'
+              : 'hover:bg-[#2a2a2a]',
+            isConnected ? 'w-10' : 'w-14'
           )}
         >
           {/* <Image

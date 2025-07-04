@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils'
+import { useAppKit } from '@reown/appkit/react'
 import { Loader2 } from 'lucide-react'
 
 type Props = {
@@ -29,12 +30,22 @@ const Button: React.FC<Props> = ({
   className,
   isSellAndBuyAmount,
 }) => {
+  const { open } = useAppKit()
+  const handleConnectWallet = () => {
+    open()
+  }
   console.log('error', error)
   // : 'bg-gray text-white opacity-50 cursor-not-allowed bg-opacity-[23%]'
 
   return (
     <button
-      onClick={onClick}
+      onClick={
+        text === 'Connect Wallet'
+          ? handleConnectWallet
+          : onClick
+          ? onClick
+          : () => {}
+      }
       disabled={error || disabled}
       className={cn(
         `min-w-[130px] w-full p-2 h-10 rounded-[12px] flex items-center justify-center uppercase

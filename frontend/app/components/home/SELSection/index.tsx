@@ -377,7 +377,7 @@ const SELSection = () => {
           {isConnected && pathname === '/swaps' ? (
             <Button
               text={
-                isConnected && isInsufficientBalance
+                isConnected && isInsufficientBalance && !isFetchingReserves
                   ? 'Insufficient Balance'
                   : isFetchingReserves
                   ? 'Fetching reserves...'
