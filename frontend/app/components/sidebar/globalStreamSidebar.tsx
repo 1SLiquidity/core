@@ -13,7 +13,6 @@ import { formatUnits } from 'viem'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { RefreshIcon, TypewriterIcon } from '@/app/lib/icons'
 import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
 
 type GlobalStreamSidebarProps = {
   isOpen: boolean
