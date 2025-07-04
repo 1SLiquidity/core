@@ -271,6 +271,22 @@ body {
   animation: shimmer 1.5s infinite linear;
 }
 
+@keyframes refreshSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-refresh-spin {
+  animation: refreshSpin 3s ease-out infinite;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

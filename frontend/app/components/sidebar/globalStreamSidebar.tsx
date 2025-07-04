@@ -11,8 +11,9 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { formatUnits } from 'viem'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
-import { TypewriterIcon } from '@/app/lib/icons'
+import { RefreshIcon, TypewriterIcon } from '@/app/lib/icons'
 import { Button } from '@/components/ui/button'
+import { Progress } from '@/components/ui/progress'
 
 type GlobalStreamSidebarProps = {
   isOpen: boolean
@@ -32,8 +33,8 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
     initialStream || null
   )
 
-  // Fetch trades data
-  const { trades, isLoading, error } = useTrades({
+  // Fetch trades data with Apollo's 30s polling
+  const { trades, isLoading, error, isRefetching } = useTrades({
     first: 10,
     skip: 0,
   })
@@ -78,6 +79,8 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
 
   return (
     <Sidebar isOpen={isOpen} onClose={onClose} className={className}>
+      {/* Remove progress bar section */}
+
       {/* close icon */}
       {!selectedStream && (
         <div
@@ -127,7 +130,17 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                       LIVE
                     </div> */}
                   </div>
-                  <p className="text-white text-[20px]">Global Stream</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-white text-[20px]">Global Stream</p>
+                    <RefreshIcon
+                      className={cn(
+                        'w-4 h-4 transition-colors duration-300',
+                        isRefetching
+                          ? 'text-primary animate-refresh-spin'
+                          : 'text-white52'
+                      )}
+                    />
+                  </div>
                 </div>
               </>
             </div>
