@@ -270,14 +270,22 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
         </div> */}
 
         {/* searchbar */}
-        <div className="my-4">
+        <div className="my-4 flex gap-2 items-center">
           <SearchbarWithIcon
             onChange={(e) => setSearchValue(e.target.value)}
             value={searchValue}
             setValue={(e: any) => setSearchValue(e)}
             placeholder="Search tokens"
-            // placeholder="Search by name, symbol, or address"
           />
+          <div className="flex items-center h-[40px] hover:bg-neutral-800 border-[2px] border-primary rounded-[10px] px-2 py-2 transition-colors">
+            <Image
+              src="/tokens/ether.png"
+              alt="Ethereum"
+              width={28}
+              height={28}
+              className="rounded-md"
+            />
+          </div>
         </div>
 
         {/* Error message and retry button */}
@@ -433,7 +441,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                 )}
               </div>
 
-              <p className="text-[20px] text-gray">Tokens</p>
+              <p className="text-[20px] text-white">Tokens</p>
 
               <div className="flex flex-col gap-1 my-[13px]">
                 {isLoading ? (

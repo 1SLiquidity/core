@@ -78,14 +78,25 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
 
   return (
     <Sidebar isOpen={isOpen} onClose={onClose} className={className}>
-      {/* Remove progress bar section */}
+      {/* Loading bar */}
+      {isRefetching && (
+        <div className="absolute top-[2.5px] left-[10px] right-[10px] h-0.5 bg-black z-40 overflow-hidden">
+          <div
+            className="h-full bg-primary animate-loading-bar"
+            style={{
+              width: '100%',
+              transform: 'translateX(-100%)',
+            }}
+          />
+        </div>
+      )}
 
       {/* close icon */}
       {!selectedStream && (
         <div
           onClick={onClose}
           className={cn(
-            'bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[2.2rem] -left-[0.7rem] z-50',
+            'bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[2.3rem] -left-[0.7rem] z-50',
             className
           )}
         >
@@ -113,7 +124,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
           </>
         ) : (
           <>
-            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 py-6 z-40">
+            <div className="flex justify-between mt-[2.5px] gap-2 h-full sticky bg-black top-0 py-6 z-40">
               <>
                 <div className="flex gap-3 items-center">
                   <div className="relative w-10 h-10 rounded-full flex items-center justify-center border-primary border-[2px]">
@@ -131,14 +142,14 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                   </div>
                   <div className="flex items-center gap-2">
                     <p className="text-white text-[20px]">Global Stream</p>
-                    <RefreshIcon
+                    {/* <RefreshIcon
                       className={cn(
                         'w-4 h-4 transition-colors duration-300',
                         isRefetching
                           ? 'text-primary animate-refresh-spin'
                           : 'text-white52'
                       )}
-                    />
+                    /> */}
                   </div>
                 </div>
               </>
