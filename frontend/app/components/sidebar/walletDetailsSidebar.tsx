@@ -27,6 +27,7 @@ import {
   CopyIcon,
 } from 'lucide-react'
 import { useDisconnect } from '@reown/appkit/react'
+import JazzAvatar from '../shared/JazzAvatar'
 
 type WalletDetailsSidebarProps = {
   isOpen: boolean
@@ -219,8 +220,8 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
         ) : (
           <>
             <div className="flex justify-between gap-2 items-center h-full sticky bg-black top-0 py-6 z-40">
-              <div className="flex gap-3 items-center">
-                <div className="relative h-fit">
+              <div className="flex gap-2 items-center">
+                {/* <div className="relative h-fit">
                   <Image
                     src={'/icons/token.svg'}
                     alt="coin"
@@ -235,7 +236,8 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                     width={200}
                     height={200}
                   />
-                </div>
+                </div> */}
+                <JazzAvatar address={address || ''} diameter={30} />
                 <div className="flex items-center gap-2">
                   <p className="text-white">
                     {formatWalletAddress(address || 'GY68234nasmd234asfKT21')}

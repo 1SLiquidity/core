@@ -358,6 +358,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
             onInputFocus={onInputFocus}
             disable={disabled}
             isLoading={isLoading}
+            isBuySection={isBuySection}
           />
         </div>
 

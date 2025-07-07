@@ -1,6 +1,7 @@
 import { formatWalletAddress } from '@/app/lib/helper'
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
+import JazzAvatar from '../shared/JazzAvatar'
 
 type Props = {
   onClick?: () => void
@@ -23,7 +24,7 @@ const WalletButton: React.FC<Props> = ({
           : 'hover:bg-[#2a2a2a]'
       )}
     >
-      <div className="relative h-fit">
+      {/* <div className="relative h-fit">
         <Image
           src={'/icons/token.svg'}
           alt="coin"
@@ -38,7 +39,8 @@ const WalletButton: React.FC<Props> = ({
           width={20}
           height={20}
         />
-      </div>
+      </div> */}
+      <JazzAvatar address={address} diameter={20} />
       <p>{formatWalletAddress(address)}</p>
     </div>
   )

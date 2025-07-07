@@ -69,10 +69,10 @@ const Button: React.FC<Props> = ({
         className
       )}
     >
+      {loading && <Loader2 className="mr-2 w-4 h-4 animate-spin" />}
       <span className="relative z-10">{`${
         error ? (!!text ? text : 'Something went wrong') : text
       }`}</span>
-      {loading && <Loader2 className="ml-2 w-4 h-4 animate-spin" />}
     </button>
   )
 }
