@@ -74,7 +74,7 @@ const InputAmount: React.FC<InputAmountProps> = ({
       } ${inValidAmount ? 'text-primaryRed' : ''} ${
         disable
           ? isBuySection && amount > 0
-            ? ''
+            ? 'cursor-not-allowed'
             : 'cursor-not-allowed opacity-50'
           : ''
       } ${isBuySection && amount > 0 ? '' : 'disabled:opacity-55'}`}
