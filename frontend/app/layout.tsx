@@ -6,6 +6,7 @@ import HomeLayout from './components/layouts'
 import './globals.css'
 import ReactQueryProvider from './context/ReactQueryProvider'
 import { ApolloProvider } from './lib/providers/ApolloProvider'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 const afacadVariable = localFont({
   src: './fonts/Afacad-Medium.ttf',
@@ -30,13 +31,15 @@ export default async function RootLayout({
       <body
         className={`${afacadVariable.className} antialiased overflow-x-hidden`}
       >
-        <Web3ModalProvider cookies={cookies}>
-          <ReactQueryProvider>
-            <ApolloProvider>
-              <HomeLayout>{children}</HomeLayout>
-            </ApolloProvider>
-          </ReactQueryProvider>
-        </Web3ModalProvider>
+        <TooltipProvider>
+          <Web3ModalProvider cookies={cookies}>
+            <ReactQueryProvider>
+              <ApolloProvider>
+                <HomeLayout>{children}</HomeLayout>
+              </ApolloProvider>
+            </ReactQueryProvider>
+          </Web3ModalProvider>
+        </TooltipProvider>
       </body>
     </html>
   )
