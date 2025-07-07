@@ -72,7 +72,11 @@ const InputAmount: React.FC<InputAmountProps> = ({
       className={`w-full placeholder:text-white h-full bg-transparent border-none outline-none placeholder:text-gray text-[30px] md:text-[42px] ${
         textAlignRight ? 'text-right' : ''
       } ${inValidAmount ? 'text-primaryRed' : ''} ${
-        disable ? 'cursor-not-allowed opacity-50' : ''
+        disable
+          ? isBuySection && amount > 0
+            ? ''
+            : 'cursor-not-allowed opacity-50'
+          : ''
       } ${isBuySection && amount > 0 ? '' : 'disabled:opacity-55'}`}
       getInputRef={inputRef}
     />
