@@ -15,6 +15,7 @@ interface UseSwapCalculatorProps {
   reserveData: ReserveData | null
   isSwapOperation?: boolean
   selectedTokenTo?: Token | null
+  isRefresh?: boolean
 }
 
 export const useSwapCalculator = ({
@@ -23,6 +24,7 @@ export const useSwapCalculator = ({
   reserveData,
   isSwapOperation = false,
   selectedTokenTo = null,
+  isRefresh = false,
 }: UseSwapCalculatorProps) => {
   const [buyAmount, setBuyAmount] = useState(0)
   const [isCalculating, setIsCalculating] = useState(false)
@@ -60,10 +62,26 @@ export const useSwapCalculator = ({
             return
           }
 
-          const calculatedBuyAmount = await calculator.calculateOutputAmount(
-            amount.toString(),
-            reserves
-          )
+          let calculatedBuyAmount: string
+
+          if (isRefresh && reserves.token0Address && reserves.token1Address) {
+            console.log('Using direct calculation during refresh')
+            // Use direct calculation during refresh
+            calculatedBuyAmount = await calculator.calculateOutputAmountDirect(
+              amount.toString(),
+              reserves.token0Address,
+              reserves.token1Address,
+              reserves.token0Decimals || 18,
+              reserves.token1Decimals || 18
+            )
+          } else {
+            console.log('Using reserve-based calculation')
+            // Use reserve-based calculation for initial and non-refresh calculations
+            calculatedBuyAmount = await calculator.calculateOutputAmount(
+              amount.toString(),
+              reserves
+            )
+          }
 
           // Double check current sell amount before applying any updates
           if (currentSellAmount.current <= 0) {
@@ -186,12 +204,49 @@ export const useSwapCalculator = ({
       setCalculationError(null)
 
       // Trigger debounced calculation
-      debouncedCalculation(
-        sellAmount,
-        dexCalculator,
-        reserveData,
-        currentCalculationId
-      )
+      if (isRefresh && reserveData.token0Address && reserveData.token1Address) {
+        console.log('Using direct calculation during refresh')
+        try {
+          const calculatedBuyAmount =
+            await dexCalculator.calculateOutputAmountDirect(
+              sellAmount.toString(),
+              reserveData.token0Address,
+              reserveData.token1Address,
+              reserveData.decimals.token0,
+              reserveData.decimals.token1
+            )
+
+          if (currentCalculationId === latestCalculationId.current) {
+            const numericBuyAmount = parseFloat(calculatedBuyAmount)
+            if (!isNaN(numericBuyAmount)) {
+              setBuyAmount(parseFloat(numericBuyAmount.toFixed(8)))
+            }
+            setIsCalculating(false) // Set calculating to false after successful direct calculation
+          }
+        } catch (error) {
+          console.error('Error in direct calculation:', error)
+          if (currentCalculationId === latestCalculationId.current) {
+            // Fallback to normal calculation
+            console.log('Falling back to normal calculation')
+            debouncedCalculation(
+              sellAmount,
+              dexCalculator,
+              reserveData,
+              currentCalculationId
+            )
+          } else {
+            setIsCalculating(false) // Set calculating to false if calculation is no longer current
+          }
+        }
+      } else {
+        // Normal calculation path
+        debouncedCalculation(
+          sellAmount,
+          dexCalculator,
+          reserveData,
+          currentCalculationId
+        )
+      }
 
       // Calculate slippage savings if we have streamCount
       if (streamCount && reserveData && selectedTokenTo) {
@@ -245,6 +300,7 @@ export const useSwapCalculator = ({
     streamCount,
     debouncedCalculation,
     selectedTokenTo,
+    isRefresh,
   ])
 
   // Calculate estimated time when streamCount changes

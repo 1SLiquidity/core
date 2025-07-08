@@ -53,6 +53,11 @@ export const useReserves = ({
         selectedTokenTo.token_address ||
         '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
 
+      console.log('Fetching reserves for addresses:', {
+        fromAddress,
+        toAddress,
+      })
+
       // Add abort controller for cleanup
       const controller = new AbortController()
       const signal = controller.signal
@@ -85,6 +90,7 @@ export const useReserves = ({
       }
 
       if (!data) {
+        console.log('No liquidity data received')
         setCalculationError('No liquidity data received')
         clearState()
         return
@@ -98,10 +104,13 @@ export const useReserves = ({
         token1Address: selectedTokenTo.token_address || '',
       } as ReserveData
 
+      console.log('Processed reserve data:', reserveDataWithDecimals)
+
       if (
         !(parseFloat(reserveDataWithDecimals.reserves.token0) > 0) &&
         !(parseFloat(reserveDataWithDecimals.reserves.token1) > 0)
       ) {
+        console.log('No valid reserves found')
         setCalculationError('No liquidity data received')
         clearState()
         return

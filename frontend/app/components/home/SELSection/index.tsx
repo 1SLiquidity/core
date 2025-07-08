@@ -3,7 +3,7 @@
 import { SEL_SECTION_TABS } from '@/app/lib/constants'
 import { useToast } from '@/app/lib/context/toastProvider'
 import { isNumberValid } from '@/app/lib/helper'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Button from '../../button'
 import NotifiSwapStream from '../../toasts/notifiSwapStream'
 import DetailSection from '../detailSection'
@@ -32,6 +32,7 @@ const SELSection = () => {
   const [pendingSwapAmount, setPendingSwapAmount] = useState<number | null>(
     null
   )
+  const [isRefresh, setIsRefresh] = useState(false)
 
   const { addToast } = useToast()
   const {
@@ -78,6 +79,13 @@ const SELSection = () => {
     chainId,
   })
 
+  const handleRefresh = useCallback(() => {
+    if (dexCalculator && reserveData) {
+      console.log('handleRefresh called, setting isRefresh to true')
+      setIsRefresh(true)
+    }
+  }, [dexCalculator, reserveData])
+
   const {
     buyAmount,
     isCalculating,
@@ -93,17 +101,46 @@ const SELSection = () => {
     reserveData: reserveData as any,
     isSwapOperation,
     selectedTokenTo,
+    isRefresh,
   })
 
-  console.log('reserveData =========>', reserveData)
+  console.log('SELSection render - isRefresh:', isRefresh)
 
   const { timeRemaining, timerActive } = useRefreshTimer({
     duration: TIMER_DURATION,
-    onRefresh: fetchReserves,
-    isActive: sellAmount > 0 && !!selectedTokenFrom && !!selectedTokenTo,
+    onRefresh: handleRefresh,
+    isActive:
+      sellAmount > 0 &&
+      !!selectedTokenFrom &&
+      !!selectedTokenTo &&
+      !!reserveData && // Only start timer when we have initial data
+      !!dexCalculator && // Make sure we have the calculator
+      !isSwapOperation,
     sellAmount,
     isCalculating: isCalculating || isFetchingReserves,
   })
+
+  // Reset isRefresh when calculation completes
+  useEffect(() => {
+    if (!isCalculating) {
+      console.log('Calculation complete, resetting isRefresh')
+      setIsRefresh(false)
+    }
+  }, [isCalculating])
+
+  // Reset isRefresh when tokens change
+  useEffect(() => {
+    setIsRefresh(false)
+  }, [selectedTokenFrom, selectedTokenTo])
+
+  // Reset isRefresh when sell amount changes (not during refresh)
+  useEffect(() => {
+    if (!isRefresh) {
+      setIsRefresh(false)
+    }
+  }, [sellAmount])
+
+  console.log('reserveData =========>', reserveData)
 
   // Combine errors from both hooks
   const calculationError = reserveError || swapError

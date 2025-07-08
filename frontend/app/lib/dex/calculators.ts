@@ -127,6 +127,20 @@ export interface DexCalculator {
   ): Promise<string>
   getPairAddress(reserveData: ReserveData): string
   getExchangeFee(): number // Return fee as a percentage (e.g., 0.3 for 0.3%)
+  calculateOutputAmountDirect(
+    amountIn: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string>
+  calculateInputAmountDirect(
+    amountOut: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string>
 }
 
 // Abstract base class for DEX calculators to share common functionality
@@ -154,6 +168,20 @@ export abstract class BaseDexCalculator implements DexCalculator {
     reserveData: ReserveData
   ): Promise<string>
   abstract getExchangeFee(): number
+  abstract calculateOutputAmountDirect(
+    amountIn: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string>
+  abstract calculateInputAmountDirect(
+    amountOut: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string>
 
   getPairAddress(reserveData: ReserveData): string {
     return reserveData?.pairAddress || ''
@@ -546,6 +574,68 @@ export class UniswapV2Calculator extends BaseDexCalculator {
       throw error // Re-throw to trigger the fallback
     }
   }
+
+  async calculateOutputAmountDirect(
+    amountIn: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      console.log('UniswapV2 - calculateOutputAmountDirect called with:', {
+        amountIn,
+        tokenIn,
+        tokenOut,
+        decimalsIn,
+        decimalsOut,
+      })
+
+      const amountInBN = ethers.utils.parseUnits(amountIn, decimalsIn)
+      const path = [tokenIn, tokenOut]
+
+      console.log('Calling getAmountsOut with:', {
+        amountInBN: amountInBN.toString(),
+        path,
+      })
+
+      // Get amounts out using the router contract
+      const amounts = await this.router.getAmountsOut(amountInBN, path)
+
+      console.log('getAmountsOut result:', amounts[1].toString())
+
+      // Convert back to string with proper decimals
+      const result = this.formatOutput(amounts[1], decimalsOut)
+      console.log('Formatted result:', result)
+
+      return result
+    } catch (error) {
+      console.error('Error in calculateOutputAmountDirect:', error)
+      return '0'
+    }
+  }
+
+  async calculateInputAmountDirect(
+    amountOut: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      const amountOutBN = ethers.utils.parseUnits(amountOut, decimalsOut)
+      const path = [tokenIn, tokenOut]
+
+      // Get amounts in using the router contract
+      const amounts = await this.router.getAmountsIn(amountOutBN, path)
+
+      // Convert back to string with proper decimals
+      return this.formatOutput(amounts[0], decimalsIn)
+    } catch (error) {
+      console.error('Error calculating direct input amount:', error)
+      return '0'
+    }
+  }
 }
 
 // SushiSwap implementation (same as Uniswap V2 for now, but could be different)
@@ -847,6 +937,56 @@ export class SushiSwapCalculator extends BaseDexCalculator {
       return '0'
     }
   }
+
+  async calculateOutputAmountDirect(
+    amountIn: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      console.log('calculating directly from contract: SushiSwap')
+      console.log('amountIn =========>', amountIn)
+      console.log('tokenIn =========>', tokenIn)
+      console.log('tokenOut =========>', tokenOut)
+      console.log('decimalsIn =========>', decimalsIn)
+      console.log('decimalsOut =========>', decimalsOut)
+      const amountInBN = ethers.utils.parseUnits(amountIn, decimalsIn)
+      const path = [tokenIn, tokenOut]
+
+      // Get amounts out using the router contract
+      const amounts = await this.router.getAmountsOut(amountInBN, path)
+
+      // Convert back to string with proper decimals
+      return this.formatOutput(amounts[1], decimalsOut)
+    } catch (error) {
+      console.error('Error calculating direct output amount:', error)
+      return '0'
+    }
+  }
+
+  async calculateInputAmountDirect(
+    amountOut: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      const amountOutBN = ethers.utils.parseUnits(amountOut, decimalsOut)
+      const path = [tokenIn, tokenOut]
+
+      // Get amounts in using the router contract
+      const amounts = await this.router.getAmountsIn(amountOutBN, path)
+
+      // Convert back to string with proper decimals
+      return this.formatOutput(amounts[0], decimalsIn)
+    } catch (error) {
+      console.error('Error calculating direct input amount:', error)
+      return '0'
+    }
+  }
 }
 
 // Uniswap V3 implementation
@@ -1057,6 +1197,110 @@ export class UniswapV3Calculator extends BaseDexCalculator {
         }
 
         return 'Insufficient liquidity'
+      }
+    } catch (error) {
+      console.error('Error calculating V3 input amount:', error)
+      return '0'
+    }
+  }
+
+  async calculateOutputAmountDirect(
+    amountIn: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      console.log(`Using Uniswap V3 quoter with fee tier: ${this.feeTier}`)
+      console.log('calculating directly from contract: Uniswap V3')
+      console.log('amountIn =========>', amountIn)
+      console.log('tokenIn =========>', tokenIn)
+      console.log('tokenOut =========>', tokenOut)
+      console.log('decimalsIn =========>', decimalsIn)
+      console.log('decimalsOut =========>', decimalsOut)
+
+      // Convert to wei using appropriate decimals
+      const amountInWei = ethers.utils.parseUnits(amountIn, decimalsIn)
+
+      try {
+        // Use encodeFunctionData and provider.call
+        const quoterAddress = getContractAddress(
+          this.chainId,
+          'UNISWAP_V3',
+          'QUOTER'
+        )
+        const data = this.quoter.interface.encodeFunctionData(
+          'quoteExactInputSingle',
+          [tokenIn, tokenOut, this.feeTier, amountInWei, 0]
+        )
+
+        // Use provider.call
+        const result = await this.provider.call({
+          to: quoterAddress,
+          data,
+        })
+
+        // Decode the result
+        const amountOut = this.quoter.interface.decodeFunctionResult(
+          'quoteExactInputSingle',
+          result
+        )[0]
+
+        // Convert back to string with proper decimals
+        return this.formatOutput(amountOut, decimalsOut)
+      } catch (error) {
+        console.error('V3 quoter error:', error)
+        return '0'
+      }
+    } catch (error) {
+      console.error('Error calculating V3 output amount:', error)
+      return '0'
+    }
+  }
+
+  async calculateInputAmountDirect(
+    amountOut: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      console.log(`Using Uniswap V3 quoter with fee tier: ${this.feeTier}`)
+
+      // Convert to wei using appropriate decimals
+      const amountOutWei = ethers.utils.parseUnits(amountOut, decimalsOut)
+
+      try {
+        // Use encodeFunctionData and provider.call
+        const quoterAddress = getContractAddress(
+          this.chainId,
+          'UNISWAP_V3',
+          'QUOTER'
+        )
+        const data = this.quoter.interface.encodeFunctionData(
+          'quoteExactOutputSingle',
+          [tokenIn, tokenOut, this.feeTier, amountOutWei, 0]
+        )
+
+        // Use provider.call
+        const result = await this.provider.call({
+          to: quoterAddress,
+          data,
+        })
+
+        // Decode the result
+        const amountIn = this.quoter.interface.decodeFunctionResult(
+          'quoteExactOutputSingle',
+          result
+        )[0]
+
+        // Convert back to string with proper decimals
+        return this.formatOutput(amountIn, decimalsIn)
+      } catch (error) {
+        console.error('V3 quoter error:', error)
+        return '0'
       }
     } catch (error) {
       console.error('Error calculating V3 input amount:', error)
