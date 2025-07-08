@@ -6,19 +6,19 @@ import { formatEther } from 'ethers/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
 
 interface DetailSectionProps {
-  sellAmount: string
-  buyAmount: string
-  inValidAmount: boolean
-  reserves: ReserveData | null
-  botGasLimit: bigint | null
-  streamCount: number | null
-  tokenFromSymbol: string
-  tokenToSymbol: string
-  tokenToUsdPrice: number
-  estTime: string
-  isCalculating: boolean
-  isFetchingReserves: boolean
-  slippageSavings: number | null
+  sellAmount?: string
+  buyAmount?: string
+  inValidAmount?: boolean
+  reserves?: ReserveData | null
+  botGasLimit?: bigint | null
+  streamCount?: number | null
+  tokenFromSymbol?: string
+  tokenToSymbol?: string
+  tokenToUsdPrice?: number
+  estTime?: string
+  isCalculating?: boolean
+  isFetchingReserves?: boolean
+  slippageSavings?: number | null
   dexFee?: number | null
 }
 
