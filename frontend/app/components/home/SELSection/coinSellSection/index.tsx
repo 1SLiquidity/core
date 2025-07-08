@@ -83,6 +83,7 @@ const CoinSellSection: React.FC<Props> = ({
               disabled={disabled}
               isInsufficientBalance={isInsufficientBalance}
               setIsInsufficientBalance={setIsInsufficientBalance}
+              isSellSection={true}
             />
           </div>
         </div>

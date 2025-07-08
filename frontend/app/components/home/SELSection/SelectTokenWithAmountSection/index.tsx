@@ -21,6 +21,7 @@ interface InputAmountProps {
   disabled?: boolean
   isLoading?: boolean
   isBuySection?: boolean
+  isSellSection?: boolean
   isInsufficientBalance?: boolean
   setIsInsufficientBalance?: (isInsufficientBalance: boolean) => void
 }
@@ -145,6 +146,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   isBuySection,
   isInsufficientBalance,
   setIsInsufficientBalance,
+  isSellSection,
 }) => {
   const {
     showSelectTokenModal,
@@ -359,6 +361,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
             disable={disabled}
             isLoading={isLoading}
             isBuySection={isBuySection}
+            isSellSection={isSellSection}
           />
         </div>
 

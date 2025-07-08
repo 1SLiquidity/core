@@ -16,6 +16,7 @@ interface InputAmountProps {
   onInputFocus?: () => void
   isLoading?: boolean
   isBuySection?: boolean
+  isSellSection?: boolean
 }
 
 const InputAmount: React.FC<InputAmountProps> = ({
@@ -28,6 +29,7 @@ const InputAmount: React.FC<InputAmountProps> = ({
   onInputFocus,
   isLoading = false,
   isBuySection = false,
+  isSellSection = false,
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [focus, setFocus] = useState(false)
@@ -73,11 +75,15 @@ const InputAmount: React.FC<InputAmountProps> = ({
         textAlignRight ? 'text-right' : ''
       } ${inValidAmount ? 'text-primaryRed' : ''} ${
         disable
-          ? isBuySection && amount > 0
+          ? (isBuySection || isSellSection) && amount > 0
             ? 'cursor-not-allowed'
             : 'cursor-not-allowed opacity-50'
           : ''
-      } ${isBuySection && amount > 0 ? '' : 'disabled:opacity-55'}`}
+      } ${
+        (isBuySection || isSellSection) && amount > 0
+          ? ''
+          : 'disabled:opacity-55'
+      }`}
       getInputRef={inputRef}
     />
   )
