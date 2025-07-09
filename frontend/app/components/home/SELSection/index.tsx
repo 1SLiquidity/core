@@ -19,6 +19,7 @@ import TradingSettings from './TradeSettings'
 import { useReserves } from '@/app/lib/hooks/useReserves'
 import { useRefreshTimer } from '@/app/lib/hooks/useRefreshTimer'
 import { useSwapCalculator } from '@/app/lib/hooks/useSwapCalculator'
+import { useQuery } from '@tanstack/react-query'
 
 const TIMER_DURATION = 10 // 10 seconds
 
@@ -66,7 +67,7 @@ const SELSection = () => {
     }
   }, [setSelectedTokenFrom, setSelectedTokenTo])
 
-  // Use our custom hooks
+  // Get our reserves hook functionality
   const {
     reserveData,
     dexCalculator,
@@ -78,13 +79,6 @@ const SELSection = () => {
     selectedTokenTo,
     chainId,
   })
-
-  const handleRefresh = useCallback(() => {
-    if (dexCalculator && reserveData) {
-      console.log('handleRefresh called, setting isRefresh to true')
-      setIsRefresh(true)
-    }
-  }, [dexCalculator, reserveData])
 
   const {
     buyAmount,
@@ -103,6 +97,51 @@ const SELSection = () => {
     selectedTokenTo,
     isRefresh,
   })
+
+  // Use React Query to handle periodic reserve refreshing
+  useQuery({
+    queryKey: [
+      'refreshReserves',
+      selectedTokenFrom?.token_address,
+      selectedTokenTo?.token_address,
+    ],
+    queryFn: async () => {
+      console.log('React Query triggering reserve refresh')
+      if (!isFetchingReserves && !isCalculating) {
+        await fetchReserves()
+        // If we have a sell amount, trigger a refresh to recalculate with new reserves
+        if (sellAmount > 0 && !isSwapOperation) {
+          console.log(
+            'Triggering refresh after reserve fetch due to existing sell amount:',
+            sellAmount
+          )
+          handleRefresh()
+        }
+      }
+      return null
+    },
+    enabled: !!selectedTokenFrom && !!selectedTokenTo && !isCalculating,
+    refetchInterval: 60000, // 1 minute
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    retry: false, // Don't retry since useReserves handles that
+  })
+
+  const handleRefresh = useCallback(() => {
+    if (dexCalculator && reserveData) {
+      console.log('handleRefresh called with:', {
+        sellAmount,
+        hasCalculator: !!dexCalculator,
+        hasReserves: !!reserveData,
+      })
+      setIsRefresh(true)
+    } else {
+      console.log('handleRefresh skipped - missing calculator or reserves:', {
+        hasCalculator: !!dexCalculator,
+        hasReserves: !!reserveData,
+      })
+    }
+  }, [dexCalculator, reserveData, sellAmount])
 
   console.log('SELSection render - isRefresh:', isRefresh)
 
@@ -463,7 +502,7 @@ const SELSection = () => {
                 if (pathname === '/') {
                   router.push('/swaps')
                 } else {
-                  open()
+                  // open() // This line was commented out in the original file
                 }
               }}
               disabled={isFetchingReserves}

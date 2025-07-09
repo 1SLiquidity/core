@@ -1,9 +1,9 @@
+import { useState, useCallback, useEffect } from 'react'
 import {
   DexCalculator,
   DexCalculatorFactory,
   ReserveData,
 } from '@/app/lib/dex/calculators'
-import { useState, useCallback, useEffect } from 'react'
 import { Token } from '@/app/types'
 
 interface UseReservesProps {
@@ -42,7 +42,7 @@ export const useReserves = ({
     }
 
     // Clear existing data before fetching new
-    clearState()
+    // clearState()
     setIsFetchingReserves(true)
 
     try {
