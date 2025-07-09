@@ -89,7 +89,7 @@ function calculateSweetSpot(
   // const streamCount = Math.sqrt(alpha * volumeSquared)
 
   // Round to nearest integer and ensure minimum value of 1
-  return Math.max(4, Math.round(streamCount), 500)
+  return Math.min(500, Math.max(4, Math.round(streamCount)))
 }
 
 // Cache for ETH price to avoid too many API calls
@@ -212,6 +212,7 @@ export async function calculateGasAndStreams(
       reserves.decimals.token1,
       sellAmount
     )
+    console.log('sweetSpot ===>', sweetSpot)
 
     // Calculate gas allowance
     const gasAllowance = await calculateGasAllowance(provider, sweetSpot)
