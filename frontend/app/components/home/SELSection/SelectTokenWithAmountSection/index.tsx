@@ -26,6 +26,14 @@ interface InputAmountProps {
   setIsInsufficientBalance?: (isInsufficientBalance: boolean) => void
 }
 
+// Get the correct token icon
+const getTokenIcon = (token: TOKENS_TYPE) => {
+  if (token.symbol.toLowerCase() === 'usdt') {
+    return '/tokens/usdt.png'
+  }
+  return token.icon
+}
+
 // Top Tokens component that shows popular tokens on hover
 const TopTokens = ({
   tokens,
@@ -114,7 +122,7 @@ const TopTokens = ({
                   }`}
                 >
                   <Image
-                    src={token.icon || '/icons/default-token.svg'}
+                    src={getTokenIcon(token) || '/icons/default-token.svg'}
                     alt={token.name || ''}
                     width={32}
                     height={32}
@@ -382,7 +390,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
               <div className="flex items-center w-fit h-fit">
                 <div className="mr-2.5 relative">
                   <Image
-                    src={selectedToken.icon || '/icons/token.svg'}
+                    src={getTokenIcon(selectedToken) || '/icons/token.svg'}
                     alt={selectedToken.name || ''}
                     width={32}
                     height={32}

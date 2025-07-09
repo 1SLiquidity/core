@@ -234,6 +234,14 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     e.currentTarget.src = '/icons/default-token.svg'
   }
 
+  // Get the correct token icon
+  const getTokenIcon = (token: TOKENS_TYPE) => {
+    if (token.symbol.toLowerCase() === 'usdt') {
+      return '/tokens/usdt.png'
+    }
+    return token.icon
+  }
+
   // Check if a token should be disabled (already selected in the other field)
   const isTokenDisabled = (token: TOKENS_TYPE) => {
     if (currentInputField === 'from' && selectedTokenTo) {
@@ -336,7 +344,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                     >
                       <div className="relative h-fit">
                         <Image
-                          src={token.icon}
+                          src={getTokenIcon(token)}
                           alt={token.name}
                           className={`w-[40px] h-[40px] rounded-full ${
                             disabled ? 'grayscale' : ''
@@ -417,7 +425,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                       >
                         <div className="relative mt-1">
                           <Image
-                            src={token.icon}
+                            src={getTokenIcon(token)}
                             alt={token.name}
                             className={`w-[24px] h-[24px] rounded-full ${
                               disabled ? 'grayscale' : ''
@@ -472,7 +480,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                       >
                         <div className="relative h-fit">
                           <Image
-                            src={token.icon}
+                            src={getTokenIcon(token)}
                             alt={token.name}
                             className={`w-[40px] h-[40px] rounded-full ${
                               disabled ? 'grayscale' : ''
