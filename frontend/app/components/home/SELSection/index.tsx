@@ -143,8 +143,6 @@ const SELSection = () => {
     }
   }, [dexCalculator, reserveData, sellAmount])
 
-  console.log('SELSection render - isRefresh:', isRefresh)
-
   const { timeRemaining, timerActive } = useRefreshTimer({
     duration: TIMER_DURATION,
     onRefresh: handleRefresh,
