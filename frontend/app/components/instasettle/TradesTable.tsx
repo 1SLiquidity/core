@@ -39,6 +39,7 @@ interface ExtendedTrade extends Trade {
   tokenOutDetails: TOKENS_TYPE | null
   formattedAmountRemaining: string
   cost: number
+  savings: number
 }
 
 const SortIcon = ({
@@ -278,19 +279,34 @@ const TradesTable = ({
               Number(amountIn) / Math.pow(10, tokenInDecimals)
 
             effectivePrice = amountOutFloat / amountInFloat
-
-            // effectivePrice = Number(amountOut) / Number(amountIn)
           }
         } catch {
           effectivePrice = 0
         }
 
+        // Calculate savings
+        let savings = 0
+        try {
+          // Convert formattedAmountRemaining to the same decimal basis as effectivePrice
+          const volume = Number(formattedAmountRemaining)
+
+          // Both effectivePrice and volume are now in the same decimal basis
+          savings = effectivePrice - volume
+
+          // Ensure savings is not negative and is finite
+          savings = isFinite(savings) ? Math.max(0, savings) : 0
+        } catch (error) {
+          console.error('Error calculating savings:', error)
+          savings = 0
+        }
+
         console.log('Trade calculation:', {
-          // minAmountOut: amountOut,
-          // realisedAmountOut: Number(realisedAmountOutBN),
           amountOut: Number(amountOut),
           amountIn: Number(amountIn),
           effectivePrice,
+          volume: Number(formattedAmountRemaining),
+          savings,
+          tokenInDecimals: tokenIn?.decimals || 18,
         })
 
         // Update trade object with calculated values
@@ -303,6 +319,7 @@ const TradesTable = ({
           tokenOutDetails: tokenOut || null,
           formattedAmountRemaining: formattedAmountRemaining,
           cost: Number(formatCost),
+          savings: isFinite(savings) ? savings : 0,
         }
       } catch (error) {
         console.error('Error processing trade:', error)
@@ -316,6 +333,7 @@ const TradesTable = ({
           tokenOutDetails: null,
           formattedAmountRemaining: '0',
           cost: 0,
+          savings: 0,
         } as ExtendedTrade
       }
     })
@@ -653,7 +671,9 @@ const TradesTable = ({
                     <TableCell className="text-center">
                       ${item.effectivePrice?.toFixed(2)}
                     </TableCell>
-                    <TableCell className="text-center">${44}</TableCell>
+                    <TableCell className="text-center">
+                      ${item.savings?.toFixed(2)}
+                    </TableCell>
                     <TableCell className="text-center">
                       {item.instasettleBps || '0'}
                     </TableCell>
