@@ -182,7 +182,6 @@ const SELSection = () => {
   // Combine errors from both hooks
   const calculationError = reserveError || swapError
 
-  // Validate amounts
   useEffect(() => {
     setInvalidSellAmount(!isNumberValid(sellAmount))
     setInvalidBuyAmount(!isNumberValid(buyAmount))
