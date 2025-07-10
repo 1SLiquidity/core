@@ -401,6 +401,13 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
                       target.src = '/icons/default-token.svg'
                     }}
                   />
+                  <Image
+                    src="/tokens/ether.png"
+                    alt="Ethereum"
+                    width={24}
+                    height={24}
+                    className="absolute -right-1.5 -bottom-1.5 rounded-md w-[1.15rem] h-[1.15rem] border-[2px] border-black"
+                  />
                 </div>
                 <p>{selectedToken.symbol || ''}</p>
               </div>

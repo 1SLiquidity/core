@@ -400,13 +400,18 @@ const SELSection = () => {
                 ? () => {}
                 : handleSwap
             }
-            className={`absolute items-center flex border-[#1F1F1F] border-[2px] border-opacity-[1.5] bg-black justify-center rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50 ${
+            className={`absolute items-center flex border-[2px] border-opacity-[1.5] bg-black justify-center rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50 ${
               !selectedTokenFrom ||
               !selectedTokenTo ||
               isFetchingReserves ||
               isCalculating
                 ? 'cursor-not-allowed'
                 : 'cursor-pointer'
+            }
+            ${
+              sellAmount > 0 && !invaliSelldAmount && selectedTokenFrom
+                ? 'border-[#40f798] border-r-[#1F1F1F] border-b-[#1F1F1F]'
+                : 'border-[#1F1F1F]'
             }
             
             `}

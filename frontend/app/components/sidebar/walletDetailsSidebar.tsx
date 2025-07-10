@@ -513,6 +513,13 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                                     width={1000}
                                     height={1000}
                                   />
+                                  <Image
+                                    src="/tokens/ether.png"
+                                    alt="Ethereum"
+                                    width={24}
+                                    height={24}
+                                    className="absolute -right-1.5 -bottom-1.5 rounded-md w-[1.35rem] h-[1.35rem] border-[2px] border-black"
+                                  />
                                 </div>
                                 <div>
                                   <p className="text-[18px] p-0 leading-tight">
