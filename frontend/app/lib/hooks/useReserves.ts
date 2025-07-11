@@ -5,6 +5,7 @@ import {
   ReserveData,
 } from '@/app/lib/dex/calculators'
 import { Token } from '@/app/types'
+import { usePrefetchReserves } from './usePrefetchReserves'
 
 interface UseReservesProps {
   selectedTokenFrom: Token | null
@@ -21,6 +22,10 @@ export const useReserves = ({
   const [dexCalculator, setDexCalculator] = useState<DexCalculator | null>(null)
   const [isFetchingReserves, setIsFetchingReserves] = useState(false)
   const [calculationError, setCalculationError] = useState<string | null>(null)
+  const [shouldFetchFromBackend, setShouldFetchFromBackend] = useState(true)
+
+  // Get prefetched reserves
+  const { prefetchedReserves, getPairKey } = usePrefetchReserves({ chainId })
 
   // Clear state when tokens change
   const clearState = useCallback(() => {
@@ -28,6 +33,54 @@ export const useReserves = ({
     setDexCalculator(null)
     setCalculationError(null)
   }, [])
+
+  // Check if a token pair is in our prefetched list
+  const checkPrefetchedPair = useCallback(
+    (fromSymbol: string | undefined, toSymbol: string | undefined) => {
+      if (!fromSymbol || !toSymbol) return null
+
+      // Try both directions (e.g., USDC-WETH and WETH-USDC)
+      const directKey = getPairKey(fromSymbol, toSymbol)
+      const reverseKey = getPairKey(toSymbol, fromSymbol)
+
+      const directPair = prefetchedReserves[directKey]
+      const reversePair = prefetchedReserves[reverseKey]
+
+      // Only return cached data if there's no error
+      if (directPair?.error === null && directPair?.reserveData) {
+        return directPair
+      }
+      if (reversePair?.error === null && reversePair?.reserveData) {
+        return reversePair
+      }
+
+      return null
+    },
+    [prefetchedReserves, getPairKey]
+  )
+
+  // Effect to check prefetched data when tokens change
+  useEffect(() => {
+    if (!selectedTokenFrom || !selectedTokenTo) {
+      setShouldFetchFromBackend(true)
+      return
+    }
+
+    const fromSymbol = selectedTokenFrom.symbol
+    const toSymbol = selectedTokenTo.symbol
+
+    // Check if this pair is in our prefetched data
+    const prefetchedPair = checkPrefetchedPair(fromSymbol, toSymbol)
+
+    if (prefetchedPair?.reserveData && prefetchedPair?.dexCalculator) {
+      console.log('Using prefetched reserves for', fromSymbol, '-', toSymbol)
+      setReserveData(prefetchedPair.reserveData)
+      setDexCalculator(prefetchedPair.dexCalculator)
+      setShouldFetchFromBackend(false)
+    } else {
+      setShouldFetchFromBackend(true)
+    }
+  }, [selectedTokenFrom, selectedTokenTo, checkPrefetchedPair])
 
   const fetchReserves = useCallback(async () => {
     console.log('Fetching reserves with tokens:', {
@@ -41,19 +94,20 @@ export const useReserves = ({
       return
     }
 
-    // Clear existing data before fetching new
-    // clearState()
+    // Skip backend fetch if we're using cached data
+    if (!shouldFetchFromBackend) {
+      console.log('Using cached data, skipping backend fetch')
+      setIsFetchingReserves(false)
+      return
+    }
+
     setIsFetchingReserves(true)
 
     try {
-      const fromAddress =
-        selectedTokenFrom.token_address ||
-        '0xdAC17F958D2ee523a2206206994597C13D831ec7'
-      const toAddress =
-        selectedTokenTo.token_address ||
-        '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
+      const fromAddress = selectedTokenFrom.token_address || ''
+      const toAddress = selectedTokenTo.token_address || ''
 
-      console.log('Fetching reserves for addresses:', {
+      console.log('Fetching reserves from backend for addresses:', {
         fromAddress,
         toAddress,
       })
@@ -78,12 +132,8 @@ export const useReserves = ({
       if (
         !selectedTokenFrom ||
         !selectedTokenTo ||
-        fromAddress !==
-          (selectedTokenFrom.token_address ||
-            '0xdAC17F958D2ee523a2206206994597C13D831ec7') ||
-        toAddress !==
-          (selectedTokenTo.token_address ||
-            '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
+        fromAddress !== selectedTokenFrom.token_address ||
+        toAddress !== selectedTokenTo.token_address
       ) {
         console.log('Tokens changed during fetch, discarding results')
         return
@@ -136,12 +186,18 @@ export const useReserves = ({
     } finally {
       setIsFetchingReserves(false)
     }
-  }, [selectedTokenFrom, selectedTokenTo, chainId, clearState])
+  }, [
+    selectedTokenFrom,
+    selectedTokenTo,
+    chainId,
+    clearState,
+    shouldFetchFromBackend,
+  ])
 
-  // Fetch reserves when tokens change
+  // Fetch reserves when tokens change or when shouldFetchFromBackend changes
   useEffect(() => {
     if (selectedTokenFrom && selectedTokenTo) {
-      console.log('Tokens changed, fetching reserves')
+      console.log('Tokens or fetch flag changed, fetching reserves')
       fetchReserves()
     } else {
       clearState()
@@ -151,7 +207,14 @@ export const useReserves = ({
       // Cleanup effect
       clearState()
     }
-  }, [selectedTokenFrom, selectedTokenTo, chainId, fetchReserves, clearState])
+  }, [
+    selectedTokenFrom,
+    selectedTokenTo,
+    chainId,
+    fetchReserves,
+    clearState,
+    shouldFetchFromBackend,
+  ])
 
   return {
     reserveData,

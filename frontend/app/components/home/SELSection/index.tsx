@@ -20,6 +20,7 @@ import { useReserves } from '@/app/lib/hooks/useReserves'
 import { useRefreshTimer } from '@/app/lib/hooks/useRefreshTimer'
 import { useSwapCalculator } from '@/app/lib/hooks/useSwapCalculator'
 import { useQuery } from '@tanstack/react-query'
+import { usePrefetchReserves } from '@/app/lib/hooks/usePrefetchReserves'
 
 const TIMER_DURATION = 10 // 10 seconds
 
@@ -44,6 +45,14 @@ const SELSection = () => {
   } = useModal()
   const { address, isConnected } = useAppKitAccount()
   const [isInsufficientBalance, setIsInsufficientBalance] = useState(false)
+
+  // const { prefetchedReserves, getPairKey } = usePrefetchReserves()
+  // const pairKey = getPairKey('USDC', 'WETH')
+  // const pairKey2 = getPairKey('WETH', 'USDC')
+  // const pairData = prefetchedReserves[pairKey]
+  // const pairData2 = prefetchedReserves[pairKey2]
+  // console.log('pairData =========>', pairData)
+  // console.log('pairData2 =========>', pairData2)
 
   // Get current chain from AppKit
   const stateData = useAppKitState()
