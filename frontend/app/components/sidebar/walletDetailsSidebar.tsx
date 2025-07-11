@@ -564,17 +564,35 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                                     ((token as TOKENS_TYPE)?.token_address ??
                                       '') ===
                                       '0x0000000000000000000000000000000000000000'
-                                      ? 'usd_price' in token &&
-                                        ((token as TOKENS_TYPE)?.usd_price ??
-                                          0) > 0
-                                        ? `${
-                                            token.status == 'increase'
-                                              ? '+'
-                                              : '-'
-                                          }${(token.statusAmount || 0).toFixed(
-                                            2
-                                          )}`
-                                        : 'Native token'
+                                      ? // Find WETH in tokens array if this is ETH
+                                        (() => {
+                                          const wethToken = displayTokens.find(
+                                            (t) => t.symbol === 'WETH'
+                                          ) as TOKENS_TYPE
+                                          if (
+                                            token.symbol === 'ETH' &&
+                                            wethToken?.usd_price
+                                          ) {
+                                            return `${
+                                              wethToken.status === 'increase'
+                                                ? '+'
+                                                : '-'
+                                            }${(
+                                              wethToken.statusAmount || 0
+                                            ).toFixed(2)}`
+                                          }
+                                          return 'usd_price' in token &&
+                                            ((token as TOKENS_TYPE)
+                                              ?.usd_price ?? 0) > 0
+                                            ? `${
+                                                token.status == 'increase'
+                                                  ? '+'
+                                                  : '-'
+                                              }${(
+                                                token.statusAmount || 0
+                                              ).toFixed(2)}`
+                                            : 'No price data'
+                                        })()
                                       : parseFloat(
                                           (token as TOKENS_TYPE)?.balance ?? '0'
                                         ) > 0
@@ -619,40 +637,69 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                                       {'token_address' in token &&
                                       ((token as TOKENS_TYPE)?.token_address ??
                                         '') ===
-                                        '0x0000000000000000000000000000000000000000' ? (
-                                        'usd_price' in token &&
-                                        ((token as TOKENS_TYPE)?.usd_price ??
-                                          0) > 0 ? (
-                                          <span className="flex gap-1 items-center">
-                                            <Image
-                                              src={
-                                                token.status == 'increase'
-                                                  ? '/icons/progress-up.svg'
-                                                  : '/icons/progress-down.svg'
-                                              }
-                                              alt="progress"
-                                              className="w-2"
-                                              width={1000}
-                                              height={1000}
-                                            />
-                                            {`${(
-                                              token.statusAmount || 0
-                                            ).toFixed(2)}%`}
-                                          </span>
-                                        ) : (
-                                          'Native token'
-                                        )
-                                      ) : token.symbol === 'ZONE' ? (
-                                        'No price data available'
-                                      ) : parseFloat(
-                                          (token as TOKENS_TYPE)?.balance ?? '0'
-                                        ) > 0 ? (
-                                        'No price data'
-                                      ) : isShowingRealTokens ? (
-                                        'Insufficient liquidity'
-                                      ) : (
-                                        'Demo data'
-                                      )}
+                                        '0x0000000000000000000000000000000000000000'
+                                        ? (() => {
+                                            const wethToken =
+                                              displayTokens.find(
+                                                (t) => t.symbol === 'WETH'
+                                              ) as TOKENS_TYPE
+                                            if (
+                                              token.symbol === 'ETH' &&
+                                              wethToken?.usd_price
+                                            ) {
+                                              return (
+                                                <span className="flex gap-1 items-center">
+                                                  <Image
+                                                    src={
+                                                      wethToken.status ===
+                                                      'increase'
+                                                        ? '/icons/progress-up.svg'
+                                                        : '/icons/progress-down.svg'
+                                                    }
+                                                    alt="progress"
+                                                    className="w-2"
+                                                    width={1000}
+                                                    height={1000}
+                                                  />
+                                                  {`${(
+                                                    wethToken.statusAmount || 0
+                                                  ).toFixed(2)}%`}
+                                                </span>
+                                              )
+                                            }
+                                            return 'usd_price' in token &&
+                                              ((token as TOKENS_TYPE)
+                                                ?.usd_price ?? 0) > 0 ? (
+                                              <span className="flex gap-1 items-center">
+                                                <Image
+                                                  src={
+                                                    token.status == 'increase'
+                                                      ? '/icons/progress-up.svg'
+                                                      : '/icons/progress-down.svg'
+                                                  }
+                                                  alt="progress"
+                                                  className="w-2"
+                                                  width={1000}
+                                                  height={1000}
+                                                />
+                                                {`${(
+                                                  token.statusAmount || 0
+                                                ).toFixed(2)}%`}
+                                              </span>
+                                            ) : (
+                                              'No price data'
+                                            )
+                                          })()
+                                        : token.symbol === 'ZONE'
+                                        ? 'No price data available'
+                                        : parseFloat(
+                                            (token as TOKENS_TYPE)?.balance ??
+                                              '0'
+                                          ) > 0
+                                        ? 'No price data'
+                                        : isShowingRealTokens
+                                        ? 'Insufficient liquidity'
+                                        : 'Demo data'}
                                     </p>
                                   </div>
                                 )}

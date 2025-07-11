@@ -17,6 +17,7 @@ export interface TOKENS_TYPE {
   balance: string
   possible_spam: boolean
   usd_price: number
+  usd_value?: number
 }
 
 interface UseWalletTokensResult {

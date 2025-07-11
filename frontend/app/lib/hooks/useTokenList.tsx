@@ -198,15 +198,19 @@ const formatCoingeckoTokens = (
       )
 
       if (decimals !== knownDecimals) {
-        // console.log(
-        //   `Overriding decimals for ${token.symbol} (${tokenAddress}): API returned ${decimals}, using ${knownDecimals} instead`
-        // )
         decimals = knownDecimals
       }
 
-      // console.log(
-      //   `Final decimals for ${token.symbol} (${tokenAddress}): ${decimals}`
-      // )
+      // Log WETH token data
+      if (token.symbol.toLowerCase() === 'weth') {
+        console.log('Formatting WETH token:', {
+          symbol: token.symbol,
+          address: tokenAddress,
+          decimals,
+          current_price: token.current_price,
+          platform: targetPlatform,
+        })
+      }
 
       // Format the token data to match our app's token structure
       return {
@@ -291,7 +295,7 @@ const topTokens = [
       'arbitrum-one': '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
     },
     image: 'https://assets.coingecko.com/coins/images/2518/large/weth.png',
-    current_price: 0,
+    current_price: 2800, // Set a default ETH price that will be updated by API
     price_change_percentage_24h: 0,
     market_cap_rank: 1, // Changed from 3 to 1 to ensure it appears in popular tokens
     // Add decimals explicitly for top tokens
@@ -678,6 +682,22 @@ export const useTokenList = () => {
 
         // Combine and format tokens, filtering for those with addresses on the selected chain
         const combinedTokens = [...platformFilteredTokens, ...missingTopTokens]
+
+        // Find WETH price from API data if available
+        const wethFromApi = platformFilteredTokens.find(
+          (t) => t.id === 'weth' || t.symbol?.toLowerCase() === 'weth'
+        )
+        if (wethFromApi && wethFromApi.current_price) {
+          // Update WETH price in missingTopTokens
+          missingTopTokens.forEach((t) => {
+            if (t.id === 'weth') {
+              t.current_price = wethFromApi.current_price
+              t.price_change_percentage_24h =
+                wethFromApi.price_change_percentage_24h || 0
+            }
+          })
+        }
+
         const formattedTokens = formatCoingeckoTokens(
           combinedTokens,
           targetPlatform

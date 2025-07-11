@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import Modal from '.'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import SearchbarWithIcon from '../searchbarWithIcon'
 import { TOKENS } from '@/app/lib/constants'
 import useDebounce from '@/app/lib/hooks/useDebounce'
@@ -10,6 +10,8 @@ import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
 import { useToast } from '@/app/lib/context/toastProvider'
 import { formatWalletAddress } from '@/app/lib/helper'
+import { useWalletTokens } from '@/app/lib/hooks/useWalletTokens'
+import { ChevronDown } from 'lucide-react'
 
 // Chain name mapping for display purposes
 const CHAIN_NAMES: { [key: string]: string } = {
@@ -17,7 +19,14 @@ const CHAIN_NAMES: { [key: string]: string } = {
   '42161': 'Arbitrum One',
   '137': 'Polygon',
   '56': 'BNB Chain',
-  // Add more chains as needed
+}
+
+// Mapping from chain IDs to Moralis chain identifiers
+const CHAIN_ID_TO_MORALIS: { [key: string]: string } = {
+  '1': 'eth',
+  '42161': 'arbitrum',
+  '137': 'polygon',
+  '56': 'bsc',
 }
 
 // Token Skeleton component for loading state
@@ -57,6 +66,9 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
   onClose,
 }) => {
   const [searchValue, setSearchValue] = useState('')
+  const [tokenFilter, setTokenFilter] = useState<'all' | 'my'>('all')
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const debouncedSearchValue = useDebounce(searchValue, 300)
   const {
     currentInputField,
@@ -65,38 +77,123 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     selectedTokenFrom,
     selectedTokenTo,
   } = useModal()
+
   const { address } = useAppKitAccount()
   const stateData = useAppKitState()
   const chainIdWithPrefix = stateData?.selectedNetworkId || 'eip155:1'
   const chainId = chainIdWithPrefix.split(':')[1]
   const chainName = CHAIN_NAMES[chainId] || 'Unknown Chain'
 
-  // Use token list from our enhanced hook that fetches from CoinGecko API with caching
-  const {
-    tokens: availableTokens,
-    isLoading,
-    error,
-    refetch,
-    platform,
-  } = useTokenList()
-  // const [isLoading, setIsLoading] = useState(true)
-
   const { addToast } = useToast()
 
+  // Get wallet tokens for the current chain
+  const { tokens: walletTokens, isLoading: isLoadingWalletTokens } =
+    useWalletTokens(address, CHAIN_ID_TO_MORALIS[chainId] || 'eth')
+
+  // Use token list from our enhanced hook that fetches from CoinGecko API with caching
+  const { tokens: availableTokens, isLoading, error, refetch } = useTokenList()
+
   // Default to hardcoded tokens if API tokens aren't available yet
-  const displayTokens: TOKENS_TYPE[] =
+  const displayTokens =
     availableTokens.length > 0
-      ? availableTokens
-      : TOKENS.map((token) => ({
-          ...token,
-          token_address: '', // Add missing token_address property
-          decimals: 18,
-          balance: '0',
-          possible_spam: false,
-          usd_price: 0,
-          status: token.status || 'increase', // Make sure status is not undefined
-          statusAmount: token.statusAmount || 0, // Make sure statusAmount is not undefined
-        }))
+      ? availableTokens.map((token: TOKENS_TYPE) => {
+          // Find matching wallet token to get balance
+          const walletToken = walletTokens.find(
+            (wt) =>
+              wt.token_address.toLowerCase() ===
+              token.token_address.toLowerCase()
+          )
+
+          // Convert balance to proper decimal value
+          const rawBalance = walletToken ? walletToken.balance : '0'
+          const balance = walletToken
+            ? (parseFloat(rawBalance) / Math.pow(10, token.decimals)).toString()
+            : '0'
+
+          // Calculate USD value using the converted balance
+          const usd_value = walletToken
+            ? parseFloat(balance) * token.usd_price
+            : 0
+
+          if (token.symbol.toLowerCase() === 'weth') {
+            console.log('WETH Debug:', {
+              symbol: token.symbol,
+              rawBalance,
+              decimals: token.decimals,
+              balance,
+              usd_price: token.usd_price,
+              usd_value,
+              walletToken,
+            })
+          }
+
+          return {
+            ...token,
+            balance,
+            usd_value,
+          }
+        })
+      : TOKENS.map(
+          (token) =>
+            ({
+              name: token.name,
+              symbol: token.symbol,
+              icon: token.icon,
+              popular: token.popular || false,
+              value: token.value || 0,
+              status: token.status || 'increase',
+              statusAmount: token.statusAmount || 0,
+              token_address: '',
+              decimals: 18,
+              balance: '0',
+              usd_value: 0,
+              possible_spam: false,
+              usd_price: 0,
+            } as TOKENS_TYPE)
+        )
+
+  // Log available tokens to check WETH price
+  console.log(
+    'Available Tokens:',
+    availableTokens.filter(
+      (t: TOKENS_TYPE) => t.symbol.toLowerCase() === 'weth'
+    )
+  )
+  console.log(
+    'Wallet Tokens:',
+    walletTokens.filter((t: TOKENS_TYPE) => t.symbol.toLowerCase() === 'weth')
+  )
+  console.log(
+    'Display Tokens:',
+    displayTokens.filter((t: TOKENS_TYPE) => t.symbol.toLowerCase() === 'weth')
+  )
+
+  // Function to format balance based on decimals
+  const formatTokenBalance = (balance: string, decimals: number) => {
+    const parsedBalance = parseFloat(balance)
+    if (isNaN(parsedBalance)) return '0'
+
+    // For small numbers (less than 0.00001), use scientific notation
+    if (parsedBalance > 0 && parsedBalance < 0.00001) {
+      return parsedBalance.toExponential(2)
+    }
+
+    // For normal numbers, use standard formatting
+    return parsedBalance.toLocaleString(undefined, {
+      minimumFractionDigits: Math.min(decimals, 5),
+      maximumFractionDigits: Math.min(decimals, 5),
+    })
+  }
+
+  // Function to format USD value
+  const formatUsdValue = (value: number) => {
+    if (value === 0) return '$0.00'
+    if (value < 0.01) return '<$0.01'
+    return `$${value.toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`
+  }
 
   // Function to handle token selection
   const handleSelectToken = (token: TOKENS_TYPE) => {
@@ -106,9 +203,6 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
       selectedTokenTo &&
       token.token_address === selectedTokenTo.token_address
     ) {
-      // Token is already selected in the "to" field - don't allow selection
-      console.log('Cannot select the same token in both fields')
-      // Show a toast notification
       addToast(
         <div className="flex items-center">
           <div className="mr-2 text-red-500">
@@ -137,9 +231,6 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
       selectedTokenFrom &&
       token.token_address === selectedTokenFrom.token_address
     ) {
-      // Token is already selected in the "from" field - don't allow selection
-      console.log('Cannot select the same token in both fields')
-      // Show a toast notification
       addToast(
         <div className="flex items-center">
           <div className="mr-2 text-red-500">
@@ -178,25 +269,51 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
   const getFilteredTokens = () => {
     let filteredTokens = displayTokens
 
+    // Remove duplicate tokens (keep the one with higher balance)
+    filteredTokens = Object.values(
+      filteredTokens.reduce(
+        (acc: { [key: string]: TOKENS_TYPE }, token: TOKENS_TYPE) => {
+          const lowerAddress = token.token_address.toLowerCase()
+          if (
+            !acc[lowerAddress] ||
+            parseFloat(token.balance) > parseFloat(acc[lowerAddress].balance)
+          ) {
+            acc[lowerAddress] = token
+          }
+          return acc
+        },
+        {}
+      )
+    )
+
     // Apply search filter if search value exists
     if (debouncedSearchValue) {
       const searchLower = debouncedSearchValue.toLowerCase()
       filteredTokens = filteredTokens.filter(
-        (token) =>
+        (token: TOKENS_TYPE) =>
           token.name.toLowerCase().includes(searchLower) ||
           token.symbol.toLowerCase().includes(searchLower) ||
           token.token_address.toLowerCase() === searchLower
       )
     }
 
+    // Filter by "My tokens" if selected and wallet is connected
+    if (tokenFilter === 'my' && address) {
+      filteredTokens = filteredTokens.filter(
+        (token: TOKENS_TYPE) => parseFloat(token.balance) > 0
+      )
+    }
+
     // Don't show the token already selected in the other input
     if (currentInputField === 'from' && selectedTokenTo) {
       filteredTokens = filteredTokens.filter(
-        (token) => token.token_address !== selectedTokenTo.token_address
+        (token: TOKENS_TYPE) =>
+          token.token_address !== selectedTokenTo.token_address
       )
     } else if (currentInputField === 'to' && selectedTokenFrom) {
       filteredTokens = filteredTokens.filter(
-        (token) => token.token_address !== selectedTokenFrom.token_address
+        (token: TOKENS_TYPE) =>
+          token.token_address !== selectedTokenFrom.token_address
       )
     }
 
@@ -207,12 +324,12 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
   const getPopularTokens = () => {
     // First, find WETH in the displayTokens array
     const weth = displayTokens.find(
-      (token) => token.symbol.toLowerCase() === 'weth'
+      (token: TOKENS_TYPE) => token.symbol.toLowerCase() === 'weth'
     )
 
     // Get other popular tokens
     const otherPopularTokens = displayTokens.filter(
-      (token) =>
+      (token: TOKENS_TYPE) =>
         token.popular &&
         token.symbol.toLowerCase() !== 'weth' &&
         token.symbol.toLowerCase() !== 'steth'
@@ -252,7 +369,20 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     return false
   }
 
-  console.log('availableTokens', availableTokens)
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -330,7 +460,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                   {chainName}
                 </div>
               ) : (
-                getFilteredTokens().map((token, ind) => {
+                getFilteredTokens().map((token: TOKENS_TYPE, ind: number) => {
                   const disabled = isTokenDisabled(token)
                   return (
                     <div
@@ -363,28 +493,25 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                         <p className="text-[18px] p-0 leading-tight">
                           {token.name}
                         </p>
-                        <p className="text-[14px] uppercase text-gray p-0 leading-tight">
-                          {token.symbol}
-                        </p>
+                        <div className="flex items-center gap-1">
+                          <p className="text-[14px] uppercase text-[#adadad] p-0 leading-tight">
+                            {token.symbol}
+                          </p>
+                          {token.token_address && (
+                            <p className="text-[14px] uppercase text-gray p-0 leading-tight">
+                              {formatWalletAddress(token.token_address)}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {token.usd_price > 0 && (
+                      {address && parseFloat(token.balance) > 0 && (
                         <div className="text-right">
                           <p className="text-[14px] text-white">
-                            $
-                            {token.usd_price.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 6,
-                            })}
+                            {formatUsdValue(token.usd_value || 0)}
                           </p>
-                          <p
-                            className={`text-[12px] ${
-                              token.status === 'increase'
-                                ? 'text-green-500'
-                                : 'text-red-500'
-                            }`}
-                          >
-                            {token.status === 'increase' ? '+' : '-'}
-                            {token.statusAmount.toFixed(2)}%
+                          <p className="text-[12px] text-gray">
+                            {formatTokenBalance(token.balance, token.decimals)}{' '}
+                            {token.symbol}
                           </p>
                         </div>
                       )}
@@ -411,7 +538,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                     <PopularTokenSkeleton />
                   </>
                 ) : (
-                  getPopularTokens().map((token, ind) => {
+                  getPopularTokens().map((token: TOKENS_TYPE, ind: number) => {
                     const disabled = isTokenDisabled(token)
                     return (
                       <div
@@ -449,7 +576,50 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                 )}
               </div>
 
-              <p className="text-[20px] text-white">Tokens</p>
+              <div className="flex items-center justify-between">
+                <p className="text-[20px] text-white">Tokens</p>
+                {address && (
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      className="flex items-center gap-2 px-3 py-1 text-sm rounded-lg bg-neutral-800 hover:bg-neutral-700 transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        setIsDropdownOpen(!isDropdownOpen)
+                      }}
+                    >
+                      {tokenFilter === 'all' ? 'All tokens' : 'My tokens'}
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    {isDropdownOpen && (
+                      <div className="absolute right-0 mt-1 w-32 py-1 bg-neutral-800 rounded-lg shadow-lg z-50 overflow-hidden">
+                        <button
+                          className="w-full px-3 py-1.5 text-left text-sm hover:bg-neutral-700 transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setTokenFilter('all')
+                            setIsDropdownOpen(false)
+                          }}
+                        >
+                          All tokens
+                        </button>
+                        <button
+                          className="w-full px-3 py-1.5 text-left text-sm hover:bg-neutral-700 transition-colors"
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            setTokenFilter('my')
+                            setIsDropdownOpen(false)
+                          }}
+                        >
+                          My tokens
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className="flex flex-col gap-1 my-[13px]">
                 {isLoading ? (
@@ -466,7 +636,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                     No tokens found on {chainName}
                   </div>
                 ) : (
-                  getFilteredTokens().map((token, ind) => {
+                  getFilteredTokens().map((token: TOKENS_TYPE, ind: number) => {
                     const disabled = isTokenDisabled(token)
                     return (
                       <div
@@ -519,24 +689,17 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                             )}
                           </div>
                         </div>
-                        {token.usd_price > 0 && (
+                        {address && parseFloat(token.balance) > 0 && (
                           <div className="text-right">
                             <p className="text-[14px] text-white">
-                              $
-                              {token.usd_price.toLocaleString(undefined, {
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 6,
-                              })}
+                              {formatUsdValue(token.usd_value || 0)}
                             </p>
-                            <p
-                              className={`text-[12px] ${
-                                token.status === 'increase'
-                                  ? 'text-green-500'
-                                  : 'text-red-500'
-                              }`}
-                            >
-                              {token.status === 'increase' ? '+' : '-'}
-                              {token.statusAmount.toFixed(2)}%
+                            <p className="text-[12px] text-gray">
+                              {formatTokenBalance(
+                                token.balance,
+                                token.decimals
+                              )}{' '}
+                              {token.symbol}
                             </p>
                           </div>
                         )}
