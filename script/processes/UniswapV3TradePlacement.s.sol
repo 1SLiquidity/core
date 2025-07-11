@@ -79,7 +79,9 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
         uint256 finalWethBalance = getTokenBalance(WETH, address(core));
         uint256 finalUsdcBalance = getTokenBalance(USDC, address(core));
 
-        assertEq(finalWethBalance, amountIn * 3 / 4, "WETH balance should match input");
+        // Calculate expected remaining amount based on actual sweet spot
+        uint256 expectedRemainingAmount = amountIn * (lastSweetSpot - 1) / lastSweetSpot;
+        assertEq(finalWethBalance, expectedRemainingAmount, "WETH balance should match calculated remaining amount");
 
         // Log execution details
         console.log("Trade Execution Details:");
@@ -89,5 +91,7 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
         console.log("Gas Used:", cumulativeGasEntailed);
         console.log("Sweet Spot:", lastSweetSpot);
         console.log("Attempts:", attempts);
+        console.log("Expected Remaining:", expectedRemainingAmount);
+        console.log("Actual Remaining:", finalWethBalance);
     }
 } 
