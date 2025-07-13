@@ -454,11 +454,11 @@ const SELSection = () => {
           )}
         </div>
 
-        {calculationError && (
+        {/* {calculationError && (
           <div className="mt-2 p-2 bg-red-900/30 text-red-400 rounded-lg text-sm">
             {calculationError}
           </div>
-        )}
+        )} */}
 
         <div className="w-full mt-[14px] mb-[20px]">
           {isConnected && pathname === '/swaps' ? (

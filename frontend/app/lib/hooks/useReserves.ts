@@ -116,73 +116,92 @@ export const useReserves = ({
       const controller = new AbortController()
       const signal = controller.signal
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`,
-        { signal }
-      )
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`,
+          { signal }
+        )
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch reserves')
+        if (!response.ok) {
+          throw new Error('Failed to fetch reserves')
+        }
+
+        const data = await response.json()
+        console.log('Received reserve data:', data)
+
+        // Check if tokens are still the same after fetch completes
+        if (
+          !selectedTokenFrom ||
+          !selectedTokenTo ||
+          fromAddress !== selectedTokenFrom.token_address ||
+          toAddress !== selectedTokenTo.token_address
+        ) {
+          console.log('Tokens changed during fetch, discarding results')
+          return
+        }
+
+        if (!data) {
+          console.log('No liquidity data received')
+          setCalculationError('No liquidity data received')
+          clearState()
+          return
+        }
+
+        const reserveDataWithDecimals = {
+          ...data,
+          token0Decimals: data.decimals.token0 || 18,
+          token1Decimals: data.decimals.token1 || 18,
+          token0Address: selectedTokenFrom.token_address || '',
+          token1Address: selectedTokenTo.token_address || '',
+        } as ReserveData
+
+        console.log('Processed reserve data:', reserveDataWithDecimals)
+
+        if (
+          !(parseFloat(reserveDataWithDecimals.reserves.token0) > 0) &&
+          !(parseFloat(reserveDataWithDecimals.reserves.token1) > 0)
+        ) {
+          console.log('No valid reserves found')
+          setCalculationError('No liquidity data received')
+          clearState()
+          return
+        }
+
+        const calculator = DexCalculatorFactory.createCalculator(
+          data.dex,
+          undefined,
+          chainId
+        )
+
+        setReserveData(reserveDataWithDecimals)
+        setDexCalculator(calculator)
+        setCalculationError(null)
+        console.log('Successfully set reserve data and calculator')
+      } catch (fetchError: any) {
+        console.error('Network or fetch error:', fetchError)
+        if (fetchError.message.includes('Failed to fetch')) {
+          setCalculationError('Backend service unavailable')
+        } else {
+          setCalculationError('Error fetching liquidity data')
+        }
+        // clearState()
+        setReserveData(null)
+        setDexCalculator(null)
       }
-
-      const data = await response.json()
-      console.log('Received reserve data:', data)
-
-      // Check if tokens are still the same after fetch completes
-      if (
-        !selectedTokenFrom ||
-        !selectedTokenTo ||
-        fromAddress !== selectedTokenFrom.token_address ||
-        toAddress !== selectedTokenTo.token_address
-      ) {
-        console.log('Tokens changed during fetch, discarding results')
-        return
-      }
-
-      if (!data) {
-        console.log('No liquidity data received')
-        setCalculationError('No liquidity data received')
-        clearState()
-        return
-      }
-
-      const reserveDataWithDecimals = {
-        ...data,
-        token0Decimals: data.decimals.token0 || 18,
-        token1Decimals: data.decimals.token1 || 18,
-        token0Address: selectedTokenFrom.token_address || '',
-        token1Address: selectedTokenTo.token_address || '',
-      } as ReserveData
-
-      console.log('Processed reserve data:', reserveDataWithDecimals)
-
-      if (
-        !(parseFloat(reserveDataWithDecimals.reserves.token0) > 0) &&
-        !(parseFloat(reserveDataWithDecimals.reserves.token1) > 0)
-      ) {
-        console.log('No valid reserves found')
-        setCalculationError('No liquidity data received')
-        clearState()
-        return
-      }
-
-      const calculator = DexCalculatorFactory.createCalculator(
-        data.dex,
-        undefined,
-        chainId
-      )
-
-      setReserveData(reserveDataWithDecimals)
-      setDexCalculator(calculator)
-      console.log('Successfully set reserve data and calculator')
     } catch (error: any) {
       if (error.name === 'AbortError') {
         console.log('Fetch aborted')
+        setCalculationError('Request timeout - please try again')
+        // clearState()
+        setReserveData(null)
+        setDexCalculator(null)
         return
       }
       console.error('Error fetching reserves:', error)
       setCalculationError('Error fetching liquidity data')
-      clearState()
+      // clearState()
+      setReserveData(null)
+      setDexCalculator(null)
     } finally {
       setIsFetchingReserves(false)
     }
