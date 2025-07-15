@@ -8,9 +8,9 @@ import { Token } from '@/app/types'
 
 // Cache configuration - matching usePrefetchReserves
 const CACHE_CONFIG = {
-  STALE_TIME: 30000, // 30 seconds before data is considered stale
+  STALE_TIME: 40000, // 40 seconds before data is considered stale
   GC_TIME: 60000, // 1 minute before data is removed from cache
-  REFETCH_INTERVAL: 25000, // Refetch every 25 seconds (before stale time)
+  REFETCH_INTERVAL: 30000, // Refetch every 30 seconds (before stale time)
 }
 
 interface DynamicReservesCache {
@@ -117,11 +117,11 @@ export const useDynamicReserveCache = ({
   const { data: dynamicReserves = {} } = useQuery({
     queryKey: ['dynamic-reserves', chainId],
     queryFn: async () => {
-      // This query maintains the cache but doesn't fetch anything initially
       return {} as DynamicReservesCache
     },
     staleTime: CACHE_CONFIG.STALE_TIME,
     gcTime: CACHE_CONFIG.GC_TIME,
+    refetchOnWindowFocus: false,
   })
 
   // Function to add or update a pair in the cache
@@ -129,26 +129,29 @@ export const useDynamicReserveCache = ({
     const pairKey = getPairKey(tokenA, tokenB)
     if (!pairKey) return null
 
-    // Check if we need to update the cache
-    const existingData = dynamicReserves[pairKey]
+    // First check if we have fresh data in the cache
+    const existingData = queryClient.getQueryData([
+      'token-pair',
+      chainId,
+      pairKey,
+    ]) as DynamicReservesCache[string]
+
     const now = Date.now()
     if (
-      existingData &&
+      existingData?.lastUpdated &&
       now - existingData.lastUpdated < CACHE_CONFIG.REFETCH_INTERVAL
     ) {
+      console.log('Using cached data for', tokenA.symbol, '-', tokenB.symbol)
       return existingData
     }
 
-    // Fetch new data
-    const result = await fetchReserves(tokenA, tokenB)
+    // If no fresh data, fetch new data
+    const newData = await fetchReserves(tokenA, tokenB)
 
-    // Update cache
-    queryClient.setQueryData(['dynamic-reserves', chainId], (old: any) => ({
-      ...old,
-      [pairKey]: result,
-    }))
+    // Update the cache
+    queryClient.setQueryData(['token-pair', chainId, pairKey], newData)
 
-    return result
+    return newData
   }
 
   // Function to get cached data for a pair
@@ -156,10 +159,16 @@ export const useDynamicReserveCache = ({
     const pairKey = getPairKey(tokenA, tokenB)
     if (!pairKey) return null
 
-    const cachedData = dynamicReserves[pairKey]
+    // Try to get data from the query cache
+    const cachedData = queryClient.getQueryData([
+      'token-pair',
+      chainId,
+      pairKey,
+    ]) as DynamicReservesCache[string]
+
     if (!cachedData) return null
 
-    // Check if cache is stale
+    // Check if cache is still fresh
     const now = Date.now()
     if (now - cachedData.lastUpdated > CACHE_CONFIG.STALE_TIME) {
       return null
@@ -167,6 +176,35 @@ export const useDynamicReserveCache = ({
 
     return cachedData
   }
+
+  // Set up background refetching for active pairs
+  useQuery({
+    queryKey: ['refresh-dynamic-reserves', chainId],
+    queryFn: async () => {
+      // Get all queries that match our token pair pattern
+      const queries = queryClient.getQueriesData<DynamicReservesCache[string]>({
+        queryKey: ['token-pair', chainId],
+      })
+
+      // Refresh each active pair
+      for (const [queryKey, data] of queries) {
+        if (Array.isArray(queryKey) && queryKey.length === 3) {
+          const pairKey = queryKey[2] as string
+          const [address1, address2] = pairKey.split('_')
+          if (address1 && address2) {
+            const tokenA = { token_address: address1 } as Token
+            const tokenB = { token_address: address2 } as Token
+            const newData = await fetchReserves(tokenA, tokenB)
+            queryClient.setQueryData(queryKey, newData)
+          }
+        }
+      }
+      return null
+    },
+    refetchInterval: CACHE_CONFIG.REFETCH_INTERVAL,
+    refetchIntervalInBackground: true,
+    enabled: true,
+  })
 
   return {
     dynamicReserves,
