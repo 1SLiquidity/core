@@ -108,33 +108,33 @@ const SELSection = () => {
   })
 
   // Use React Query to handle periodic reserve refreshing
-  useQuery({
-    queryKey: [
-      'refreshReserves',
-      selectedTokenFrom?.token_address,
-      selectedTokenTo?.token_address,
-    ],
-    queryFn: async () => {
-      console.log('React Query triggering reserve refresh')
-      if (!isFetchingReserves && !isCalculating) {
-        await fetchReserves()
-        // If we have a sell amount, trigger a refresh to recalculate with new reserves
-        if (sellAmount > 0 && !isSwapOperation) {
-          console.log(
-            'Triggering refresh after reserve fetch due to existing sell amount:',
-            sellAmount
-          )
-          handleRefresh()
-        }
-      }
-      return null
-    },
-    enabled: !!selectedTokenFrom && !!selectedTokenTo && !isCalculating,
-    refetchInterval: 60000, // 1 minute
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    retry: false, // Don't retry since useReserves handles that
-  })
+  // useQuery({
+  //   queryKey: [
+  //     'refreshReserves',
+  //     selectedTokenFrom?.token_address,
+  //     selectedTokenTo?.token_address,
+  //   ],
+  //   queryFn: async () => {
+  //     console.log('React Query triggering reserve refresh')
+  //     if (!isFetchingReserves && !isCalculating) {
+  //       await fetchReserves()
+  //       // If we have a sell amount, trigger a refresh to recalculate with new reserves
+  //       if (sellAmount > 0 && !isSwapOperation) {
+  //         console.log(
+  //           'Triggering refresh after reserve fetch due to existing sell amount:',
+  //           sellAmount
+  //         )
+  //         handleRefresh()
+  //       }
+  //     }
+  //     return null
+  //   },
+  //   enabled: !!selectedTokenFrom && !!selectedTokenTo && !isCalculating,
+  //   refetchInterval: 60000, // 1 minute
+  //   refetchIntervalInBackground: false,
+  //   refetchOnWindowFocus: true,
+  //   retry: false, // Don't retry since useReserves handles that
+  // })
 
   const handleRefresh = useCallback(() => {
     if (dexCalculator && reserveData) {
