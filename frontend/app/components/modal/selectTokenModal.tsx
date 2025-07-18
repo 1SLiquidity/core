@@ -65,6 +65,8 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  console.log('SelectTokenModal rendered')
+
   const [searchValue, setSearchValue] = useState('')
   const [tokenFilter, setTokenFilter] = useState<'all' | 'my'>('all')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -84,6 +86,9 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
   const chainId = chainIdWithPrefix.split(':')[1]
   const chainName = CHAIN_NAMES[chainId] || 'Unknown Chain'
 
+  console.log('Modal - Chain ID:', chainId)
+  console.log('Modal - Chain Name:', chainName)
+
   const { addToast } = useToast()
 
   // Get wallet tokens for the current chain
@@ -92,6 +97,18 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
   // Use token list from our enhanced hook that fetches from CoinGecko API with caching
   const { tokens: availableTokens, isLoading, error, refetch } = useTokenList()
+
+  console.log('Modal - Available Tokens:', availableTokens)
+  console.log('Modal - Wallet Tokens:', walletTokens)
+
+  // useEffect(() => {
+  //   console.log('Modal - Effect triggered')
+  //   // Force refetch when modal opens
+  //   if (isOpen) {
+  //     console.log('Modal opened - Refetching tokens')
+  //     refetch()
+  //   }
+  // }, [isOpen, refetch])
 
   // Default to hardcoded tokens if API tokens aren't available yet
   const displayTokens =
@@ -152,6 +169,8 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
             } as TOKENS_TYPE)
         )
 
+  console.log('Modal - Display Tokens:', displayTokens)
+  console.log('Number of Display Tokens:', displayTokens.length)
   // Log available tokens to check WETH price
   console.log(
     'Available Tokens:',
@@ -317,7 +336,43 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
       )
     }
 
-    return filteredTokens
+    // Sort tokens by market value (usd_price * balance) and popularity
+    return filteredTokens.sort((a: TOKENS_TYPE, b: TOKENS_TYPE) => {
+      // First, prioritize user's holdings
+      const aValue = parseFloat(a.balance) * (a.usd_price || 0)
+      const bValue = parseFloat(b.balance) * (b.usd_price || 0)
+
+      // If user has balance of both tokens, prioritize higher value holdings
+      if (aValue > 0 && bValue > 0) {
+        return bValue - aValue
+      }
+
+      // If one token has balance, prioritize it
+      if (aValue > 0) return -1
+      if (bValue > 0) return 1
+
+      // For tokens without balance, first check if they're major stablecoins or WBTC
+      const isAMajorToken = ['USDT', 'USDC', 'DAI', 'WBTC'].includes(a.symbol)
+      const isBMajorToken = ['USDT', 'USDC', 'DAI', 'WBTC'].includes(b.symbol)
+
+      if (isAMajorToken && !isBMajorToken) return -1
+      if (!isAMajorToken && isBMajorToken) return 1
+
+      // If both or neither are major tokens, use market cap rank
+      const aRank = a.market_cap_rank || 999999
+      const bRank = b.market_cap_rank || 999999
+
+      // If market cap ranks are significantly different, use them
+      if (Math.abs(aRank - bRank) > 5) {
+        return aRank - bRank
+      }
+
+      // For similar market cap ranks, factor in price and popularity
+      const aMarketScore = (a.usd_price || 0) + (a.popular ? 1000000 : 0)
+      const bMarketScore = (b.usd_price || 0) + (b.popular ? 1000000 : 0)
+
+      return bMarketScore - aMarketScore
+    })
   }
 
   // Get popular tokens based on market cap

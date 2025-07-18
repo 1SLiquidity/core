@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { useModal } from '@/app/lib/context/modalContext'
 import { cn } from '@/lib/utils'
 import { useScreenSize } from '@/app/lib/hooks/useScreenSize'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 
 // Mock token data
 const tokens = [
@@ -30,6 +32,7 @@ export default function TokenSelector() {
   const [toToken, setToToken] = useState<(typeof tokens)[0] | null>(null)
   const [boltConfig, setBoltConfig] = useState(defaultBoltConfig)
   const { isMobile } = useScreenSize()
+  const { tokens } = useTokenList()
 
   const {
     showSelectTokenModal,
@@ -38,6 +41,32 @@ export default function TokenSelector() {
     setSelectedTokenFrom,
     setSelectedTokenTo,
   } = useModal()
+
+  // Set default tokens on component mount
+  useEffect(() => {
+    if (!selectedTokenFrom && !selectedTokenTo && tokens.length > 0) {
+      const usdt = tokens.find(
+        (t: TOKENS_TYPE) => t.symbol.toLowerCase() === 'usdt'
+      )
+      const weth = tokens.find(
+        (t: TOKENS_TYPE) => t.symbol.toLowerCase() === 'weth'
+      )
+      if (usdt) {
+        setSelectedTokenFrom(usdt)
+        setFromToken(usdt)
+      }
+      if (weth) {
+        setSelectedTokenTo(weth)
+        setToToken(weth)
+      }
+    }
+  }, [
+    tokens,
+    selectedTokenFrom,
+    selectedTokenTo,
+    setSelectedTokenFrom,
+    setSelectedTokenTo,
+  ])
 
   useEffect(() => {
     if (selectedTokenFrom && selectedTokenTo) {

@@ -18,6 +18,7 @@ export interface TOKENS_TYPE {
   possible_spam: boolean
   usd_price: number
   usd_value?: number
+  market_cap_rank?: number // Added market cap rank for better sorting
 }
 
 interface UseWalletTokensResult {

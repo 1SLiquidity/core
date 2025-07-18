@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { TOKENS_TYPE } from './useWalletTokens'
 import { useAppKitState } from '@reown/appkit/react'
 
-// Type for CoinGecko token response
+// Update the CoinGeckoToken interface to better match our needs
 interface CoinGeckoToken {
   id: string
   symbol: string
@@ -18,6 +18,26 @@ interface CoinGeckoToken {
   detail_platforms?: {
     [key: string]: {
       decimal_place?: number
+      contract_address: string
+    }
+  }
+}
+
+// Add a type for our essential tokens
+interface EssentialToken {
+  id: string
+  symbol: string
+  name: string
+  platforms: {
+    [key: string]: string
+  }
+  image: string
+  current_price: number
+  price_change_percentage_24h: number
+  market_cap_rank: number
+  detail_platforms: {
+    [key: string]: {
+      decimal_place: number
       contract_address: string
     }
   }
@@ -201,34 +221,32 @@ const formatCoingeckoTokens = (
         decimals = knownDecimals
       }
 
-      // Log WETH token data
-      if (token.symbol.toLowerCase() === 'weth') {
-        console.log('Formatting WETH token:', {
-          symbol: token.symbol,
-          address: tokenAddress,
-          decimals,
-          current_price: token.current_price,
-          platform: targetPlatform,
-        })
-      }
+      // Determine if token is popular based on market cap rank and symbol
+      const isPopularToken =
+        token.symbol.toLowerCase() === 'weth' ||
+        token.symbol.toLowerCase() === 'wbtc' ||
+        token.symbol.toLowerCase() === 'usdt' ||
+        token.symbol.toLowerCase() === 'usdc' ||
+        token.symbol.toLowerCase() === 'dai' ||
+        (token.market_cap_rank && token.market_cap_rank <= 15) // Increased priority for top 15 tokens
 
+      console.log('market_cap_rank ===================>', token.market_cap_rank)
       // Format the token data to match our app's token structure
       return {
         name: token.name,
         symbol: token.symbol.toUpperCase(),
         icon: token.image || `/tokens/${token.symbol.toLowerCase()}.svg`,
-        popular:
-          token.symbol.toLowerCase() === 'weth' ||
-          (token.market_cap_rank ? token.market_cap_rank <= 20 : false),
+        popular: isPopularToken,
         value: 0, // Default value, will be updated when wallet balance is available
         status:
           token.price_change_percentage_24h >= 0 ? 'increase' : 'decrease',
         statusAmount: Math.abs(token.price_change_percentage_24h || 0),
         token_address: tokenAddress.toLowerCase(),
-        decimals: decimals, // Use actual token decimals
+        decimals: decimals,
         balance: '0',
         possible_spam: false,
         usd_price: token.current_price || 0,
+        market_cap_rank: token.market_cap_rank || 999999, // Add market cap rank for sorting
       }
     })
     .filter(Boolean) as TOKENS_TYPE[] // Filter out null values
@@ -242,10 +260,14 @@ const tokenHasAddressOnPlatform = (
   return !!(token.platforms && token.platforms[platform])
 }
 
-// Configuration for token fetching
+// Update the configuration for token fetching
 const TOKEN_CONFIG = {
-  PAGES_TO_FETCH: 4, // Fetch 4 pages (1000 tokens total with 250 per page)
+  PAGES_TO_FETCH: 2, // Reduce from 4 to 2 pages to avoid rate limits
   TOKENS_PER_PAGE: 250, // Maximum allowed by CoinGecko API
+  CACHE_DURATION: 2 * 60 * 60 * 1000, // 2 hours in milliseconds
+  RETRY_DELAY: 2000, // 2 seconds delay between retries
+  // staleTime: 1000 * 60 * 60 * 12, // Cache for 12 hours
+  // CACHE_DURATION: 1000 * 60 * 60 * 24, // Keep in garbage collection for 24 hours
 }
 
 // Function to safely get a token address from platforms object
@@ -283,8 +305,8 @@ const getTokenAddressForPlatform = (
   return address
 }
 
-// Add top tokens that might not be captured in the API
-const topTokens = [
+// Add more essential tokens to our default list
+const topTokens: EssentialToken[] = [
   // Removing ETH as it's not an ERC20 token
   {
     id: 'weth',
@@ -295,10 +317,9 @@ const topTokens = [
       'arbitrum-one': '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
     },
     image: 'https://assets.coingecko.com/coins/images/2518/large/weth.png',
-    current_price: 2800, // Set a default ETH price that will be updated by API
+    current_price: 2800,
     price_change_percentage_24h: 0,
-    market_cap_rank: 1, // Changed from 3 to 1 to ensure it appears in popular tokens
-    // Add decimals explicitly for top tokens
+    market_cap_rank: 1,
     detail_platforms: {
       ethereum: {
         decimal_place: 18,
@@ -321,8 +342,7 @@ const topTokens = [
     image: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
     current_price: 1,
     price_change_percentage_24h: 0,
-    market_cap_rank: 1,
-    // Add decimals explicitly for top tokens
+    market_cap_rank: 2,
     detail_platforms: {
       ethereum: {
         decimal_place: 6,
@@ -346,8 +366,7 @@ const topTokens = [
       'https://assets.coingecko.com/coins/images/6319/large/USD_Coin_icon.png',
     current_price: 1,
     price_change_percentage_24h: 0,
-    market_cap_rank: 4,
-    // Add decimals explicitly for top tokens
+    market_cap_rank: 3,
     detail_platforms: {
       ethereum: {
         decimal_place: 6,
@@ -370,9 +389,9 @@ const topTokens = [
     image:
       'https://assets.coingecko.com/coins/images/7598/large/wrapped_bitcoin_wbtc.png',
     current_price: 0,
+    // current_price: 65000,
     price_change_percentage_24h: 0,
-    market_cap_rank: 5,
-    // Add decimals explicitly for top tokens
+    market_cap_rank: 4,
     detail_platforms: {
       ethereum: {
         decimal_place: 8,
@@ -384,21 +403,56 @@ const topTokens = [
       },
     },
   },
+  // {
+  //   id: 'dai',
+  //   symbol: 'dai',
+  //   name: 'Dai',
+  //   platforms: {
+  //     ethereum: '0x6b175474e89094c44da98b954eedeac495271d0f',
+  //     'arbitrum-one': '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  //   },
+  //   image: 'https://assets.coingecko.com/coins/images/9956/large/4943.png',
+  //   current_price: 1,
+  //   price_change_percentage_24h: 0,
+  //   market_cap_rank: 5,
+  //   detail_platforms: {
+  //     ethereum: {
+  //       decimal_place: 18,
+  //       contract_address: '0x6b175474e89094c44da98b954eedeac495271d0f',
+  //     },
+  //     'arbitrum-one': {
+  //       decimal_place: 18,
+  //       contract_address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  //     },
+  //   },
+  // },
 ]
 
 export const useTokenList = () => {
-  // Get the current chain from AppKit
   const stateData = useAppKitState()
-  const chainId = stateData?.selectedNetworkId?.split(':')[1] || '1' // Default to Ethereum if not available
-
-  // Get the corresponding platform identifier for CoinGecko API
+  const chainId = stateData?.selectedNetworkId?.split(':')[1] || '1'
   const targetPlatform = CHAIN_ID_TO_PLATFORM[chainId] || 'ethereum'
 
-  // Use the chain ID in the cache key to separate caches for different chains
+  // Get the cache key for the current chain
   const cacheKey = `tokenListCache_${chainId}_erc20`
   const cacheTimestampKey = `tokenListCacheTimestamp_${chainId}_erc20`
 
-  // Use React Query to fetch and cache token data
+  // Function to get cached data
+  const getCachedData = () => {
+    const cachedData = localStorage.getItem(cacheKey)
+    const cachedTimestamp = localStorage.getItem(cacheTimestampKey)
+
+    if (cachedData && cachedTimestamp) {
+      const cacheAge = Date.now() - parseInt(cachedTimestamp)
+      if (cacheAge < TOKEN_CONFIG.CACHE_DURATION) {
+        console.log('Using cached token list')
+        return JSON.parse(cachedData)
+      }
+    }
+    return null
+  }
+
+  // Modify the queryFn in useTokenList to ensure we always have essential tokens
   const {
     data: tokens = [],
     isLoading,
@@ -408,294 +462,111 @@ export const useTokenList = () => {
     queryKey: ['token-list', chainId, 'erc20'],
     queryFn: async () => {
       try {
-        // Check if we have cached data in localStorage for this specific chain
-        const cachedData = localStorage.getItem(cacheKey)
-        const cachedTimestamp = localStorage.getItem(cacheTimestampKey)
-
-        // If we have cached data and it's less than 24 hours old, use it
-        if (cachedData && cachedTimestamp) {
-          const cacheAge = Date.now() - parseInt(cachedTimestamp)
-          if (cacheAge < 24 * 60 * 60 * 1000) {
-            // 24 hours
-            console.log(`Using cached ERC20 token list for chain ${chainId}`)
-            return JSON.parse(cachedData)
-          }
+        // Check cache first
+        const cachedData = getCachedData()
+        if (cachedData) {
+          return cachedData
         }
 
-        // Fetch multiple pages of tokens by market cap from CoinGecko API
-        console.log(
-          `Fetching ${TOKEN_CONFIG.PAGES_TO_FETCH} pages of ERC20 tokens from CoinGecko API for chain ${chainId} (${targetPlatform})`
-        )
-
-        let allTokens: CoinGeckoToken[] = []
-
-        // Fetch tokens page by page
-        for (let page = 1; page <= TOKEN_CONFIG.PAGES_TO_FETCH; page++) {
-          try {
-            console.log(`Fetching page ${page} of tokens...`)
-            const response = await fetch(
-              `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${TOKEN_CONFIG.TOKENS_PER_PAGE}&page=${page}&sparkline=false&locale=en&precision=full`
-            )
-
-            if (!response.ok) {
-              console.warn(`Failed to fetch page ${page}, stopping pagination`)
-              break
-            }
-
-            const pageData: CoinGeckoToken[] = await response.json()
-            allTokens = [...allTokens, ...pageData]
-
-            // CoinGecko has rate limits, so add a small delay between requests
-            if (page < TOKEN_CONFIG.PAGES_TO_FETCH) {
-              await new Promise((resolve) => setTimeout(resolve, 1100)) // 1.1 second delay to avoid rate limits
-            }
-          } catch (error) {
-            console.error(`Error fetching page ${page}:`, error)
-            break // Stop pagination on error
-          }
-        }
-
-        console.log(`Successfully fetched ${allTokens.length} tokens`)
-
-        // Fetch token platforms (addresses) for the tokens
-        let platformsData = []
-        try {
-          const platformsResponse = await fetch(
-            'https://api.coingecko.com/api/v3/coins/list?include_platform=true',
-            {
-              signal: AbortSignal.timeout(5000), // 5 second timeout
-              headers: { Accept: 'application/json' },
-            }
-          )
-
-          if (!platformsResponse.ok) {
-            throw new Error(
-              `Failed to fetch token platforms: ${platformsResponse.status}`
-            )
-          }
-
-          platformsData = await platformsResponse.json()
-          console.log(
-            `Successfully fetched platform data for ${platformsData.length} tokens`
-          )
-        } catch (error) {
-          console.error('Error fetching token platforms:', error)
-
-          // If we can't fetch platform data, we can't continue with API data
-          // Fall back to cached data or default tokens
-          const cachedData = localStorage.getItem(cacheKey)
-          if (cachedData) {
-            console.log(
-              `API failed, using cached ERC20 token list for chain ${chainId}`
-            )
-            return JSON.parse(cachedData)
-          }
-
-          // If no cached data, return default top ERC20 tokens for the current chain
-          console.log(
-            `API failed, using default top ERC20 tokens for chain ${chainId}`
-          )
-          const chainTopTokens = topTokens.filter((t) => {
-            // Get the token address for this platform
-            const tokenAddress = getTokenAddressForPlatform(
-              t.platforms,
-              targetPlatform
-            )
-
-            // Only include if it's a valid ERC20 token on this platform
-            return (
-              tokenAddress &&
-              isERC20Token(tokenAddress, t.platforms, targetPlatform)
-            )
-          })
-          return formatCoingeckoTokens(chainTopTokens, targetPlatform)
-        }
-
-        // Merge platforms data with token data
-        const enrichedTokens = allTokens.map((token) => {
-          const platformInfo = platformsData.find((p: any) => p.id === token.id)
-          return {
-            ...token,
-            platforms: platformInfo?.platforms || {},
-          }
-        })
-
-        // For each token, fetch detailed information including decimals
-        // But limit the number of API calls to avoid rate limiting
-        // Only fetch details for the top 50 tokens to avoid rate limiting
-        const topTokensToFetch = enrichedTokens
-          .filter((token) => {
-            const tokenAddress = getTokenAddressForPlatform(
-              token.platforms,
-              targetPlatform
-            )
-            return (
-              tokenAddress &&
-              isERC20Token(tokenAddress, token.platforms, targetPlatform)
-            )
-          })
-          .slice(0, 50) // Only fetch details for top 50 tokens
-
-        console.log(
-          `Fetching details for ${topTokensToFetch.length} top tokens`
-        )
-
-        // Create a function to fetch with retry and timeout
-        const fetchWithRetry = async (
-          url: string,
-          retries = 2,
-          timeout = 3000
-        ) => {
-          let lastError
-          for (let i = 0; i <= retries; i++) {
-            try {
-              const controller = new AbortController()
-              const timeoutId = setTimeout(() => controller.abort(), timeout)
-
-              const response = await fetch(url, {
-                signal: controller.signal,
-                headers: { Accept: 'application/json' },
-              })
-
-              clearTimeout(timeoutId)
-
-              if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`)
-              }
-
-              return await response.json()
-            } catch (error) {
-              lastError = error
-              console.warn(`Fetch attempt ${i + 1} failed: ${error}`)
-              if (i < retries) {
-                // Add increasing delay between retries (200ms, 400ms, etc.)
-                await new Promise((resolve) =>
-                  setTimeout(resolve, 200 * (i + 1))
-                )
-              }
-            }
-          }
-          throw lastError
-        }
-
-        // Use a more conservative approach to fetching token details
-        const enrichedTokensWithDecimals = await Promise.all(
-          topTokensToFetch.map(async (token, index) => {
-            // We already know this token has a valid address on the target platform
-            const tokenAddress = getTokenAddressForPlatform(
-              token.platforms,
-              targetPlatform
-            )
-
-            try {
-              // Add delay between API calls to avoid rate limiting
-              // Increasing delay for each token to spread out requests
-              await new Promise((resolve) =>
-                setTimeout(resolve, 300 * (index % 10))
-              )
-
-              // Fetch token details from CoinGecko API with retry
-              const detailData = await fetchWithRetry(
-                `https://api.coingecko.com/api/v3/coins/${token.id}?localization=false&tickers=false&market_data=false&community_data=false&developer_data=false&sparkline=false`,
-                1, // 1 retry
-                5000 // 5 second timeout
-              )
-
-              // Add detail_platforms to the token
-              return {
-                ...token,
-                detail_platforms: detailData.detail_platforms || {},
-              }
-            } catch (error) {
-              console.warn(
-                `Error fetching details for token ${token.id}:`,
-                error
-              )
-              return token // Return original token if details fetch fails
-            }
-          })
-        )
-
-        // Add remaining tokens without fetching details
-        const remainingTokens = enrichedTokens
-          .filter((token) => {
-            const tokenAddress = getTokenAddressForPlatform(
-              token.platforms,
-              targetPlatform
-            )
-            return (
-              tokenAddress &&
-              isERC20Token(tokenAddress, token.platforms, targetPlatform)
-            )
-          })
-          .slice(50) // Get tokens after the first 50
-
-        // Combine tokens with details and remaining tokens
-        const allEnrichedTokens = [
-          ...enrichedTokensWithDecimals,
-          ...remainingTokens,
-        ]
-
-        // Filter for ERC20 tokens specifically with addresses on the target platform
-        const platformFilteredTokens = allEnrichedTokens.filter((token) => {
-          const tokenAddress = getTokenAddressForPlatform(
-            token.platforms,
-            targetPlatform
-          )
-          // Use improved function to check if it's an ERC20 token on the target platform
-          return (
-            tokenAddress &&
-            isERC20Token(tokenAddress, token.platforms, targetPlatform)
-          )
-        })
-
-        console.log(
-          `Filtered ${
-            allEnrichedTokens.length - platformFilteredTokens.length
-          } non-ERC20 tokens out of ${allEnrichedTokens.length} total tokens`
-        )
-
-        console.log(
-          `Found ${platformFilteredTokens.length} ERC20 tokens available on ${targetPlatform}`
-        )
-
-        // Add missing top ERC20 tokens (only if they have an address for the current chain)
-        const existingIds = platformFilteredTokens.map((t) => t.id)
-        const missingTopTokens = topTokens.filter((t) => {
-          // Check if token is not already in the list
-          if (existingIds.includes(t.id)) {
-            return false
-          }
-
-          // Get the token address for this platform
+        // Start with essential tokens that match the current chain
+        let essentialTokens = topTokens.filter((t) => {
           const tokenAddress = getTokenAddressForPlatform(
             t.platforms,
             targetPlatform
           )
-
-          // Only include if it's a valid ERC20 token on this platform
           return (
             tokenAddress &&
             isERC20Token(tokenAddress, t.platforms, targetPlatform)
           )
         })
 
-        // Combine and format tokens, filtering for those with addresses on the selected chain
-        const combinedTokens = [...platformFilteredTokens, ...missingTopTokens]
+        // Try to fetch additional tokens from CoinGecko with retry logic
+        let additionalTokens: CoinGeckoToken[] = []
+        let retryCount = 0
+        const maxRetries = 2
 
-        // Find WETH price from API data if available
-        const wethFromApi = platformFilteredTokens.find(
-          (t) => t.id === 'weth' || t.symbol?.toLowerCase() === 'weth'
-        )
-        if (wethFromApi && wethFromApi.current_price) {
-          // Update WETH price in missingTopTokens
-          missingTopTokens.forEach((t) => {
-            if (t.id === 'weth') {
-              t.current_price = wethFromApi.current_price
-              t.price_change_percentage_24h =
-                wethFromApi.price_change_percentage_24h || 0
+        for (let page = 1; page <= TOKEN_CONFIG.PAGES_TO_FETCH; page++) {
+          try {
+            console.log(`Fetching CoinGecko page ${page}...`)
+            const response = await fetch(
+              `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${TOKEN_CONFIG.TOKENS_PER_PAGE}&page=${page}&sparkline=false&locale=en&precision=full`
+            )
+
+            if (response.status === 429) {
+              console.log(
+                'Rate limited by CoinGecko API, using essential tokens only'
+              )
+              const formattedEssentialTokens = formatCoingeckoTokens(
+                essentialTokens,
+                targetPlatform
+              )
+              return formattedEssentialTokens
             }
-          })
+
+            if (!response.ok) {
+              throw new Error(
+                `Failed to fetch page ${page}: ${response.status}`
+              )
+            }
+
+            const pageData: CoinGeckoToken[] = await response.json()
+            console.log(`Page ${page} data:`, pageData.length, 'tokens')
+            additionalTokens = [...additionalTokens, ...pageData]
+
+            // Add significant delay between requests to avoid rate limits
+            if (page < TOKEN_CONFIG.PAGES_TO_FETCH) {
+              await new Promise((resolve) => setTimeout(resolve, 2000))
+            }
+          } catch (error) {
+            console.error(`Error fetching page ${page}:`, error)
+            retryCount++
+
+            if (retryCount > maxRetries) {
+              console.log('Max retries reached, using essential tokens only')
+              const formattedEssentialTokens = formatCoingeckoTokens(
+                essentialTokens,
+                targetPlatform
+              )
+              return formattedEssentialTokens
+            }
+
+            // Wait before retrying
+            await new Promise((resolve) =>
+              setTimeout(resolve, TOKEN_CONFIG.RETRY_DELAY)
+            )
+            page-- // Retry the same page
+            continue
+          }
+        }
+
+        // Combine and format tokens
+        const combinedTokens = [...essentialTokens]
+
+        // Only add additional tokens if we successfully fetched them
+        if (additionalTokens.length > 0) {
+          const essentialTokenIds = new Set(essentialTokens.map((t) => t.id))
+          const uniqueAdditionalTokens = additionalTokens
+            .filter((t) => !essentialTokenIds.has(t.id))
+            .filter((token) => {
+              const hasValidPlatform =
+                token.platforms && token.platforms[targetPlatform]
+              return hasValidPlatform
+            })
+            .map((token) => ({
+              ...token,
+              platforms: token.platforms || {},
+              market_cap_rank: token.market_cap_rank || 999999,
+              detail_platforms: {
+                [targetPlatform]: {
+                  decimal_place:
+                    token.detail_platforms?.[targetPlatform]?.decimal_place ||
+                    18,
+                  contract_address: token.platforms?.[targetPlatform] || '',
+                },
+              },
+            })) as EssentialToken[]
+
+          combinedTokens.push(...uniqueAdditionalTokens)
         }
 
         const formattedTokens = formatCoingeckoTokens(
@@ -703,50 +574,33 @@ export const useTokenList = () => {
           targetPlatform
         )
 
-        console.log(
-          `Formatted ${formattedTokens.length} ERC20 tokens for ${targetPlatform}`
-        )
-
-        // Cache the result in localStorage for this specific chain
+        // Cache the results
         localStorage.setItem(cacheKey, JSON.stringify(formattedTokens))
         localStorage.setItem(cacheTimestampKey, Date.now().toString())
 
         return formattedTokens
-      } catch (error) {
-        console.error('Error fetching token list:', error)
-
-        // If API fails, try to use cached data regardless of age
-        const cachedData = localStorage.getItem(cacheKey)
-        if (cachedData) {
-          console.log(
-            `API failed, using cached ERC20 token list for chain ${chainId}`
-          )
-          return JSON.parse(cachedData)
-        }
-
-        // If no cached data, return default top ERC20 tokens for the current chain
-        console.log(
-          `API failed, using default top ERC20 tokens for chain ${chainId}`
+      } catch (error: any) {
+        console.error('Error in token list fetch:', error)
+        // If everything fails, return essential tokens
+        return formatCoingeckoTokens(
+          topTokens.filter((t: EssentialToken) => {
+            const tokenAddress = getTokenAddressForPlatform(
+              t.platforms,
+              targetPlatform
+            )
+            return (
+              tokenAddress &&
+              isERC20Token(tokenAddress, t.platforms, targetPlatform)
+            )
+          }),
+          targetPlatform
         )
-        const chainTopTokens = topTokens.filter((t) => {
-          // Get the token address for this platform
-          const tokenAddress = getTokenAddressForPlatform(
-            t.platforms,
-            targetPlatform
-          )
-
-          // Only include if it's a valid ERC20 token on this platform
-          return (
-            tokenAddress &&
-            isERC20Token(tokenAddress, t.platforms, targetPlatform)
-          )
-        })
-        return formatCoingeckoTokens(chainTopTokens, targetPlatform)
       }
     },
-    staleTime: 1000 * 60 * 60 * 12, // Cache for 12 hours
-    gcTime: 1000 * 60 * 60 * 24, // Keep in garbage collection for 24 hours
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    staleTime: TOKEN_CONFIG.CACHE_DURATION / 2, // Refresh after half the cache duration
+    gcTime: TOKEN_CONFIG.CACHE_DURATION, // Keep in garbage collection for full cache duration
+    refetchOnWindowFocus: false,
+    retry: false, // Disable React Query's automatic retries as we handle them manually
   })
 
   return {

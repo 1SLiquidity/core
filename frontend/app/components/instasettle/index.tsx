@@ -7,6 +7,8 @@ import { motion, Variants } from 'framer-motion'
 import Navbar from '../navbar'
 import TradesChart from './TradesChart'
 import TokenSelector from './TokenSelector'
+import { InstasettleIcon } from '@/app/lib/icons'
+import HeroSection from '../shared/HeroSection'
 
 const Instasettle = () => {
   const controls = useAnimation()
@@ -28,10 +30,12 @@ const Instasettle = () => {
     },
   }
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    <>
+      {/* <div className="relative min-h-screen overflow-hidden"> */}
       {/* Navbar and SELSection */}
-      <Navbar />
-      <div className="mt-[60px] mb-10 mx-auto relative z-10 w-full px-4 md:max-w-4xl">
+      {/* <Navbar /> */}
+      {/* <div className="mt-[60px] mb-10 mx-auto relative z-10 w-full px-4 md:max-w-4xl"> */}
+      <div className="mx-auto relative z-10 w-full px-4 md:max-w-4xl">
         {/* <h1 className="text-4xl md:text-6xl font-bold mb-4 sm:mb-4 text-white text-center">
           Instasettle
         </h1>
@@ -40,14 +44,23 @@ const Instasettle = () => {
         </h2> */}
 
         <div className="flex flex-col items-center justify-center gap-2">
-          <motion.h1
-            className="text-5xl md:text-6xl font-bold text-white text-center"
+          <motion.div
+            className="flex items-center gap-2"
             initial="hidden"
             animate={controls}
             variants={titleVariants}
           >
-            Instasettle
-          </motion.h1>
+            <InstasettleIcon className="w-12 h-12 text-[#40fdb5]" />
+            <h1
+              className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent text-center"
+              style={{
+                backgroundImage:
+                  'linear-gradient(90deg, #00FF85 0%, #00CCFF 100%)',
+              }}
+            >
+              Instasettle
+            </h1>
+          </motion.div>
           <motion.h2
             className="text-3xl md:text-5xl font-bold mb-10 sm:mb-16 text-white text-center"
             initial="hidden"
@@ -61,7 +74,7 @@ const Instasettle = () => {
         <TradesChart />
       </div>
 
-      <motion.div
+      {/* <motion.div
         className="absolute bottom-[20%] left-1/2 transform -translate-x-1/2 w-full h-full pointer-events-none z-0"
         initial={{ bottom: '-100%', opacity: 0 }}
         animate={{ bottom: '-60%', opacity: 1 }}
@@ -74,7 +87,7 @@ const Instasettle = () => {
           className="object-contain object-bottom"
           priority
         />
-      </motion.div>
+      </motion.div> */}
 
       {/* <div className="absolute inset-0 w-full h-full pointer-events-none">
         <Image
@@ -116,7 +129,8 @@ const Instasettle = () => {
           maskSize: 'cover',
         }}
       ></div> */}
-    </div>
+      {/* </div> */}
+    </>
   )
 }
 
