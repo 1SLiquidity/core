@@ -179,7 +179,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         if (trade.owner == address(0)) {
             revert("Trade does not exist");
         }
-        if (trade.owner == msg.sender || msg.sender == address(this)) {
+        if (trade.owner == msg.sender || msg.sender == address(this) || trade.attempts >= 3) {
             delete trades[tradeId];
             IERC20(trade.tokenOut).transfer(msg.sender, trade.realisedAmountOut);
             IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
@@ -204,47 +204,83 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             initiateGasRecord();
             Utils.Trade storage trade = trades[tradeIds[i]];
 
+            console.log("[executeTrades] TradeId:");
+            console.log(trade.tradeId);
+            console.log("attempts:");
+            console.log(trade.attempts);
+            console.log("botGasAllowance:");
+            console.log(trade.botGasAllowance);
+            console.log("amountRemaining:");
+            console.log(trade.amountRemaining);
+            console.log("lastSweetSpot:");
+            console.log(trade.lastSweetSpot);
+
             if (trade.attempts >= 3 || trade.botGasAllowance == 0) {
+                console.log("Core: executeTrades: trade attempts > 3 || botGasAllowance == 0");
                 // we delete the trade from storage
                 _cancelTrade(trade.tradeId);
             } else {
                 try this._executeStream(trade) returns (Utils.Trade memory updatedTrade) {
+                    console.log("[executeTrades] After _executeStream: amountRemaining:");
+                    console.log(updatedTrade.amountRemaining);
+                    console.log("lastSweetSpot:");
+                    console.log(updatedTrade.lastSweetSpot);
                     if (updatedTrade.lastSweetSpot == 0) {
+                        console.log("Core: executeTrades: lastSweetSpot == 0");
                         IERC20(trade.tokenOut).transfer(trade.owner, trade.realisedAmountOut);
                         delete trades[tradeIds[i]];
                     }
-                } catch {
+                } catch Error(string memory reason) {
+                    console.log("[executeTrades] Error:");
+                    console.log(reason);
+                    trade.attempts++;
+                } catch (bytes memory lowLevelData) {
+                    console.log("[executeTrades] Low-level error");
                     trade.attempts++;
                 }
             }
             closeGasRecord();
         }
-        lastGasPrice = tx.gasprice;
-        lastGasCost = lastGasUsed * tx.gasprice;
-        TWAP_GAS_COST.push(lastGasCost); //@audit location and function of gas caching needs attention 
+        // lastGasPrice = tx.gasprice; // @audit commented out as dedicated functions exist
+        // lastGasCost = lastGasUsed * tx.gasprice;
+        // TWAP_GAS_COST.push(lastGasCost); //@audit location and function of gas caching needs attention 
     }
 
     function _executeStream(Utils.Trade memory trade) public returns (Utils.Trade memory updatedTrade) {
-        console.log("Executing stream for trade %s", trade.tradeId);
+        console.log("Executing stream for trade");
+        console.log(trade.tradeId);
         uint256 latestGasAverage = readTWAPGasCost(10); // converting this after to uint96 @audit check consistency
-        console.log("Latest gas average: %s", latestGasAverage);
+        console.log("Latest gas average:");
+        console.log(latestGasAverage);
         
         Utils.Trade storage storageTrade = trades[trade.tradeId];
         
-        uint256 gasCostInWei = latestGasAverage * 0.1 gwei;
+        uint256 gasCostInWei = latestGasAverage;
         
+        console.log("[_executeStream] Pre-check: cumulativeGasEntailed:");
+        console.log(trade.cumulativeGasEntailed);
+        console.log("gasCostInWei:");
+        console.log(gasCostInWei);
+        console.log("botGasAllowance:");
+        console.log(trade.botGasAllowance);
         if (trade.cumulativeGasEntailed + gasCostInWei > trade.botGasAllowance) {
+            console.log("[_executeStream] Cancelling trade due to gas allowance");
             _cancelTrade(trade.tradeId);
         }
         // security measure @audit may need review
         if (trade.realisedAmountOut > trade.targetAmountOut) {
+            console.log("[_executeStream] ToxicTrade: realisedAmountOut > targetAmountOut");
             revert ToxicTrade(trade.tradeId);
         }
 
         (uint256 sweetSpot, address bestDex, address router) = 
             streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, latestGasAverage);
+        console.log("[_executeStream] algo calculated sweetSpot:");
+        console.log(sweetSpot);
+        console.log("execute stream: last sweet spot = ");
+        console.log(trade.lastSweetSpot);
 
-        if (trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3) {
+        if (trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3 || trade.lastSweetSpot == 4) {
             sweetSpot = trade.lastSweetSpot;
         }
         if (sweetSpot > 500) {
@@ -253,7 +289,11 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         require(sweetSpot > 0, "Invalid sweet spot");
 
         uint256 streamVolume = trade.amountIn / sweetSpot;
-        uint256 targetAmountOut = trade.targetAmountOut / sweetSpot;
+        uint256 targetAmountOut = (trade.targetAmountOut - trade.realisedAmountOut) / sweetSpot; // big change exists here
+        console.log("[_executeStream] streamVolume:");
+        console.log(streamVolume);
+        console.log("targetAmountOut:");
+        console.log(targetAmountOut);
 
         IRegistry.TradeData memory tradeData = registry.prepareTradeData(
             bestDex, 
@@ -274,9 +314,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                 tradeData.params  
             )
         );
-        console.log("Core: Delegatecall success:", success);
-        require(success, "DEX trade failed");
-        
+        console.log("Core: Delegatecall success:");
+        console.log(success);
+        if (!success) {
+            console.log("[_executeStream] Delegatecall failed");
+            revert("DEX trade failed");
+        }
         uint256 amountOut = abi.decode(returnData, (uint256));
         require(amountOut > 0, "No tokens received from swap");
 
@@ -288,6 +331,14 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         storageTrade.realisedAmountOut += amountOut;
         storageTrade.lastSweetSpot = sweetSpot;
         storageTrade.cumulativeGasEntailed += uint96(gasCostInWei);
+
+        console.log("[_executeStream] Post-update: amountRemaining:");
+        console.log(storageTrade.amountRemaining);
+        console.log("realisedAmountOut:");
+        console.log(storageTrade.realisedAmountOut);
+        console.log("Execute Trades: sweet spot decrimented. Value is: ");
+        console.log(storageTrade.lastSweetSpot);
+        console.log("EXECUTE TRADES: ONE STREAM EXECUTED");
 
         emit TradeStreamExecuted(
             trade.tradeId,
