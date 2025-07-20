@@ -126,6 +126,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             uint256 botGasAllowance
         ) = abi.decode(tradeData, (address, address, uint256, uint256, bool, uint256));
         // @audit may be better to abstract sweetSpot algo to here and pass the value along, since small (<0.001% pool depth) trades shouldn't be split at all and would save hefty logic
+        // @audit similarly for the sake of OPTIMISTIC and DETERMINISTIC placement patterns, we should abstract the calculation of sweetSpot nad the definition of appropriate DEX into seperated, off contract functions
         IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
 
         uint256 tradeId = lastTradeId++;
@@ -145,7 +146,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             tradeId: tradeId,
             botGasAllowance: botGasAllowance,
             instasettleBps: 100,
-            lastSweetSpot: 4,
+            lastSweetSpot: 0, // @audit check that we need to speficially evaluate this here
             isInstasettlable: isInstasettlable
         });
 
@@ -169,6 +170,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         );
 
         Utils.Trade storage trade = trades[tradeId];
+        lastTradeId++; // @ audit check placement and duplicates
         _executeStream(trade);
     }
 
