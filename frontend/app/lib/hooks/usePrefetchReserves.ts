@@ -10,14 +10,26 @@ const POPULAR_TOKENS = {
   '1': {
     // Ethereum
     USDC: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
-    WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     USDT: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    DAI: '0x6b175474e89094c44da98b954eedeac495271d0f',
+    WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    WBTC: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
+    WSOL: '0x0Df040Bda85394A9B36224069D6c70646dB8cbF8', // Wrapped SOL on Ethereum
+    RUNE: '0x2030Ea53eccFdE546794Bd34149c71a61773b12b', // THORChain RUNE
+    RUJI: '0xDd7b7f36814c56488C3849218D9d85C3dD8E50C2', // RUJI Token
+    VULT: '0x32c1b3c43317cba8185D65227A54AE416dacc338', // Vulture Token
   },
   '42161': {
     // Arbitrum
     USDC: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
-    WETH: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
     USDT: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+    DAI: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+    WETH: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
+    WBTC: '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
+    WSOL: '0x0Df040Bda85394A9B36224069D6c70646dB8cbF8', // Wrapped SOL on Arbitrum
+    RUNE: '0x2030Ea53eccFdE546794Bd34149c71a61773b12b', // THORChain RUNE on Arbitrum
+    RUJI: '0xDd7b7f36814c56488C3849218D9d85C3dD8E50C2', // RUJI Token on Arbitrum
+    VULT: '0x32c1b3c43317cba8185D65227A54AE416dacc338', // Vulture Token on Arbitrum
   },
   // Add more chains as needed
 }
@@ -30,6 +42,13 @@ const PAIRS_TO_PREFETCH = [
   ['WETH', 'USDT'],
   ['USDT', 'USDC'],
   ['USDC', 'USDT'],
+  ['USDT', 'DAI'],
+  ['DAI', 'WETH'],
+  ['WETH', 'WBTC'],
+  ['WBTC', 'WSOL'],
+  ['WSOL', 'RUNE'],
+  ['RUNE', 'RUJI'],
+  ['RUJI', 'VULT'],
 ]
 
 // Cache configuration
