@@ -11,7 +11,7 @@ export default function HeroSection() {
     <div className="relative min-h-screen overflow-hidden">
       {/* Background image for hero section only */}
       <motion.div
-        className="absolute top-0 right-0 w-1/2 h-1/2 pointer-events-none sm:block hidden"
+        className="absolute -top-20 right-0 w-1/2 h-2/3 pointer-events-none sm:block hidden"
         animate={{
           y: [0, -10, 0], // float up 10px and back
         }}
@@ -66,7 +66,7 @@ export default function HeroSection() {
         <Instasettle />
       </div>
 
-      <div className="absolute inset-0 -top-20 w-full h-full pointer-events-none">
+      {/* <div className="absolute inset-0 -top-20 w-full h-full pointer-events-none">
         <Image
           src="/heros/gradient-group.svg"
           alt="hero background"
@@ -74,7 +74,7 @@ export default function HeroSection() {
           className="object-cover"
           priority
         />
-      </div>
+      </div> */}
 
       {/* <div
         className="absolute inset-0 w-full h-full pointer-events-none"

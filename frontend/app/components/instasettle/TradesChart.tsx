@@ -11,8 +11,7 @@ import {
   Rectangle,
 } from 'recharts'
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
-import { useInfiniteQuery } from '@tanstack/react-query'
-import { useInView } from 'react-intersection-observer'
+import { useQuery } from '@tanstack/react-query'
 import {
   Select,
   SelectContent,
@@ -31,7 +30,7 @@ import { ChartDataPoint, Trade } from '@/app/lib/types/trade'
 import tradesApi from '@/api/trades'
 import { Spinner } from '../ui/spinner'
 
-const ITEMS_PER_PAGE = 20
+const DEFAULT_RECORDS = 100
 
 const chartConfig = {
   streams: {
@@ -46,114 +45,49 @@ export default function TradesChart() {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartContainerRef = useRef<HTMLDivElement>(null)
 
-  // Setup intersection observer with options
-  const { ref, inView } = useInView({
-    threshold: 0,
-    rootMargin: '0px 400px 0px 0px', // Trigger earlier before reaching the edge
-  })
-
-  // Filter states
+  // Filter states - default to 'all'
   const [selectedTopN, setSelectedTopN] = useState<string>('all')
 
-  // React Query infinite scroll setup
-  const {
-    data,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-    status,
-    refetch,
-  } = useInfiniteQuery({
+  // React Query setup
+  const { data, status, refetch } = useQuery({
     queryKey: ['trades', selectedTopN],
-    queryFn: async ({ pageParam = 0 }) => {
-      console.log('Fetching page:', pageParam, 'selectedTopN:', selectedTopN)
-
-      // If specific number selected, return exactly that many items
-      if (selectedTopN !== 'all') {
-        const limit = parseInt(selectedTopN)
-        const response = await tradesApi.fetchTrades(limit, 0)
-        return {
-          ...response,
-          hasMore: false,
-        }
-      }
-
-      const response = await tradesApi.fetchTrades(
-        ITEMS_PER_PAGE,
-        pageParam * ITEMS_PER_PAGE
-      )
-      return {
-        ...response,
-        hasMore: response.trades.length === ITEMS_PER_PAGE,
-      }
+    queryFn: async () => {
+      const limit =
+        selectedTopN === 'all' ? DEFAULT_RECORDS : parseInt(selectedTopN)
+      const response = await tradesApi.fetchTrades(limit, 0)
+      return response
     },
-    getNextPageParam: (lastPage, allPages) => {
-      // Only enable infinite scroll for 'all' and if there's more data
-      if (selectedTopN !== 'all' || !lastPage.hasMore) return undefined
-      return allPages.length
-    },
-    initialPageParam: 0,
   })
 
-  // Handle intersection observer
-  useEffect(() => {
-    if (
-      inView &&
-      hasNextPage &&
-      selectedTopN === 'all' &&
-      !isFetchingNextPage
-    ) {
-      console.log('Loading more data...', {
-        inView,
-        hasNextPage,
-        selectedTopN,
-        isFetchingNextPage,
+  // Combine data into chart data points
+  const chartData = useMemo(() => {
+    if (!data?.trades) return []
+    return data.trades.map(
+      (trade: Trade): ChartDataPoint => ({
+        volume: parseFloat(trade.bps),
+        streams: parseInt(trade.savings),
+        trade,
       })
-      fetchNextPage()
-    }
-  }, [inView, hasNextPage, fetchNextPage, selectedTopN, isFetchingNextPage])
-
-  // Combine all pages of data into chart data points
-  const allChartData = useMemo(() => {
-    if (!data?.pages) return []
-    return data.pages.flatMap((page) =>
-      page.trades.map(
-        (trade: Trade): ChartDataPoint => ({
-          volume: parseFloat(trade.bps),
-          streams: parseInt(trade.savings),
-          trade,
-        })
-      )
     )
-  }, [data?.pages])
+  }, [data?.trades])
 
-  // Sort all chart data
+  // Sort chart data
   const sortedChartData = useMemo(() => {
-    // For top N selections, data comes pre-sorted
-    if (selectedTopN !== 'all') return allChartData
-    // For 'all', sort by volume
-    return [...allChartData].sort((a, b) => a.volume - b.volume)
-  }, [allChartData, selectedTopN])
+    return [...chartData].sort((a, b) => a.volume - b.volume)
+  }, [chartData])
 
   // Calculate container width based on data length
   const containerWidth = useMemo(() => {
     const minWidth = 1200
     const barWidth = 40 // width per bar
-    const padding = 200 // increased padding for better scroll detection
+    const padding = 200 // padding for better visualization
     const calculatedWidth = Math.max(
       minWidth,
       sortedChartData.length * barWidth + padding
     )
-    console.log(
-      'Container width:',
-      calculatedWidth,
-      'Data length:',
-      sortedChartData.length
-    )
     return calculatedWidth
   }, [sortedChartData.length])
 
-  // 0f4e35
   const getBarProps = useCallback(
     (index: number) => ({
       fill:
@@ -177,16 +111,12 @@ export default function TradesChart() {
     }
   }
 
-  // Set chart ready when initial data is available
+  // Set chart ready when data is available
   useEffect(() => {
-    console.log('Chart ready check:', {
-      status,
-      pagesLength: data?.pages?.length,
-    })
-    if (status === 'success' && data?.pages?.length > 0) {
+    if (status === 'success' && data?.trades?.length > 0) {
       setIsChartReady(true)
     }
-  }, [status, data?.pages?.length])
+  }, [status, data?.trades?.length])
 
   // Handle value change for the dropdown
   const handleValueChange = (value: string) => {
@@ -195,8 +125,26 @@ export default function TradesChart() {
     setSelectedTopN(value)
   }
 
+  // Handle scroll event
+  const handleScroll = useCallback(() => {
+    if (!containerRef.current) return
+    const { scrollLeft, scrollWidth, clientWidth } = containerRef.current
+    const scrollPercentage = (scrollLeft / (scrollWidth - clientWidth)) * 100
+    // setScrollPosition(scrollPercentage) // This state is no longer needed
+  }, [])
+
+  // Add scroll event listener
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    container.addEventListener('scroll', handleScroll)
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+    }
+  }, [handleScroll])
+
   if (!isChartReady) {
-    console.log('Chart not ready yet')
     return null
   }
 
@@ -228,16 +176,16 @@ export default function TradesChart() {
                   Top 20 Trades
                 </SelectItem>
                 <SelectItem
-                  value="30"
+                  value="50"
                   className="hover:bg-tabsGradient hover:text-white cursor-pointer"
                 >
-                  Top 30 Trades
+                  Top 50 Trades
                 </SelectItem>
                 <SelectItem
                   value="all"
                   className="hover:bg-tabsGradient hover:text-white cursor-pointer"
                 >
-                  All Trades
+                  All Trades (100)
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -280,7 +228,7 @@ export default function TradesChart() {
 
             <div
               ref={containerRef}
-              className="overflow-x-auto chart-scroll relative"
+              className="overflow-x-auto chart-scroll relative [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
               style={{
                 width: '100%',
                 height: '500px',
@@ -309,7 +257,6 @@ export default function TradesChart() {
                     maskSize: '100% 100%',
                   }}
                 />
-                {/* <div className="h-[calc(100%-35px)] w-full bg-[#08160e] absolute top-0 left-0 rounded-2xl" /> */}
 
                 <ChartContainer
                   config={chartConfig}
@@ -321,7 +268,7 @@ export default function TradesChart() {
                       top: 20,
                       right: 50,
                       left: 80,
-                      bottom: 20, // Increased bottom margin for x-axis text
+                      bottom: 20,
                     }}
                     onMouseMove={(state) => {
                       if (state?.activeTooltipIndex !== undefined) {
@@ -344,7 +291,7 @@ export default function TradesChart() {
                       dataKey="volume"
                       tickLine={false}
                       axisLine={false}
-                      tickMargin={20} // Increased tick margin for better spacing
+                      tickMargin={20}
                       tickFormatter={(value) => `$${value}`}
                       label={{
                         bps: 'Volume',
@@ -356,19 +303,6 @@ export default function TradesChart() {
                       dataKey="streams"
                       radius={8}
                       activeIndex={(selectedBar || activeBar) ?? undefined}
-                      // activeBar={({ ...props }) => {
-                      //   return (
-                      //     <Rectangle
-                      //       {...props}
-                      //       fillOpacity={0.8}
-                      //       stroke={'#646363'}
-                      //       strokeWidth={1}
-                      //       strokeDasharray={4}
-                      //       strokeDashoffset={4}
-                      //       strokeLinecap="round"
-                      //     />
-                      //   )
-                      // }}
                     >
                       {sortedChartData.map((entry, index) => (
                         <Cell
@@ -410,23 +344,6 @@ export default function TradesChart() {
                     />
                   </BarChart>
                 </ChartContainer>
-
-                {/* Intersection Observer target */}
-                {selectedTopN === 'all' && hasNextPage && (
-                  <div
-                    ref={ref}
-                    className="absolute right-0 top-0 bottom-0 w-40"
-                    style={{
-                      pointerEvents: 'none',
-                    }}
-                  >
-                    {isFetchingNextPage && (
-                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-                        <Spinner />
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>
