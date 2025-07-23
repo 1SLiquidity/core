@@ -262,12 +262,175 @@ const tokenHasAddressOnPlatform = (
 
 // Update the configuration for token fetching
 const TOKEN_CONFIG = {
-  PAGES_TO_FETCH: 2, // Reduce from 4 to 2 pages to avoid rate limits
   TOKENS_PER_PAGE: 250, // Maximum allowed by CoinGecko API
-  CACHE_DURATION: 2 * 60 * 60 * 1000, // 2 hours in milliseconds
-  RETRY_DELAY: 2000, // 2 seconds delay between retries
-  // staleTime: 1000 * 60 * 60 * 12, // Cache for 12 hours
-  // CACHE_DURATION: 1000 * 60 * 60 * 24, // Keep in garbage collection for 24 hours
+  MARKET_DATA_CACHE_DURATION: 2 * 60 * 60 * 1000, // 2 hours in milliseconds
+  PLATFORM_LIST_CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  INITIAL_RETRY_DELAY: 2000, // 2 seconds initial delay between retries
+  MAX_RETRY_DELAY: 32000, // Maximum delay of 32 seconds
+  MAX_RETRIES: 3,
+  MAX_PAGES: 4, // Maximum number of pages to fetch
+}
+
+// Interface for platform list response
+interface PlatformListToken {
+  id: string
+  symbol: string
+  name: string
+  platforms: {
+    [key: string]: string
+  }
+}
+
+// Function to fetch and filter platform tokens
+const fetchPlatformTokens = async (
+  targetPlatform: string
+): Promise<{ id: string; address: string }[]> => {
+  try {
+    const response = await fetch(
+      'https://api.coingecko.com/api/v3/coins/list?include_platform=true'
+    )
+    if (!response.ok) {
+      throw new Error(`Failed to fetch platform list: ${response.status}`)
+    }
+
+    const tokens: PlatformListToken[] = await response.json()
+    console.log(`Fetched ${tokens.length} total tokens from /coins/list`)
+
+    // Filter tokens that exist on the target platform and have valid addresses
+    const filteredTokens = tokens
+      .filter((token) => {
+        // Check if token has the target platform
+        if (!token.platforms || !token.platforms[targetPlatform]) {
+          return false
+        }
+
+        const platformAddress = token.platforms[targetPlatform].toLowerCase()
+
+        // Validate the address
+        const isValidAddress =
+          platformAddress &&
+          platformAddress.startsWith('0x') &&
+          platformAddress.length === 42 &&
+          !NATIVE_TOKEN_ADDRESSES.includes(platformAddress) &&
+          platformAddress !== '0x' &&
+          // Special handling for BNB which is not an ERC20 token on Ethereum
+          !(
+            targetPlatform === 'ethereum' &&
+            (platformAddress === 'bnb' || platformAddress.includes('binance'))
+          )
+
+        return isValidAddress
+      })
+      .map((token) => ({
+        id: token.id,
+        address: token.platforms[targetPlatform].toLowerCase(),
+      }))
+
+    console.log(
+      `Found ${filteredTokens.length} tokens for platform ${targetPlatform}`
+    )
+    return filteredTokens
+  } catch (error) {
+    console.error('Error fetching platform tokens:', error)
+    throw error
+  }
+}
+
+// Function to fetch market data with pagination and exponential backoff
+const fetchMarketData = async (
+  platformTokens: { id: string; address: string }[],
+  targetPlatform: string,
+  currency = 'usd'
+): Promise<CoinGeckoToken[]> => {
+  const results: CoinGeckoToken[] = []
+  let delay = TOKEN_CONFIG.INITIAL_RETRY_DELAY
+
+  // Get just the IDs for the API request
+  const tokenIds = platformTokens.map((t) => t.id)
+
+  for (let page = 1; page <= TOKEN_CONFIG.MAX_PAGES; page++) {
+    let retryCount = 0
+
+    while (retryCount <= TOKEN_CONFIG.MAX_RETRIES) {
+      try {
+        console.log(`Fetching page ${page} of market data...`)
+        const response = await fetch(
+          `https://api.coingecko.com/api/v3/coins/markets?vs_currency=${currency}&order=market_cap_desc&per_page=${TOKEN_CONFIG.TOKENS_PER_PAGE}&page=${page}&sparkline=false&locale=en&precision=full`
+        )
+
+        if (response.status === 429) {
+          console.log(
+            `Rate limited, attempt ${retryCount + 1} of ${
+              TOKEN_CONFIG.MAX_RETRIES
+            }`
+          )
+          retryCount++
+
+          if (retryCount > TOKEN_CONFIG.MAX_RETRIES) {
+            console.log('Max retries reached for page, skipping...')
+            break
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, delay))
+          delay = Math.min(delay * 2, TOKEN_CONFIG.MAX_RETRY_DELAY)
+          continue
+        }
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch market data: ${response.status}`)
+        }
+
+        const data = await response.json()
+
+        // Filter the response to only include our platform tokens
+        const filteredData = data
+          .filter((token: CoinGeckoToken) => tokenIds.includes(token.id))
+          .map((token: CoinGeckoToken) => {
+            // Find the matching platform token to get the correct address
+            const platformToken = platformTokens.find((t) => t.id === token.id)
+            return {
+              ...token,
+              platforms: {
+                [targetPlatform]: platformToken?.address || '',
+              },
+            }
+          })
+
+        results.push(...filteredData)
+        console.log(
+          `Page ${page}: Found ${filteredData.length} matching tokens`
+        )
+
+        // If we got less than TOKENS_PER_PAGE tokens, we've reached the end
+        if (data.length < TOKEN_CONFIG.TOKENS_PER_PAGE) {
+          console.log('Reached end of available tokens')
+          return results
+        }
+
+        // Add delay between pages to avoid rate limits
+        if (page < TOKEN_CONFIG.MAX_PAGES) {
+          await new Promise((resolve) =>
+            setTimeout(resolve, TOKEN_CONFIG.INITIAL_RETRY_DELAY)
+          )
+        }
+
+        break // Success, exit retry loop
+      } catch (error) {
+        console.error(`Error fetching page ${page}:`, error)
+        retryCount++
+
+        if (retryCount > TOKEN_CONFIG.MAX_RETRIES) {
+          console.log('Max retries reached for page, skipping...')
+          break
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, delay))
+        delay = Math.min(delay * 2, TOKEN_CONFIG.MAX_RETRY_DELAY)
+      }
+    }
+  }
+
+  return results
 }
 
 // Function to safely get a token address from platforms object
@@ -433,26 +596,31 @@ export const useTokenList = () => {
   const chainId = stateData?.selectedNetworkId?.split(':')[1] || '1'
   const targetPlatform = CHAIN_ID_TO_PLATFORM[chainId] || 'ethereum'
 
-  // Get the cache key for the current chain
-  const cacheKey = `tokenListCache_${chainId}_erc20`
-  const cacheTimestampKey = `tokenListCacheTimestamp_${chainId}_erc20`
+  // Cache keys for both platform list and market data
+  const platformListCacheKey = `tokenPlatformList_${chainId}`
+  const platformListTimestampKey = `tokenPlatformListTimestamp_${chainId}`
+  const marketDataCacheKey = `tokenMarketData_${chainId}`
+  const marketDataTimestampKey = `tokenMarketDataTimestamp_${chainId}`
 
-  // Function to get cached data
-  const getCachedData = () => {
+  // Function to get cached data with TTL check
+  const getCachedData = (
+    cacheKey: string,
+    timestampKey: string,
+    duration: number
+  ) => {
     const cachedData = localStorage.getItem(cacheKey)
-    const cachedTimestamp = localStorage.getItem(cacheTimestampKey)
+    const cachedTimestamp = localStorage.getItem(timestampKey)
 
     if (cachedData && cachedTimestamp) {
       const cacheAge = Date.now() - parseInt(cachedTimestamp)
-      if (cacheAge < TOKEN_CONFIG.CACHE_DURATION) {
-        console.log('Using cached token list')
+      if (cacheAge < duration) {
         return JSON.parse(cachedData)
       }
     }
     return null
   }
 
-  // Modify the queryFn in useTokenList to ensure we always have essential tokens
+  // Modify the queryFn to use our new approach
   const {
     data: tokens = [],
     isLoading,
@@ -462,12 +630,6 @@ export const useTokenList = () => {
     queryKey: ['token-list', chainId, 'erc20'],
     queryFn: async () => {
       try {
-        // Check cache first
-        const cachedData = getCachedData()
-        if (cachedData) {
-          return cachedData
-        }
-
         // Start with essential tokens that match the current chain
         let essentialTokens = topTokens.filter((t) => {
           const tokenAddress = getTokenAddressForPlatform(
@@ -480,106 +642,95 @@ export const useTokenList = () => {
           )
         })
 
-        // Try to fetch additional tokens from CoinGecko with retry logic
-        let additionalTokens: CoinGeckoToken[] = []
-        let retryCount = 0
-        const maxRetries = 2
+        // Check platform list cache
+        let platformTokens = getCachedData(
+          platformListCacheKey,
+          platformListTimestampKey,
+          TOKEN_CONFIG.PLATFORM_LIST_CACHE_DURATION
+        )
 
-        for (let page = 1; page <= TOKEN_CONFIG.PAGES_TO_FETCH; page++) {
+        // Fetch platform list if not cached
+        if (!platformTokens) {
           try {
-            console.log(`Fetching CoinGecko page ${page}...`)
-            const response = await fetch(
-              `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${TOKEN_CONFIG.TOKENS_PER_PAGE}&page=${page}&sparkline=false&locale=en&precision=full`
+            platformTokens = await fetchPlatformTokens(targetPlatform)
+            localStorage.setItem(
+              platformListCacheKey,
+              JSON.stringify(platformTokens)
             )
-
-            if (response.status === 429) {
-              console.log(
-                'Rate limited by CoinGecko API, using essential tokens only'
-              )
-              const formattedEssentialTokens = formatCoingeckoTokens(
-                essentialTokens,
-                targetPlatform
-              )
-              return formattedEssentialTokens
-            }
-
-            if (!response.ok) {
-              throw new Error(
-                `Failed to fetch page ${page}: ${response.status}`
-              )
-            }
-
-            const pageData: CoinGeckoToken[] = await response.json()
-            console.log(`Page ${page} data:`, pageData.length, 'tokens')
-            additionalTokens = [...additionalTokens, ...pageData]
-
-            // Add significant delay between requests to avoid rate limits
-            if (page < TOKEN_CONFIG.PAGES_TO_FETCH) {
-              await new Promise((resolve) => setTimeout(resolve, 2000))
-            }
+            localStorage.setItem(
+              platformListTimestampKey,
+              Date.now().toString()
+            )
           } catch (error) {
-            console.error(`Error fetching page ${page}:`, error)
-            retryCount++
-
-            if (retryCount > maxRetries) {
-              console.log('Max retries reached, using essential tokens only')
-              const formattedEssentialTokens = formatCoingeckoTokens(
-                essentialTokens,
-                targetPlatform
-              )
-              return formattedEssentialTokens
-            }
-
-            // Wait before retrying
-            await new Promise((resolve) =>
-              setTimeout(resolve, TOKEN_CONFIG.RETRY_DELAY)
-            )
-            page-- // Retry the same page
-            continue
+            console.error('Error fetching platform tokens:', error)
+            // If platform list fetch fails, fall back to essential tokens only
+            return formatCoingeckoTokens(essentialTokens, targetPlatform)
           }
         }
 
-        // Combine and format tokens
-        const combinedTokens = [...essentialTokens]
-
-        // Only add additional tokens if we successfully fetched them
-        if (additionalTokens.length > 0) {
-          const essentialTokenIds = new Set(essentialTokens.map((t) => t.id))
-          const uniqueAdditionalTokens = additionalTokens
-            .filter((t) => !essentialTokenIds.has(t.id))
-            .filter((token) => {
-              const hasValidPlatform =
-                token.platforms && token.platforms[targetPlatform]
-              return hasValidPlatform
-            })
-            .map((token) => ({
-              ...token,
-              platforms: token.platforms || {},
-              market_cap_rank: token.market_cap_rank || 999999,
-              detail_platforms: {
-                [targetPlatform]: {
-                  decimal_place:
-                    token.detail_platforms?.[targetPlatform]?.decimal_place ||
-                    18,
-                  contract_address: token.platforms?.[targetPlatform] || '',
-                },
-              },
-            })) as EssentialToken[]
-
-          combinedTokens.push(...uniqueAdditionalTokens)
-        }
-
-        const formattedTokens = formatCoingeckoTokens(
-          combinedTokens,
-          targetPlatform
+        // Check market data cache
+        let marketData = getCachedData(
+          marketDataCacheKey,
+          marketDataTimestampKey,
+          TOKEN_CONFIG.MARKET_DATA_CACHE_DURATION
         )
 
-        // Cache the results
-        localStorage.setItem(cacheKey, JSON.stringify(formattedTokens))
-        localStorage.setItem(cacheTimestampKey, Date.now().toString())
+        // Fetch market data if not cached
+        if (!marketData) {
+          try {
+            // Add essential token IDs to the platform tokens
+            const essentialPlatformTokens = essentialTokens.map((t) => ({
+              id: t.id,
+              address: t.platforms[targetPlatform].toLowerCase(),
+            }))
 
-        return formattedTokens
-      } catch (error: any) {
+            // Combine and deduplicate tokens by ID
+            const allPlatformTokens = [
+              ...essentialPlatformTokens,
+              ...platformTokens.filter(
+                (pt: { id: string; address: string }) =>
+                  !essentialPlatformTokens.some((et) => et.id === pt.id)
+              ),
+            ]
+
+            marketData = await fetchMarketData(
+              allPlatformTokens,
+              targetPlatform
+            )
+            localStorage.setItem(marketDataCacheKey, JSON.stringify(marketData))
+            localStorage.setItem(marketDataTimestampKey, Date.now().toString())
+          } catch (error) {
+            console.error('Error fetching market data:', error)
+            // If market data fetch fails, fall back to essential tokens only
+            return formatCoingeckoTokens(essentialTokens, targetPlatform)
+          }
+        }
+
+        // Combine essential tokens with market data
+        const combinedTokens = [...essentialTokens]
+
+        // Add market data tokens that aren't in essential tokens
+        const essentialTokenIds = new Set(essentialTokens.map((t) => t.id))
+        const additionalTokens = marketData
+          .filter((t: CoinGeckoToken) => !essentialTokenIds.has(t.id))
+          .map((token: CoinGeckoToken) => ({
+            ...token,
+            platforms: token.platforms || {},
+            market_cap_rank: token.market_cap_rank || 999999,
+            detail_platforms: {
+              [targetPlatform]: {
+                decimal_place:
+                  token.detail_platforms?.[targetPlatform]?.decimal_place || 18,
+                contract_address: token.platforms?.[targetPlatform] || '',
+              },
+            },
+          })) as EssentialToken[]
+
+        combinedTokens.push(...additionalTokens)
+
+        // Format and return the final token list
+        return formatCoingeckoTokens(combinedTokens, targetPlatform)
+      } catch (error) {
         console.error('Error in token list fetch:', error)
         // If everything fails, return essential tokens
         return formatCoingeckoTokens(
@@ -597,10 +748,10 @@ export const useTokenList = () => {
         )
       }
     },
-    staleTime: TOKEN_CONFIG.CACHE_DURATION / 2, // Refresh after half the cache duration
-    gcTime: TOKEN_CONFIG.CACHE_DURATION, // Keep in garbage collection for full cache duration
+    staleTime: TOKEN_CONFIG.MARKET_DATA_CACHE_DURATION / 2,
+    gcTime: TOKEN_CONFIG.MARKET_DATA_CACHE_DURATION,
     refetchOnWindowFocus: false,
-    retry: false, // Disable React Query's automatic retries as we handle them manually
+    retry: false,
   })
 
   return {

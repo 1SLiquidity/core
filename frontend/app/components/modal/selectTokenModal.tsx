@@ -287,12 +287,17 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
   // Filter tokens based on search and make sure we don't show the already selected token in the other field
   const getFilteredTokens = () => {
     let filteredTokens = displayTokens
+    console.log('Initial tokens count:', displayTokens.length)
 
     // Remove duplicate tokens (keep the one with higher balance)
     filteredTokens = Object.values(
       filteredTokens.reduce(
         (acc: { [key: string]: TOKENS_TYPE }, token: TOKENS_TYPE) => {
-          const lowerAddress = token.token_address.toLowerCase()
+          const lowerAddress = token.token_address?.toLowerCase() || ''
+          if (!lowerAddress) {
+            console.log('Token with no address:', token)
+            return acc
+          }
           if (
             !acc[lowerAddress] ||
             parseFloat(token.balance) > parseFloat(acc[lowerAddress].balance)
@@ -304,6 +309,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
         {}
       )
     )
+    console.log('After deduplication tokens count:', filteredTokens.length)
 
     // Apply search filter if search value exists
     if (debouncedSearchValue) {
@@ -314,12 +320,17 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
           token.symbol.toLowerCase().includes(searchLower) ||
           token.token_address.toLowerCase() === searchLower
       )
+      console.log('After search filter tokens count:', filteredTokens.length)
     }
 
     // Filter by "My tokens" if selected and wallet is connected
     if (tokenFilter === 'my' && address) {
       filteredTokens = filteredTokens.filter(
         (token: TOKENS_TYPE) => parseFloat(token.balance) > 0
+      )
+      console.log(
+        'After "my tokens" filter tokens count:',
+        filteredTokens.length
       )
     }
 
@@ -335,6 +346,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
           token.token_address !== selectedTokenFrom.token_address
       )
     }
+    console.log('Final filtered tokens count:', filteredTokens.length)
 
     // Sort tokens by market value (usd_price * balance) and popularity
     return filteredTokens.sort((a: TOKENS_TYPE, b: TOKENS_TYPE) => {

@@ -46,9 +46,9 @@ const PAIRS_TO_PREFETCH = [
   ['DAI', 'WETH'],
   ['WETH', 'WBTC'],
   ['WBTC', 'WSOL'],
-  ['WSOL', 'RUNE'],
-  ['RUNE', 'RUJI'],
-  ['RUJI', 'VULT'],
+  // ['WSOL', 'RUNE'],
+  // ['RUNE', 'RUJI'],
+  // ['RUJI', 'VULT'],
 ]
 
 // Cache configuration
@@ -162,11 +162,33 @@ export const usePrefetchReserves = ({
 
       const results: PrefetchedReserves = {}
 
-      // Fetch all pairs in parallel
+      // Fetch all pairs in parallel with a timeout
       const promises = PAIRS_TO_PREFETCH.map(async ([fromSymbol, toSymbol]) => {
         const pairKey = getPairKey(fromSymbol, toSymbol)
-        const result = await fetchReserves(fromSymbol, toSymbol)
-        return { pairKey, result }
+        try {
+          const result = await Promise.race<{
+            reserveData: ReserveData | null
+            dexCalculator: DexCalculator | null
+            error: string | null
+          }>([
+            fetchReserves(fromSymbol, toSymbol),
+            new Promise(
+              (_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 10000) // 10 second timeout
+            ),
+          ])
+          return { pairKey, result }
+        } catch (error) {
+          console.warn(`Failed to fetch ${fromSymbol}-${toSymbol}:`, error)
+          return {
+            pairKey,
+            result: {
+              reserveData: null,
+              dexCalculator: null,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          }
+        }
       })
 
       // Wait for all fetches to complete
@@ -193,15 +215,16 @@ export const usePrefetchReserves = ({
         ).toLocaleTimeString(),
       })
 
-      console.log('📦 Cached reserves:', results)
-
       return results
     },
     staleTime: CACHE_CONFIG.STALE_TIME,
     gcTime: CACHE_CONFIG.GC_TIME,
-    refetchInterval: CACHE_CONFIG.REFETCH_INTERVAL, // Refetch every 25 seconds
-    refetchIntervalInBackground: true, // Continue refetching even when the window is in the background
+    refetchInterval: CACHE_CONFIG.REFETCH_INTERVAL,
+    refetchIntervalInBackground: true,
     refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000, // 1 second between retries
+    enabled: true, // Always enabled
   })
 
   return {
