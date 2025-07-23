@@ -44,7 +44,7 @@ const PAIRS_TO_PREFETCH = [
   ['USDC', 'USDT'],
   ['USDT', 'DAI'],
   ['DAI', 'WETH'],
-  ['WETH', 'WBTC'],
+  // ['WETH', 'WBTC'],
   // ['WBTC', 'WSOL'],
   // ['WSOL', 'RUNE'],
   // ['RUNE', 'RUJI'],
@@ -78,11 +78,36 @@ interface UsePrefetchReservesProps {
 export const usePrefetchReserves = ({
   chainId = '1',
 }: UsePrefetchReservesProps = {}) => {
-  // Function to create a pair key - direction specific
-  const getPairKey = (tokenA: string, tokenB: string) => `${tokenA}_${tokenB}`
+  // Function to create a pair key - exact match only, no reverse pairs
+  const getPairKey = (fromSymbol: string, toSymbol: string) => {
+    const key = `${fromSymbol}_${toSymbol}`
+    console.log('Prefetch - Creating cache key:', { fromSymbol, toSymbol, key })
+    return key
+  }
+
+  // Function to check if a pair exists in prefetch list
+  const isPairInPrefetchList = (fromSymbol: string, toSymbol: string) => {
+    return PAIRS_TO_PREFETCH.some(
+      ([from, to]) => from === fromSymbol && to === toSymbol
+    )
+  }
 
   // Function to fetch reserves for a token pair
   const fetchReserves = async (fromSymbol: string, toSymbol: string) => {
+    // Only fetch if pair exists in prefetch list with exact order
+    if (!isPairInPrefetchList(fromSymbol, toSymbol)) {
+      console.log('Prefetch - Pair not in prefetch list:', {
+        fromSymbol,
+        toSymbol,
+      })
+      return {
+        reserveData: null,
+        dexCalculator: null,
+        error: 'Pair not in prefetch list',
+      }
+    }
+
+    console.log('Prefetch - Fetching reserves:', { fromSymbol, toSymbol })
     try {
       const tokens = POPULAR_TOKENS[chainId as keyof typeof POPULAR_TOKENS]
       if (!tokens) {
@@ -110,7 +135,7 @@ export const usePrefetchReserves = ({
         throw new Error('No liquidity data received')
       }
 
-      // Create reserve data with our token order (fromAddress = token0, toAddress = token1)
+      // Create reserve data with exact token order as requested
       const reserveDataWithDecimals = {
         dex: data.dex,
         pairAddress: data.pairAddress,
@@ -127,12 +152,26 @@ export const usePrefetchReserves = ({
         chainId
       )
 
+      console.log('Prefetch - Successfully fetched reserves:', {
+        fromSymbol,
+        toSymbol,
+        token0Address: fromAddress,
+        token1Address: toAddress,
+        reserves: data.reserves,
+        decimals: data.decimals,
+      })
+
       return {
         reserveData: reserveDataWithDecimals,
         dexCalculator: calculator,
         error: null,
       }
     } catch (error) {
+      console.error('Prefetch - Error fetching reserves:', {
+        fromSymbol,
+        toSymbol,
+        error,
+      })
       return {
         reserveData: null,
         dexCalculator: null,
@@ -149,20 +188,8 @@ export const usePrefetchReserves = ({
 
       // Fetch all pairs in parallel with a timeout
       const promises = PAIRS_TO_PREFETCH.map(async ([fromSymbol, toSymbol]) => {
-        // Create direction-specific pair key
-        const tokens = POPULAR_TOKENS[chainId as keyof typeof POPULAR_TOKENS]
-        if (!tokens) {
-          throw new Error('Chain not supported')
-        }
-
-        const fromAddress = tokens[fromSymbol as keyof typeof tokens]
-        const toAddress = tokens[toSymbol as keyof typeof tokens]
-
-        if (!fromAddress || !toAddress) {
-          throw new Error('Token not found for chain')
-        }
-
-        const pairKey = getPairKey(fromAddress, toAddress)
+        // Create pair key using exact order from PAIRS_TO_PREFETCH
+        const pairKey = getPairKey(fromSymbol, toSymbol)
 
         try {
           const result = await Promise.race<{
@@ -193,9 +220,11 @@ export const usePrefetchReserves = ({
       // Wait for all fetches to complete
       const pairResults = await Promise.all(promises)
 
-      // Store results in object - only store the exact direction pairs
+      // Store results in object - only store pairs in exact order from PAIRS_TO_PREFETCH
       pairResults.forEach(({ pairKey, result }) => {
-        results[pairKey] = result
+        if (result.error !== 'Pair not in prefetch list') {
+          results[pairKey] = result
+        }
       })
 
       return results

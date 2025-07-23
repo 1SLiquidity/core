@@ -35,11 +35,26 @@ export const useDynamicReserveCache = ({
   const getPairKey = (tokenA: Token | null, tokenB: Token | null) => {
     if (!tokenA?.token_address || !tokenB?.token_address) return null
     // Keep the exact order to maintain direction
-    return `${tokenA.token_address}_${tokenB.token_address}`
+    const key = `${tokenA.token_address}_${tokenB.token_address}`
+    console.log('Dynamic - Creating cache key:', {
+      fromSymbol: tokenA.symbol,
+      toSymbol: tokenB.symbol,
+      fromAddress: tokenA.token_address,
+      toAddress: tokenB.token_address,
+      key,
+    })
+    return key
   }
 
   // Function to fetch reserves for a token pair
   const fetchReserves = async (tokenA: Token, tokenB: Token) => {
+    console.log('Dynamic - Fetching reserves:', {
+      fromSymbol: tokenA.symbol,
+      toSymbol: tokenB.symbol,
+      fromAddress: tokenA.token_address,
+      toAddress: tokenB.token_address,
+    })
+
     try {
       if (!tokenA.token_address || !tokenB.token_address) {
         throw new Error('Invalid token addresses')
@@ -59,7 +74,7 @@ export const useDynamicReserveCache = ({
         throw new Error('No liquidity data received')
       }
 
-      // Create reserve data with our token order (tokenA = token0, tokenB = token1)
+      // Create reserve data with exact token order as requested
       const reserveDataWithDecimals = {
         dex: data.dex,
         pairAddress: data.pairAddress,
@@ -76,6 +91,15 @@ export const useDynamicReserveCache = ({
         chainId
       )
 
+      console.log('Dynamic - Successfully fetched reserves:', {
+        fromSymbol: tokenA.symbol,
+        toSymbol: tokenB.symbol,
+        token0Address: tokenA.token_address,
+        token1Address: tokenB.token_address,
+        reserves: data.reserves,
+        decimals: data.decimals,
+      })
+
       return {
         reserveData: reserveDataWithDecimals,
         dexCalculator: calculator,
@@ -83,6 +107,11 @@ export const useDynamicReserveCache = ({
         lastUpdated: Date.now(),
       }
     } catch (error) {
+      console.error('Dynamic - Error fetching reserves:', {
+        fromSymbol: tokenA.symbol,
+        toSymbol: tokenB.symbol,
+        error,
+      })
       return {
         reserveData: null,
         dexCalculator: null,
@@ -144,13 +173,34 @@ export const useDynamicReserveCache = ({
       pairKey,
     ]) as DynamicReservesCache[string]
 
-    if (!cachedData) return null
+    if (!cachedData) {
+      console.log('Dynamic - Cache miss:', {
+        fromSymbol: tokenA?.symbol,
+        toSymbol: tokenB?.symbol,
+        key: pairKey,
+      })
+      return null
+    }
 
     // Check if cache is still fresh
     const now = Date.now()
     if (now - cachedData.lastUpdated > CACHE_CONFIG.STALE_TIME) {
+      console.log('Dynamic - Cache stale:', {
+        fromSymbol: tokenA?.symbol,
+        toSymbol: tokenB?.symbol,
+        key: pairKey,
+        age: now - cachedData.lastUpdated,
+      })
       return null
     }
+
+    console.log('Dynamic - Cache hit:', {
+      fromSymbol: tokenA?.symbol,
+      toSymbol: tokenB?.symbol,
+      key: pairKey,
+      reserves: cachedData.reserveData?.reserves,
+      decimals: cachedData.reserveData?.decimals,
+    })
 
     return cachedData
   }
