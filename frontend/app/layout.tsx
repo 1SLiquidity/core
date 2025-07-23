@@ -1,12 +1,14 @@
-import Web3ModalProvider from '@/context/Web3ModalProvider'
 import type { Metadata } from 'next'
 import localFont from 'next/font/local'
 import { headers } from 'next/headers'
-import HomeLayout from './components/layouts'
 import './globals.css'
-import ReactQueryProvider from './context/ReactQueryProvider'
-import { ApolloProvider } from './lib/providers/ApolloProvider'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import {
+  ApolloProvider,
+  HomeProviders,
+  ReactQueryProvider,
+  Web3ModalProvider,
+} from './providers'
 
 const afacadVariable = localFont({
   src: './fonts/Afacad-Medium.ttf',
@@ -35,7 +37,7 @@ export default async function RootLayout({
           <Web3ModalProvider cookies={cookies}>
             <ReactQueryProvider>
               <ApolloProvider>
-                <HomeLayout>{children}</HomeLayout>
+                <HomeProviders>{children}</HomeProviders>
               </ApolloProvider>
             </ReactQueryProvider>
           </Web3ModalProvider>

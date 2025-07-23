@@ -109,9 +109,11 @@ export interface ReserveData {
   // Token addresses
   token0Address?: string
   token1Address?: string
-  // Token decimals (default to 18 if not provided)
-  token0Decimals?: number
-  token1Decimals?: number
+  // Token decimals from backend
+  decimals: {
+    token0: number
+    token1: number
+  }
 }
 
 // DEX calculator interface following the Strategy pattern
@@ -288,8 +290,8 @@ export class UniswapV2Calculator extends BaseDexCalculator {
 
     try {
       // Get token decimals from reserveData or default to 18
-      const token0Decimals = reserveData.token0Decimals || 18
-      const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
 
       console.log('token0Decimals ===>', token0Decimals)
       console.log('token1Decimals ===>', token1Decimals)
@@ -382,8 +384,8 @@ export class UniswapV2Calculator extends BaseDexCalculator {
   ): string {
     try {
       // Get token decimals from reserveData or default to 18
-      const token0Decimals = reserveData.token0Decimals || 18
-      const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
 
       // Uniswap V2 formula: getAmountOut
       // amountOut = (amountIn * 997 * reserveOut) / (reserveIn * 1000 + amountIn * 997)
@@ -467,8 +469,8 @@ export class UniswapV2Calculator extends BaseDexCalculator {
 
       try {
         // Get token decimals from reserveData or default to 18
-        const token0Decimals = reserveData.token0Decimals || 18
-        const token1Decimals = reserveData.token1Decimals || 18
+        const token0Decimals = reserveData.decimals.token0
+        const token1Decimals = reserveData.decimals.token1
 
         // Convert to BigNumber with proper decimals
         const amountOutBN = ethers.utils.parseUnits(amountOut, token1Decimals)
@@ -515,8 +517,8 @@ export class UniswapV2Calculator extends BaseDexCalculator {
   ): string {
     try {
       // Get token decimals from reserveData or default to 18
-      const token0Decimals = reserveData.token0Decimals || 18
-      const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
 
       // Uniswap V2 formula: getAmountIn
       // amountIn = (reserveIn * amountOut * 1000) / ((reserveOut - amountOut) * 997)
@@ -673,8 +675,8 @@ export class SushiSwapCalculator extends BaseDexCalculator {
 
     try {
       // Get token decimals from reserveData or default to 18
-      const token0Decimals = reserveData.token0Decimals || 18
-      const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
 
       // Convert to BigNumber with proper decimals
       const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
@@ -753,8 +755,8 @@ export class SushiSwapCalculator extends BaseDexCalculator {
       console.log('Using special stable calculation for input = 1')
 
       // Get token decimals from reserveData or default to 18
-      const token0Decimals = reserveData.token0Decimals || 18
-      const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
 
       // Use a stable calculation for value = 1 to avoid floating point imprecision
       // Values are already in decimal format, no need to convert
@@ -874,8 +876,8 @@ export class SushiSwapCalculator extends BaseDexCalculator {
       console.log('Using special stable calculation for output = 1')
 
       // Get token decimals from reserveData or default to 18
-      const token0Decimals = reserveData.token0Decimals || 18
-      const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
 
       // Use a stable calculation for value = 1 to avoid floating point imprecision
       // Values are already in decimal format, no need to convert
@@ -1038,8 +1040,8 @@ export class UniswapV3Calculator extends BaseDexCalculator {
       const tokenOut = reserveData.token1Address
 
       // Get token decimals from reserveData or default to 18
-      const token0Decimals = reserveData.token0Decimals || 18
-      const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
 
       // Convert to wei using appropriate decimals
       const amountInWei = ethers.utils.parseUnits(amountIn, token0Decimals)
@@ -1132,8 +1134,8 @@ export class UniswapV3Calculator extends BaseDexCalculator {
       const tokenOut = reserveData.token1Address
 
       // Get token decimals from reserveData or default to 18
-      const token0Decimals = reserveData.token0Decimals || 18
-      const token1Decimals = reserveData.token1Decimals || 18
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
 
       // Convert to wei using appropriate decimals
       const amountOutWei = ethers.utils.parseUnits(amountOut, token1Decimals)

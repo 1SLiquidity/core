@@ -42,11 +42,11 @@ const DetailSection: React.FC<DetailSectionProps> = ({
 
   const toggleDetails = () => setShowDetails(!showDetails)
 
-  useEffect(() => {
-    if (isFetchingReserves || isCalculating) {
-      setShowDetails(false)
-    }
-  }, [isFetchingReserves, isCalculating])
+  // useEffect(() => {
+  //   if (isFetchingReserves || isCalculating) {
+  //     setShowDetails(false)
+  //   }
+  // }, [isFetchingReserves, isCalculating])
 
   // Calculate the fee amount based on sellAmount and fee percentage
   const calculateFeeAmount = () => {

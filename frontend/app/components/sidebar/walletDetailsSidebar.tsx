@@ -171,8 +171,6 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   // Display fallback tokens if there's an error or no tokens
   const displayTokens = isShowingRealTokens ? walletTokens : TOKENS
 
-  console.log('Address ========>', address, isConnected)
-
   // Format currency for display
   const formatCurrency = (amount: number | null) => {
     if (amount === null) return '$0.00'
@@ -202,9 +200,9 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     }
   }
 
-  console.log('walletTokens', walletTokens)
-  console.log('rawTokens', rawTokens)
-  console.log('displayTokens', displayTokens)
+  // console.log('walletTokens', walletTokens)
+  // console.log('rawTokens', rawTokens)
+  // console.log('displayTokens', displayTokens)
 
   // Get streams for this wallet
   const ongoingStreams = getOngoingStreams()

@@ -45,7 +45,7 @@ const PAIRS_TO_PREFETCH = [
   ['USDT', 'DAI'],
   ['DAI', 'WETH'],
   ['WETH', 'WBTC'],
-  ['WBTC', 'WSOL'],
+  // ['WBTC', 'WSOL'],
   // ['WSOL', 'RUNE'],
   // ['RUNE', 'RUJI'],
   // ['RUJI', 'VULT'],
@@ -53,10 +53,15 @@ const PAIRS_TO_PREFETCH = [
 
 // Cache configuration
 const CACHE_CONFIG = {
-  STALE_TIME: 30000, // 30 seconds before data is considered stale
-  GC_TIME: 60000, // 1 minute before data is removed from cache
-  REFETCH_INTERVAL: 25000, // Refetch every 25 seconds (before stale time)
+  STALE_TIME: 90000, // 1.5 minutes before data is considered stale
+  GC_TIME: 120000, // 2 minutes before data is removed from cache
+  REFETCH_INTERVAL: 60000, // Refetch every 1 minute
 }
+// const CACHE_CONFIG = {
+//   STALE_TIME: 30000, // 30 seconds before data is considered stale
+//   GC_TIME: 60000, // 1 minute before data is removed from cache
+//   REFETCH_INTERVAL: 25000, // Refetch every 25 seconds (before stale time)
+// }
 
 interface PrefetchedReserves {
   [key: string]: {
@@ -73,12 +78,11 @@ interface UsePrefetchReservesProps {
 export const usePrefetchReserves = ({
   chainId = '1',
 }: UsePrefetchReservesProps = {}) => {
-  // Function to create a pair key
+  // Function to create a pair key - direction specific
   const getPairKey = (tokenA: string, tokenB: string) => `${tokenA}_${tokenB}`
 
   // Function to fetch reserves for a token pair
   const fetchReserves = async (fromSymbol: string, toSymbol: string) => {
-    console.log(`🔄 Prefetching reserves for ${fromSymbol}-${toSymbol} pair...`)
     try {
       const tokens = POPULAR_TOKENS[chainId as keyof typeof POPULAR_TOKENS]
       if (!tokens) {
@@ -92,12 +96,6 @@ export const usePrefetchReserves = ({
         throw new Error('Token not found for chain')
       }
 
-      console.log(`📍 Fetching ${fromSymbol}-${toSymbol} reserves from:`, {
-        fromAddress,
-        toAddress,
-        chainId,
-      })
-
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`
       )
@@ -108,16 +106,17 @@ export const usePrefetchReserves = ({
 
       const data = await response.json()
 
-      if (!data) {
+      if (!data || !data.reserves || !data.decimals) {
         throw new Error('No liquidity data received')
       }
 
-      console.log(`📥 Received ${fromSymbol}-${toSymbol} reserve data:`, data)
-
+      // Create reserve data with our token order (fromAddress = token0, toAddress = token1)
       const reserveDataWithDecimals = {
-        ...data,
-        token0Decimals: data.decimals.token0 || 18,
-        token1Decimals: data.decimals.token1 || 18,
+        dex: data.dex,
+        pairAddress: data.pairAddress,
+        reserves: data.reserves,
+        decimals: data.decimals,
+        timestamp: data.timestamp,
         token0Address: fromAddress,
         token1Address: toAddress,
       } as ReserveData
@@ -128,20 +127,12 @@ export const usePrefetchReserves = ({
         chainId
       )
 
-      console.log(
-        `✅ Successfully processed ${fromSymbol}-${toSymbol} reserves`
-      )
-
       return {
         reserveData: reserveDataWithDecimals,
         dexCalculator: calculator,
         error: null,
       }
     } catch (error) {
-      console.error(
-        `❌ Error fetching reserves for ${fromSymbol}-${toSymbol}:`,
-        error
-      )
       return {
         reserveData: null,
         dexCalculator: null,
@@ -154,17 +145,25 @@ export const usePrefetchReserves = ({
   const { data: prefetchedReserves = {} } = useQuery({
     queryKey: ['prefetched-reserves', chainId],
     queryFn: async () => {
-      console.log(
-        '🚀 Starting parallel prefetch for all pairs on chain:',
-        chainId
-      )
-      console.log('📋 Pairs to prefetch:', PAIRS_TO_PREFETCH)
-
       const results: PrefetchedReserves = {}
 
       // Fetch all pairs in parallel with a timeout
       const promises = PAIRS_TO_PREFETCH.map(async ([fromSymbol, toSymbol]) => {
-        const pairKey = getPairKey(fromSymbol, toSymbol)
+        // Create direction-specific pair key
+        const tokens = POPULAR_TOKENS[chainId as keyof typeof POPULAR_TOKENS]
+        if (!tokens) {
+          throw new Error('Chain not supported')
+        }
+
+        const fromAddress = tokens[fromSymbol as keyof typeof tokens]
+        const toAddress = tokens[toSymbol as keyof typeof tokens]
+
+        if (!fromAddress || !toAddress) {
+          throw new Error('Token not found for chain')
+        }
+
+        const pairKey = getPairKey(fromAddress, toAddress)
+
         try {
           const result = await Promise.race<{
             reserveData: ReserveData | null
@@ -194,25 +193,9 @@ export const usePrefetchReserves = ({
       // Wait for all fetches to complete
       const pairResults = await Promise.all(promises)
 
-      // Store results in object
+      // Store results in object - only store the exact direction pairs
       pairResults.forEach(({ pairKey, result }) => {
         results[pairKey] = result
-      })
-
-      console.log('🎯 Prefetch completed. Cache status:', {
-        successfulPairs: Object.entries(results).filter(
-          ([_, data]) => data.error === null
-        ).length,
-        totalPairs: Object.keys(results).length,
-        nextRefetch: new Date(
-          Date.now() + CACHE_CONFIG.REFETCH_INTERVAL
-        ).toLocaleTimeString(),
-        staleAt: new Date(
-          Date.now() + CACHE_CONFIG.STALE_TIME
-        ).toLocaleTimeString(),
-        expiresAt: new Date(
-          Date.now() + CACHE_CONFIG.GC_TIME
-        ).toLocaleTimeString(),
       })
 
       return results
@@ -223,8 +206,8 @@ export const usePrefetchReserves = ({
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: false,
     retry: 2,
-    retryDelay: 1000, // 1 second between retries
-    enabled: true, // Always enabled
+    retryDelay: 1000,
+    enabled: true,
   })
 
   return {

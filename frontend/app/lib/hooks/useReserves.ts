@@ -73,10 +73,10 @@ export const useReserves = ({
     // First check prefetched pairs
     const fromSymbol = selectedTokenFrom.symbol
     const toSymbol = selectedTokenTo.symbol
+
     const prefetchedPair = checkPrefetchedPair(fromSymbol, toSymbol)
 
     if (prefetchedPair?.reserveData && prefetchedPair?.dexCalculator) {
-      console.log('Using prefetched reserves for', fromSymbol, '-', toSymbol)
       setReserveData(prefetchedPair.reserveData)
       setDexCalculator(prefetchedPair.dexCalculator)
       setShouldFetchFromBackend(false)
@@ -89,12 +89,6 @@ export const useReserves = ({
       selectedTokenTo
     )
     if (dynamicCacheData?.reserveData && dynamicCacheData?.dexCalculator) {
-      console.log(
-        'Using dynamically cached reserves for',
-        fromSymbol,
-        '-',
-        toSymbol
-      )
       setReserveData(dynamicCacheData.reserveData)
       setDexCalculator(dynamicCacheData.dexCalculator)
       setShouldFetchFromBackend(false)
@@ -110,12 +104,7 @@ export const useReserves = ({
   ])
 
   const fetchReserves = useCallback(async () => {
-    console.log('Fetching reserves with tokens:', {
-      selectedTokenFrom,
-      selectedTokenTo,
-    })
     if (!selectedTokenFrom || !selectedTokenTo) {
-      console.log('Missing tokens, skipping fetch')
       clearState()
       setIsFetchingReserves(false)
       return
@@ -123,7 +112,6 @@ export const useReserves = ({
 
     // Skip backend fetch if we're using cached data
     if (!shouldFetchFromBackend) {
-      console.log('Using cached data, skipping backend fetch')
       setIsFetchingReserves(false)
       return
     }
@@ -138,9 +126,6 @@ export const useReserves = ({
         setReserveData(result.reserveData)
         setDexCalculator(result.dexCalculator)
         setCalculationError(null)
-        console.log(
-          'Successfully set reserve data and calculator from dynamic cache'
-        )
       } else if (result?.error) {
         console.error('Error from dynamic cache:', result.error)
         setCalculationError(result.error)
@@ -166,7 +151,6 @@ export const useReserves = ({
   // Fetch reserves when tokens change or when shouldFetchFromBackend changes
   useEffect(() => {
     if (selectedTokenFrom && selectedTokenTo) {
-      console.log('Tokens or fetch flag changed, fetching reserves')
       fetchReserves()
     } else {
       clearState()

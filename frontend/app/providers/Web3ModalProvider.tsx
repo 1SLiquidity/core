@@ -32,7 +32,7 @@ const modal = createAppKit({
   },
 })
 
-export default function Web3ModalProvider({
+export function Web3ModalProvider({
   children,
   cookies,
 }: {

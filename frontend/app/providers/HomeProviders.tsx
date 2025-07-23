@@ -1,9 +1,9 @@
 import { ModalProvider } from '@/app/lib/context/modalContext'
 import { SidebarProvider } from '@/app/lib/context/sidebarContext'
 import { ToastProvider } from '@/app/lib/context/toastProvider'
-import { ReservePrefetchProvider } from '@/app/providers/ReservePrefetchProvider'
+import { ReservePrefetchProvider } from '@/app/providers'
 
-const HomeLayout = ({ children }: { children: React.ReactNode }) => {
+export const HomeProviders = ({ children }: { children: React.ReactNode }) => {
   return (
     <ModalProvider>
       <SidebarProvider>
@@ -14,5 +14,3 @@ const HomeLayout = ({ children }: { children: React.ReactNode }) => {
     </ModalProvider>
   )
 }
-
-export default HomeLayout

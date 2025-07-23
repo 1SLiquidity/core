@@ -8,9 +8,9 @@ import { Token } from '@/app/types'
 
 // Cache configuration - matching usePrefetchReserves
 const CACHE_CONFIG = {
-  STALE_TIME: 40000, // 40 seconds before data is considered stale
-  GC_TIME: 60000, // 1 minute before data is removed from cache
-  REFETCH_INTERVAL: 30000, // Refetch every 30 seconds (before stale time)
+  STALE_TIME: 90000, // 1.5 minutes before data is considered stale
+  GC_TIME: 120000, // 2 minutes before data is removed from cache
+  REFETCH_INTERVAL: 60000, // Refetch every 1 minute
 }
 
 interface DynamicReservesCache {
@@ -31,30 +31,19 @@ export const useDynamicReserveCache = ({
 }: UseDynamicReserveCacheProps = {}) => {
   const queryClient = useQueryClient()
 
-  // Function to create a unique pair key
+  // Function to create a unique pair key - direction specific
   const getPairKey = (tokenA: Token | null, tokenB: Token | null) => {
     if (!tokenA?.token_address || !tokenB?.token_address) return null
+    // Keep the exact order to maintain direction
     return `${tokenA.token_address}_${tokenB.token_address}`
   }
 
   // Function to fetch reserves for a token pair
   const fetchReserves = async (tokenA: Token, tokenB: Token) => {
-    console.log(
-      `🔄 Fetching dynamic reserves for ${tokenA.symbol}-${tokenB.symbol} pair...`
-    )
     try {
       if (!tokenA.token_address || !tokenB.token_address) {
         throw new Error('Invalid token addresses')
       }
-
-      console.log(
-        `📍 Fetching ${tokenA.symbol}-${tokenB.symbol} reserves from:`,
-        {
-          tokenA: tokenA.token_address,
-          tokenB: tokenB.token_address,
-          chainId,
-        }
-      )
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${tokenA.token_address}&tokenB=${tokenB.token_address}`
@@ -66,19 +55,17 @@ export const useDynamicReserveCache = ({
 
       const data = await response.json()
 
-      if (!data) {
+      if (!data || !data.reserves || !data.decimals) {
         throw new Error('No liquidity data received')
       }
 
-      console.log(
-        `📥 Received ${tokenA.symbol}-${tokenB.symbol} reserve data:`,
-        data
-      )
-
+      // Create reserve data with our token order (tokenA = token0, tokenB = token1)
       const reserveDataWithDecimals = {
-        ...data,
-        token0Decimals: data.decimals.token0 || 18,
-        token1Decimals: data.decimals.token1 || 18,
+        dex: data.dex,
+        pairAddress: data.pairAddress,
+        reserves: data.reserves,
+        decimals: data.decimals,
+        timestamp: data.timestamp,
         token0Address: tokenA.token_address,
         token1Address: tokenB.token_address,
       } as ReserveData
@@ -89,10 +76,6 @@ export const useDynamicReserveCache = ({
         chainId
       )
 
-      console.log(
-        `✅ Successfully processed ${tokenA.symbol}-${tokenB.symbol} reserves`
-      )
-
       return {
         reserveData: reserveDataWithDecimals,
         dexCalculator: calculator,
@@ -100,10 +83,6 @@ export const useDynamicReserveCache = ({
         lastUpdated: Date.now(),
       }
     } catch (error) {
-      console.error(
-        `❌ Error fetching reserves for ${tokenA.symbol}-${tokenB.symbol}:`,
-        error
-      )
       return {
         reserveData: null,
         dexCalculator: null,
@@ -141,7 +120,6 @@ export const useDynamicReserveCache = ({
       existingData?.lastUpdated &&
       now - existingData.lastUpdated < CACHE_CONFIG.REFETCH_INTERVAL
     ) {
-      console.log('Using cached data for', tokenA.symbol, '-', tokenB.symbol)
       return existingData
     }
 
@@ -192,6 +170,7 @@ export const useDynamicReserveCache = ({
           const pairKey = queryKey[2] as string
           const [address1, address2] = pairKey.split('_')
           if (address1 && address2) {
+            // Use the exact same order as the cache key
             const tokenA = { token_address: address1 } as Token
             const tokenB = { token_address: address2 } as Token
             const newData = await fetchReserves(tokenA, tokenB)

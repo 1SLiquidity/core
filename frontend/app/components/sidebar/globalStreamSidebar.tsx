@@ -67,10 +67,10 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   // Log trades data whenever it changes
   useEffect(() => {
     if (trades.length > 0) {
-      console.log('Fetched trades:', trades)
+      // console.log('Fetched trades:', trades)
     }
     if (error) {
-      console.error('Error fetching trades:', error)
+      // console.error('Error fetching trades:', error)
     }
   }, [trades, error])
 

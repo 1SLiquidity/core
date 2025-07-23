@@ -19,8 +19,6 @@ import TradingSettings from './TradeSettings'
 import { useReserves } from '@/app/lib/hooks/useReserves'
 import { useRefreshTimer } from '@/app/lib/hooks/useRefreshTimer'
 import { useSwapCalculator } from '@/app/lib/hooks/useSwapCalculator'
-import { useQuery } from '@tanstack/react-query'
-import { usePrefetchReserves } from '@/app/lib/hooks/usePrefetchReserves'
 
 const TIMER_DURATION = 10 // 10 seconds
 
@@ -138,17 +136,17 @@ const SELSection = () => {
 
   const handleRefresh = useCallback(() => {
     if (dexCalculator && reserveData) {
-      console.log('handleRefresh called with:', {
-        sellAmount,
-        hasCalculator: !!dexCalculator,
-        hasReserves: !!reserveData,
-      })
+      // console.log('handleRefresh called with:', {
+      //   sellAmount,
+      //   hasCalculator: !!dexCalculator,
+      //   hasReserves: !!reserveData,
+      // })
       setIsRefresh(true)
     } else {
-      console.log('handleRefresh skipped - missing calculator or reserves:', {
-        hasCalculator: !!dexCalculator,
-        hasReserves: !!reserveData,
-      })
+      // console.log('handleRefresh skipped - missing calculator or reserves:', {
+      //   hasCalculator: !!dexCalculator,
+      //   hasReserves: !!reserveData,
+      // })
     }
   }, [dexCalculator, reserveData, sellAmount])
 
@@ -169,7 +167,7 @@ const SELSection = () => {
   // Reset isRefresh when calculation completes
   useEffect(() => {
     if (!isCalculating) {
-      console.log('Calculation complete, resetting isRefresh')
+      // console.log('Calculation complete, resetting isRefresh')
       setIsRefresh(false)
     }
   }, [isCalculating])

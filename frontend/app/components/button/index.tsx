@@ -34,7 +34,6 @@ const Button: React.FC<Props> = ({
   const handleConnectWallet = () => {
     open()
   }
-  console.log('error', error)
   // : 'bg-gray text-white opacity-50 cursor-not-allowed bg-opacity-[23%]'
 
   return (
@@ -51,8 +50,9 @@ const Button: React.FC<Props> = ({
         `min-w-[130px] w-full p-2 h-10 rounded-[12px] flex items-center justify-center uppercase
         ${
           error
-            ? 'text-primaryRed border-error border-[2px] bg-opacity-[23%]'
-            : disabled
+            ? 'text-[#951b1d] bg-[#ec6264]'
+            : // ? 'text-primaryRed border-error border-[2px] bg-opacity-[23%]'
+            disabled
             ? text === 'STREAM'
               ? 'relative bg-[length:200%_100%] bg-[position:100%] hover:bg-[position:0%] transition-all duration-500 bg-[linear-gradient(90deg,_#40FCB4_0%,_#41F58C_21.95%,_#40FCB4_48.58%,_#41F58C_71.52%,_#40FCB4_100%)] text-black before:absolute before:inset-0 before:bg-black before:opacity-0 hover:before:opacity-20 before:transition-opacity before:rounded-[12px]'
               : 'bg-gray text-white bg-[#0d0d0d] cursor-not-allowed border-[2px] border-white12'
@@ -70,7 +70,7 @@ const Button: React.FC<Props> = ({
       )}
     >
       {loading && <Loader2 className="mr-2 w-4 h-4 animate-spin" />}
-      <span className="relative z-10">{`${
+      <span className={cn(`relative z-10`, error && 'text-lg font-bold')}>{`${
         error ? (!!text ? text : 'Something went wrong') : text
       }`}</span>
     </button>

@@ -111,9 +111,9 @@ const isERC20Token = (
 
   // Native tokens (ETH) are not ERC20
   if (NATIVE_TOKEN_ADDRESSES.includes(platformAddress.toLowerCase())) {
-    console.log(
-      `Token address ${platformAddress} is a native token, not an ERC20`
-    )
+    // console.log(
+    //   `Token address ${platformAddress} is a native token, not an ERC20`
+    // )
     return false
   }
 
@@ -143,9 +143,9 @@ const getTokenDecimalsForPlatform = (
   if (!detailPlatforms || !detailPlatforms[targetPlatform]) return 18 // Default to 18 if not found
 
   const decimalPlace = detailPlatforms[targetPlatform].decimal_place
-  console.log(
-    `Found decimal place from API: ${decimalPlace} for platform ${targetPlatform}`
-  )
+  // console.log(
+  //   `Found decimal place from API: ${decimalPlace} for platform ${targetPlatform}`
+  // )
   return decimalPlace || 18
 }
 
@@ -157,9 +157,9 @@ const getTokenDecimalsBySymbolOrAddress = (
   // First try by address (most reliable)
   const lowerCaseAddress = address.toLowerCase()
   if (KNOWN_TOKEN_DECIMALS[lowerCaseAddress]) {
-    console.log(
-      `Found decimals by address for ${symbol}: ${KNOWN_TOKEN_DECIMALS[lowerCaseAddress]}`
-    )
+    // console.log(
+    //   `Found decimals by address for ${symbol}: ${KNOWN_TOKEN_DECIMALS[lowerCaseAddress]}`
+    // )
     return KNOWN_TOKEN_DECIMALS[lowerCaseAddress]
   }
 
@@ -199,9 +199,9 @@ const formatCoingeckoTokens = (
 
       // Skip non-ERC20 tokens using improved function
       if (!isERC20Token(tokenAddress, token.platforms, targetPlatform)) {
-        console.log(
-          `Skipping non-ERC20 token: ${token.symbol} (${tokenAddress}) on platform ${targetPlatform}`
-        )
+        // console.log(
+        //   `Skipping non-ERC20 token: ${token.symbol} (${tokenAddress}) on platform ${targetPlatform}`
+        // )
         return null
       }
 
@@ -230,7 +230,7 @@ const formatCoingeckoTokens = (
         token.symbol.toLowerCase() === 'dai' ||
         (token.market_cap_rank && token.market_cap_rank <= 15) // Increased priority for top 15 tokens
 
-      console.log('market_cap_rank ===================>', token.market_cap_rank)
+      // console.log('market_cap_rank ===================>', token.market_cap_rank)
       // Format the token data to match our app's token structure
       return {
         name: token.name,

@@ -1,56 +1,53 @@
-'use client';
-import Image from 'next/image';
+'use client'
+
+import Image from 'next/image'
 import React, {
   createContext,
   useContext,
   useState,
   useCallback,
   ReactNode,
-} from 'react';
+} from 'react'
 
 interface Toast {
-  id: number;
-  content: ReactNode;
-  exiting: boolean;
+  id: number
+  content: ReactNode
+  exiting: boolean
 }
 
 interface ToastContextType {
-  addToast: (content: ReactNode) => void; // Changed type from 'string' to 'ReactNode'
+  addToast: (content: ReactNode) => void // Changed type from 'string' to 'ReactNode'
 }
 
-const ToastContext = createContext<ToastContextType | undefined>(
-  undefined
-);
+const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
 export const ToastProvider: React.FC<React.PropsWithChildren<{}>> = ({
   children,
 }) => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const [counter, setCounter] = useState(0);
+  const [toasts, setToasts] = useState<Toast[]>([])
+  const [counter, setCounter] = useState(0)
 
   const addToast = useCallback(
     (content: ReactNode) => {
-      const newToast = { id: counter, content, exiting: false };
-      setToasts((prevToasts) => [...prevToasts, newToast]);
-      setCounter((prevCounter) => prevCounter + 1);
+      const newToast = { id: counter, content, exiting: false }
+      setToasts((prevToasts) => [...prevToasts, newToast])
+      setCounter((prevCounter) => prevCounter + 1)
 
       setTimeout(() => {
         setToasts((prevToasts) =>
           prevToasts.map((toast) =>
-            toast.id === newToast.id
-              ? { ...toast, exiting: true }
-              : toast
+            toast.id === newToast.id ? { ...toast, exiting: true } : toast
           )
-        );
+        )
         setTimeout(() => {
           setToasts((prevToasts) =>
             prevToasts.filter((toast) => toast.id !== newToast.id)
-          );
-        }, 500); // Delay for exit animation
-      }, 2000);
+          )
+        }, 500) // Delay for exit animation
+      }, 2000)
     },
     [counter]
-  );
+  )
 
   return (
     <ToastContext.Provider value={{ addToast }}>
@@ -90,13 +87,13 @@ export const ToastProvider: React.FC<React.PropsWithChildren<{}>> = ({
         ))}
       </div>
     </ToastContext.Provider>
-  );
-};
+  )
+}
 
 export function useToast() {
-  const context = useContext(ToastContext);
+  const context = useContext(ToastContext)
   if (context === undefined) {
-    throw new Error('useToast must be used within a ToastProvider');
+    throw new Error('useToast must be used within a ToastProvider')
   }
-  return context;
+  return context
 }

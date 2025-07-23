@@ -25,15 +25,15 @@ export function useTrades(options: UseTradesOptions = {}) {
     })
 
   // Log state changes
-  useEffect(() => {
-    console.log('Trade Query State:', {
-      loading,
-      networkStatus,
-      dataExists: !!data?.trades,
-      tradeCount: data?.trades?.length,
-      isRefetching: loading && data?.trades && data?.trades?.length > 0,
-    })
-  }, [loading, networkStatus, data])
+  // useEffect(() => {
+  //   console.log('Trade Query State:', {
+  //     loading,
+  //     networkStatus,
+  //     dataExists: !!data?.trades,
+  //     tradeCount: data?.trades?.length,
+  //     isRefetching: loading && data?.trades && data?.trades?.length > 0,
+  //   })
+  // }, [loading, networkStatus, data])
 
   const loadMore = () => {
     if (!data?.trades?.length) return

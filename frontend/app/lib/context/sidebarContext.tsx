@@ -1,4 +1,5 @@
 'use client'
+
 import GlobalStreamSidebar from '@/app/components/sidebar/globalStreamSidebar'
 import SelectTokenSidebar from '@/app/components/sidebar/selectTokenSidebar'
 import WalletDetailsSidebar from '@/app/components/sidebar/walletDetailsSidebar'

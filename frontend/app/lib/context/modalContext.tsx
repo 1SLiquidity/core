@@ -1,4 +1,5 @@
 'use client'
+
 import GlobalStreamModal from '@/app/components/modal/globalStreamModal'
 import SelectTokenModal from '@/app/components/modal/selectTokenModal'
 import WalletDetailsModal from '@/app/components/modal/walletDetailsModal'
