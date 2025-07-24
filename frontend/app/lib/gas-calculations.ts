@@ -89,7 +89,7 @@ function calculateSweetSpot(
   // const streamCount = Math.sqrt(alpha * volumeSquared)
 
   // Round to nearest integer and ensure minimum value of 1
-  return Math.max(4, Math.round(streamCount))
+  return Math.max(4, Math.round(streamCount), 500)
 }
 
 // Cache for ETH price to avoid too many API calls

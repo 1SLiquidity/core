@@ -17,16 +17,20 @@ const SearchbarWithIcon: React.FC<Props> = ({
   return (
     <div className="w-full h-full gap-2 flex">
       <div
-        className={`max-w-[340px] w-full h-10 border-[2px] rounded-[12px] py-[8px] px-[10px] gap-[8px] flex items-center
-         ${value ? 'bg-successGradient border-success' : 'border-primary'}`}
+        className={`max-w-[340px] w-full h-10 rounded-[12px] bg-[#202220] py-[8px] px-[10px] gap-[8px] flex items-center
+         ${
+           value
+             ? 'border-[2px] bg-successGradient border-success'
+             : 'border-primary'
+         }`}
       >
-        {/* <Image
+        <Image
           src="/icons/search.svg"
           alt="search"
           className="w-fit h-fit"
           width={20}
           height={20}
-        /> */}
+        />
         <input
           type="text"
           value={value}

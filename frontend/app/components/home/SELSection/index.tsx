@@ -41,6 +41,7 @@ const SELSection = () => {
     setSelectedTokenTo,
   } = useModal()
   const { address, isConnected } = useAppKitAccount()
+  const [isInsufficientBalance, setIsInsufficientBalance] = useState(false)
 
   // Get current chain from AppKit
   const stateData = useAppKitState()
@@ -94,13 +95,15 @@ const SELSection = () => {
     selectedTokenTo,
   })
 
-  // const { timeRemaining, timerActive } = useRefreshTimer({
-  //   duration: TIMER_DURATION,
-  //   onRefresh: fetchReserves,
-  //   isActive: sellAmount > 0 && !!selectedTokenFrom && !!selectedTokenTo,
-  //   sellAmount,
-  //   isCalculating,
-  // })
+  console.log('reserveData =========>', reserveData)
+
+  const { timeRemaining, timerActive } = useRefreshTimer({
+    duration: TIMER_DURATION,
+    onRefresh: fetchReserves,
+    isActive: sellAmount > 0 && !!selectedTokenFrom && !!selectedTokenTo,
+    sellAmount,
+    isCalculating: isCalculating || isFetchingReserves,
+  })
 
   // Combine errors from both hooks
   const calculationError = reserveError || swapError
@@ -232,7 +235,7 @@ const SELSection = () => {
             animate={controls}
             variants={titleVariants}
           >
-            Stream your trades
+            Stream Your Trades.
           </motion.h1>
           <motion.h2
             className="text-3xl md:text-5xl font-bold mb-10 sm:mb-16 text-white text-center"
@@ -240,7 +243,7 @@ const SELSection = () => {
             animate={controls}
             variants={titleVariants}
           >
-            Save 10's of $1000s In minutes
+            Save 10's of $1000s. In Minutes
           </motion.h2>
         </div>
       )}
@@ -252,7 +255,7 @@ const SELSection = () => {
       >
         <div className="w-full flex justify-end gap-2 mb-4">
           <div className="flex items-center gap-2">
-            {/* {timerActive && (
+            {timerActive && (
               <div className="flex items-center justify-end">
                 <div className="flex items-center gap-2 bg-white hover:bg-tabsGradient bg-opacity-[12%] px-2 py-1 rounded-full">
                   <div className="text-sm text-white/70">Auto refresh in</div>
@@ -287,7 +290,7 @@ const SELSection = () => {
                   </div>
                 </div>
               </div>
-            )} */}
+            )}
             <TradingSettings />
           </div>
         </div>
@@ -308,6 +311,8 @@ const SELSection = () => {
               setAmount={handleSellAmountChange}
               inValidAmount={invaliSelldAmount}
               disabled={isFetchingReserves}
+              isInsufficientBalance={isInsufficientBalance}
+              setIsInsufficientBalance={setIsInsufficientBalance}
             />
           )}
           <div
@@ -368,6 +373,68 @@ const SELSection = () => {
           </div>
         )}
 
+        <div className="w-full mt-[14px] mb-[20px]">
+          {isConnected && pathname === '/swaps' ? (
+            <Button
+              text={
+                isConnected && isInsufficientBalance && !isFetchingReserves
+                  ? 'Insufficient Balance'
+                  : isFetchingReserves
+                  ? 'Fetching reserves...'
+                  : calculationError
+                  ? calculationError
+                  : 'STREAM'
+              }
+              theme="gradient"
+              onClick={
+                sellAmount > 0 && buyAmount > 0
+                  ? () => addToast(<NotifiSwapStream />)
+                  : () => {}
+              }
+              error={
+                invaliSelldAmount || invalidBuyAmount || !!calculationError
+              }
+              disabled={
+                !selectedTokenFrom ||
+                !selectedTokenTo ||
+                !!calculationError ||
+                isFetchingReserves ||
+                !(sellAmount > 0 && buyAmount > 0) ||
+                (isConnected && isInsufficientBalance)
+              }
+              loading={isFetchingReserves}
+            />
+          ) : (
+            <Button
+              text={
+                pathname === '/'
+                  ? isFetchingReserves
+                    ? 'Fetching reserves...'
+                    : calculationError
+                    ? calculationError
+                    : 'Get Started'
+                  : isFetchingReserves
+                  ? 'Fetching reserves...'
+                  : calculationError
+                  ? calculationError
+                  : 'Connect Wallet'
+              }
+              error={
+                invaliSelldAmount || invalidBuyAmount || !!calculationError
+              }
+              onClick={() => {
+                if (pathname === '/') {
+                  router.push('/swaps')
+                } else {
+                  open()
+                }
+              }}
+              disabled={isFetchingReserves}
+              loading={isFetchingReserves}
+            />
+          )}
+        </div>
+
         {buyAmount > 0 &&
           sellAmount > 0 &&
           selectedTokenFrom &&
@@ -384,51 +451,10 @@ const SELSection = () => {
               tokenToUsdPrice={selectedTokenTo?.usd_price || 0}
               estTime={estTime}
               isCalculating={isCalculating}
+              isFetchingReserves={isFetchingReserves}
               slippageSavings={slippageSavings}
             />
           )}
-
-        <div className="w-full my-[20px]">
-          {isConnected && pathname === '/swaps' ? (
-            <Button
-              text={isFetchingReserves ? 'Fetching reserves...' : 'Swap'}
-              theme="gradient"
-              onClick={() => addToast(<NotifiSwapStream />)}
-              error={
-                invaliSelldAmount || invalidBuyAmount || !!calculationError
-              }
-              disabled={
-                !selectedTokenFrom ||
-                !selectedTokenTo ||
-                !!calculationError ||
-                isFetchingReserves
-              }
-              loading={isFetchingReserves}
-            />
-          ) : (
-            <Button
-              text={
-                pathname === '/'
-                  ? isFetchingReserves
-                    ? 'Fetching reserves...'
-                    : 'Get Started'
-                  : isFetchingReserves
-                  ? 'Fetching reserves...'
-                  : 'Connect Wallet'
-              }
-              error={invaliSelldAmount || invalidBuyAmount}
-              onClick={() => {
-                if (pathname === '/') {
-                  router.push('/swaps')
-                } else {
-                  open()
-                }
-              }}
-              disabled={isFetchingReserves}
-              loading={isFetchingReserves}
-            />
-          )}
-        </div>
 
         {pathname === '/' && (
           <div className="flex flex-col items-center justify-center z-20">

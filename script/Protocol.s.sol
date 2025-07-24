@@ -51,7 +51,12 @@ contract Protocol is Test {
     address constant WETH_WHALE = 0x2F0b23f53734252Bda2277357e97e1517d6B042A;
     address constant USDC_WHALE = 0x55FE002aefF02F77364de339a1292923A15844B8;
 
+    address public constant TEST_EOA = address(0xB0B);  // Easy to recognize test address
+    uint256 public constant TEST_EOA_WETH_AMOUNT = 10 ether;  // 10 WETH
+    uint256 public constant TEST_EOA_USDC_AMOUNT = 20_000e6;  // 20,000 USDC
+
     function setUp() public virtual {
+        console.log("Protocol: setUp() start");
         console.log("Starting setUp...");
 
         // Deploy token holder first
@@ -61,8 +66,11 @@ contract Protocol is Test {
         // Deploy fetchers
         console.log("Deploying UniswapV2Fetcher...");
         UniswapV2Fetcher uniswapV2Fetcher = new UniswapV2Fetcher(UNISWAP_V2_FACTORY);
+        console.log("UniswapV2Fetcher deployed");
         UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, UNISWAP_V3_FEE);
+        console.log("UniswapV3Fetcher deployed");
         SushiswapFetcher sushiswapFetcher = new SushiswapFetcher(SUSHISWAP_FACTORY);
+        console.log("SushiswapFetcher deployed");
 
         // Create array of fetcher addresses
         address[] memory dexs = new address[](3);
@@ -78,21 +86,26 @@ contract Protocol is Test {
         console.log("Deploying StreamDaemon...");
         // Deploy StreamDaemon with UniswapV2Fetcher as the dexInterface
         streamDaemon = new StreamDaemon(dexs, routers);
+        console.log("StreamDaemon deployed");
 
         console.log("Deploying Executor...");
         // Deploy Executor
         executor = new Executor();
+        console.log("Executor deployed");
 
         console.log("Deploying Registry...");
         // Deploy Registry and configure routers
         registry = new Registry();
+        console.log("Registry deployed");
         
         // Configure all DEX routers
+        console.log("Configuring DEX routers...");
         registry.setRouter("UniswapV2", UNISWAP_V2_ROUTER);
         registry.setRouter("UniswapV3", UNISWAP_V3_ROUTER);
         registry.setRouter("Sushiswap", SUSHISWAP_ROUTER);
         registry.setRouter("Balancer", BALANCER_VAULT);
         registry.setRouter("Curve", CURVE_POOL);
+        console.log("DEX routers configured");
 
         console.log("Deploying Core...");
         // Deploy Core with all dependencies
@@ -102,6 +115,7 @@ contract Protocol is Test {
             address(registry),
             100000  // Initial gas estimate
         );
+        console.log("Core deployed");
 
         // Log deployment addresses
         console.log("TokenHolder deployed at: %s", address(tokenHolder));
@@ -109,12 +123,10 @@ contract Protocol is Test {
         console.log("Executor deployed at: %s", address(executor));
         console.log("Core deployed at: %s", address(core));
 
-        // Fund the test contract with tokens by impersonating different whale addresses
-        console.log("Checking whale balances...");
-        console.log("WETH Whale balance: %s", getTokenBalance(WETH, WETH_WHALE));
-        console.log("USDC Whale balance: %s", getTokenBalance(USDC, USDC_WHALE));
-
-        console.log("Attempting WETH transfer...");
+        // Fund this contract with WETH and USDC from the first test account
+        console.log("Protocol: Funding with WETH from whale");
+        uint256 whaleWethBalanceBefore = IERC20(WETH).balanceOf(WETH_WHALE);
+        console.log("WETH_WHALE balance before prank: %s", whaleWethBalanceBefore);
         vm.startPrank(WETH_WHALE);
         try IERC20(WETH).transfer(address(tokenHolder), formatTokenAmount(WETH, 10)) {
             console.log("WETH transfer to TokenHolder successful");
@@ -126,7 +138,7 @@ contract Protocol is Test {
         }
         vm.stopPrank();
 
-        console.log("Attempting USDC transfer...");
+        console.log("Protocol: Funding with USDC from whale");
         vm.startPrank(USDC_WHALE);
         try IERC20(USDC).transfer(address(tokenHolder), formatTokenAmount(USDC, 1000)) {
             console.log("USDC transfer to TokenHolder successful");
@@ -143,6 +155,7 @@ contract Protocol is Test {
         console.log("Token holder USDC balance: %s", getTokenBalance(USDC, address(tokenHolder)));
 
         console.log("setUp completed");
+        console.log("Protocol: setUp() end");
     }
 
     // Helper function to get token decimals

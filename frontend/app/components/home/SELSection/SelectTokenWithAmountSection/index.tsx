@@ -20,6 +20,10 @@ interface InputAmountProps {
   onInputFocus?: () => void
   disabled?: boolean
   isLoading?: boolean
+  isBuySection?: boolean
+  isSellSection?: boolean
+  isInsufficientBalance?: boolean
+  setIsInsufficientBalance?: (isInsufficientBalance: boolean) => void
 }
 
 // Top Tokens component that shows popular tokens on hover
@@ -59,11 +63,10 @@ const TopTokens = ({
     <AnimatePresence>
       {isVisible && (
         <motion.div
-          className="absolute -top-[2.1rem] right-0 flex flex-row-reverse gap-1 items-center z-[100]"
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -5 }}
-          transition={{ duration: 0.2 }}
+          className="absolute -top-[1.9rem] right-0 flex flex-row-reverse gap-1 items-center z-[100]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
         >
           {tokensToShow.map((token: TOKENS_TYPE, index) => {
             const disabled = isTokenDisabled(token)
@@ -73,20 +76,40 @@ const TopTokens = ({
                 className={`cursor-pointer relative group ${
                   disabled ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
-                initial={{ opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 10 }}
-                transition={{ duration: 0.3, delay: index * 0.08 }}
+                initial={{ opacity: 0, x: 20, scale: 0.8 }}
+                animate={{
+                  opacity: 1,
+                  x: 0,
+                  scale: 1,
+                  transition: {
+                    delay: index * 0.1,
+                    duration: 0.3,
+                    ease: 'easeOut',
+                  },
+                }}
+                exit={{
+                  opacity: 0,
+                  x: 20,
+                  scale: 0.8,
+                  transition: {
+                    delay: (tokensToShow.length - index - 1) * 0.05,
+                    duration: 0.2,
+                    ease: 'easeIn',
+                  },
+                }}
+                whileHover={{
+                  scale: disabled ? 1 : 1.1,
+                  transition: { duration: 0.2 },
+                }}
                 onClick={(e) => {
                   e.stopPropagation()
                   if (!disabled) {
                     onTokenSelect(token)
                   }
                 }}
-                whileHover={{ scale: disabled ? 1 : 1.1 }}
               >
                 <div
-                  className={`w-8 h-8 rounded-full overflow-hidden border border-neutral-700 bg-[#111] shadow-lg ${
+                  className={`w-7 h-7 rounded-full p-[2px] bg-neutral-700 overflow-hidden border border-neutral-700 shadow-lg ${
                     disabled ? 'grayscale' : ''
                   }`}
                 >
@@ -102,11 +125,6 @@ const TopTokens = ({
                     }}
                   />
                 </div>
-                {/* {disabled && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
-                    <span className="text-[6px] text-white">Selected</span>
-                  </div>
-                )} */}
               </motion.div>
             )
           })}
@@ -125,6 +143,10 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   onInputFocus,
   disabled,
   isLoading,
+  isBuySection,
+  isInsufficientBalance,
+  setIsInsufficientBalance,
+  isSellSection,
 }) => {
   const {
     showSelectTokenModal,
@@ -149,6 +171,18 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   const [tokenBalance, setTokenBalance] = useState('0')
   const [showTopTokens, setShowTopTokens] = useState(false)
   const buttonRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (
+      inputField === 'from' &&
+      amount !== 0 &&
+      amount > parseFloat(tokenBalance)
+    ) {
+      setIsInsufficientBalance?.(true)
+    } else {
+      setIsInsufficientBalance?.(false)
+    }
+  }, [amount, tokenBalance, inputField, setIsInsufficientBalance])
 
   // Get the appropriate token based on which input field this is
   const selectedToken =
@@ -326,6 +360,8 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
             onInputFocus={onInputFocus}
             disable={disabled}
             isLoading={isLoading}
+            isBuySection={isBuySection}
+            isSellSection={isSellSection}
           />
         </div>
 
@@ -333,14 +369,14 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
         {selectedToken ? (
           <div
             className={`min-w-[165px] group w-fit h-12 rounded-[25px] p-[2px] ${
-              amount > 0 && !inValidAmount
+              amount > 0 && !inValidAmount && !isBuySection
                 ? ' bg-borderGradient'
                 : 'bg-[#373D3F]'
             }`}
             ref={buttonRef}
           >
             <div
-              className="min-w-[165px] overflow-hidden w-fit h-full bg-[#0D0D0D] group-hover:bg-tabsGradient transition-colors duration-300 p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold"
+              className="min-w-[165px] overflow-hidden w-fit h-full bg-[#0D0D0D] group-hover:bg-[#2a2a2a] transition-colors duration-300 p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold"
               onClick={handleSelectToken}
             >
               <div className="flex items-center w-fit h-fit">
@@ -374,7 +410,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
         ) : (
           <div
             onClick={handleSelectToken}
-            className="min-w-[165px] relative w-fit h-12 bg-primaryGradient hover:opacity-85 py-[13px] px-[20px] gap-[14px] flex rounded-[25px] items-center justify-between text-black cursor-pointer uppercase font-bold"
+            className="min-w-[165px] bg-[linear-gradient(90deg,_#40FCB4_0%,_#41F58C_21.95%,_#40FCB4_48.58%,_#41F58C_71.52%,_#40FCB4_100%)] relative w-fit h-12 hover:opacity-85 py-[13px] px-[20px] gap-[14px] flex rounded-[25px] items-center justify-between text-black cursor-pointer uppercase font-bold"
             onMouseEnter={() => setShowTopTokens(true)}
             onMouseLeave={() => setShowTopTokens(false)}
             ref={buttonRef}

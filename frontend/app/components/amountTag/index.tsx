@@ -4,7 +4,6 @@ import Image from 'next/image'
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
@@ -31,24 +30,33 @@ const AmountTag: React.FC<Props> = ({
     <div className="flex justify-between items-center">
       <div className="flex items-center gap-1">
         <p className={cn('text-[14px]', titleClassName)}>{title}</p>
-        {infoDetail && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Image
-                  src="/icons/info.svg"
-                  alt="info"
-                  className="w-4 h-4 cursor-pointer"
-                  width={20}
-                  height={20}
-                />
-              </TooltipTrigger>
-              <TooltipContent className="bg-neutral-700 z-50">
-                <p>Info</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Image
+              src="/icons/info.svg"
+              alt="info"
+              className="w-4 h-4 cursor-pointer"
+              width={20}
+              height={20}
+              priority // Add priority to load the image faster
+            />
+          </TooltipTrigger>
+          <TooltipContent className="bg-[#0D0D0D] z-50 max-w-[280px] border-[2px] border-white12">
+            {/* <p>{infoDetail || 'Additional information'}</p> */}
+            <p>
+              Lorem Ipsum is simply dummy text of the printing and typesetting
+              industry. Lorem Ipsum has been the industry's standard dummy text
+              ever since the 1500 &nbsp;{' '}
+              <a
+                href="https://www.lipsum.com/"
+                target="_blank"
+                className="text-[#aeabab] underline"
+              >
+                Learn more
+              </a>
+            </p>
+          </TooltipContent>
+        </Tooltip>
       </div>
       <div className="flex items-center gap-1">
         {isLoading ? (

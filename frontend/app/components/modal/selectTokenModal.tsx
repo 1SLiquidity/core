@@ -9,6 +9,7 @@ import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
 import { useToast } from '@/app/lib/context/toastProvider'
+import { formatWalletAddress } from '@/app/lib/helper'
 
 // Chain name mapping for display purposes
 const CHAIN_NAMES: { [key: string]: string } = {
@@ -17,6 +18,33 @@ const CHAIN_NAMES: { [key: string]: string } = {
   '137': 'Polygon',
   '56': 'BNB Chain',
   // Add more chains as needed
+}
+
+// Token Skeleton component for loading state
+const TokenSkeleton = () => {
+  return (
+    <div className="w-full flex items-center min-h-[62px] px-[10px] gap-[12px] rounded-[15px] animate-pulse">
+      <div className="w-[40px] h-[40px] rounded-full bg-neutral-800" />
+      <div className="flex-1">
+        <div className="h-[18px] w-24 bg-neutral-800 rounded mb-2" />
+        <div className="h-[14px] w-16 bg-neutral-800 rounded" />
+      </div>
+      <div className="text-right">
+        <div className="h-[14px] w-16 bg-neutral-800 rounded mb-2" />
+        <div className="h-[12px] w-12 bg-neutral-800 rounded" />
+      </div>
+    </div>
+  )
+}
+
+// Popular Token Skeleton component
+const PopularTokenSkeleton = () => {
+  return (
+    <div className="min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] bg-white005 px-[10px] gap-[6px] border-[2px] border-primary rounded-[15px] animate-pulse">
+      <div className="w-[24px] h-[24px] rounded-full bg-neutral-800 mt-1" />
+      <div className="h-[14px] w-12 bg-neutral-800 rounded" />
+    </div>
+  )
 }
 
 type SelectTokenModalProps = {
@@ -51,6 +79,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     refetch,
     platform,
   } = useTokenList()
+  // const [isLoading, setIsLoading] = useState(true)
 
   const { addToast } = useToast()
 
@@ -219,9 +248,9 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <div className="p-7 h-full">
+      <div className="p-6 pb-0 h-full">
         <div className="flex justify-between gap-2 h-full">
-          <div className="text-xl font-medium">Select Token</div>
+          <div className="text-xl font-medium">Select a Token</div>
           <Image
             src={'/icons/close.svg'}
             alt="close"
@@ -233,21 +262,30 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
         </div>
 
         {/* Network information */}
-        <div className="mt-2 mb-4 flex items-center">
+        {/* <div className="mt-2 mb-4 flex items-center">
           <div className="text-sm text-white px-2 py-1 bg-neutral-800 rounded-full flex items-center">
             <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
             {chainName}
           </div>
-        </div>
+        </div> */}
 
         {/* searchbar */}
-        <div className="my-4">
+        <div className="my-4 flex gap-2 items-center">
           <SearchbarWithIcon
             onChange={(e) => setSearchValue(e.target.value)}
             value={searchValue}
             setValue={(e: any) => setSearchValue(e)}
-            placeholder="Search by name, symbol, or address"
+            placeholder="Search tokens"
           />
+          <div className="flex items-center h-[40px] hover:bg-neutral-800 border-[2px] border-primary rounded-[10px] px-2 py-2 transition-colors">
+            <Image
+              src="/tokens/ether.png"
+              alt="Ethereum"
+              width={28}
+              height={28}
+              className="rounded-md"
+            />
+          </div>
         </div>
 
         {/* Error message and retry button */}
@@ -265,11 +303,20 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
           </div>
         )}
 
-        {searchValue && <p className="text-[20px] text-white">Results</p>}
+        {searchValue && <p className="text-[20px] text-gray">Search Results</p>}
         {debouncedSearchValue.length > 0 ? (
           <>
-            <div className="flex flex-col gap-1 my-[13px] h-[30vh] overflow-y-auto scrollbar-hide">
-              {getFilteredTokens().length === 0 ? (
+            <div className="flex flex-col gap-1 my-[13px] h-[55vh] overflow-y-auto scrollbar-hide">
+              {isLoading ? (
+                <>
+                  <TokenSkeleton />
+                  <TokenSkeleton />
+                  <TokenSkeleton />
+                  <TokenSkeleton />
+                  <TokenSkeleton />
+                  <TokenSkeleton />
+                </>
+              ) : getFilteredTokens().length === 0 ? (
                 <div className="text-center p-4 text-white">
                   No tokens found matching "{debouncedSearchValue}" on{' '}
                   {chainName}
@@ -285,7 +332,7 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                         disabled
                           ? 'opacity-50 cursor-not-allowed bg-neutral-900'
                           : 'hover:bg-neutral-800 cursor-pointer'
-                      } px-[13px] gap-[12px] rounded-[15px] transition-colors`}
+                      } px-[10px] gap-[12px] rounded-[15px] transition-colors`}
                     >
                       <div className="relative h-fit">
                         <Image
@@ -345,122 +392,151 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
         {!(searchValue.length > 0) && (
           <div className="h-full">
-            <p className="text-[20px] text-white">
-              Popular Tokens on {chainName}
-            </p>
-
-            <div className="flex gap-1 my-[13px] overflow-x-auto scrollbar-hide">
-              {getPopularTokens().map((token, ind) => {
-                const disabled = isTokenDisabled(token)
-                return (
-                  <div
-                    key={ind}
-                    onClick={() => !disabled && handleSelectToken(token)}
-                    className={`min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] ${
-                      disabled
-                        ? 'opacity-50 cursor-not-allowed bg-neutral-900'
-                        : 'bg-white005 hover:bg-neutral-900 cursor-pointer'
-                    } px-[13px] gap-[6px] border-[2px] border-primary rounded-[15px] transition-colors`}
-                  >
-                    <div className="relative mt-1">
-                      <Image
-                        src={token.icon}
-                        alt={token.name}
-                        className={`w-[24px] h-[24px] rounded-full ${
-                          disabled ? 'grayscale' : ''
-                        }`}
-                        width={24}
-                        height={24}
-                        onError={handleImageError}
-                      />
-                      {disabled && (
-                        <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
-                          <span className="text-[8px] text-white">
-                            Selected
-                          </span>
+            <div className="h-[55vh] overflow-y-auto scrollbar-hide pb-5">
+              <div className="flex gap-1 my-[13px] overflow-x-auto scrollbar-hide">
+                {isLoading ? (
+                  <>
+                    <PopularTokenSkeleton />
+                    <PopularTokenSkeleton />
+                    <PopularTokenSkeleton />
+                    <PopularTokenSkeleton />
+                    <PopularTokenSkeleton />
+                  </>
+                ) : (
+                  getPopularTokens().map((token, ind) => {
+                    const disabled = isTokenDisabled(token)
+                    return (
+                      <div
+                        key={ind}
+                        onClick={() => !disabled && handleSelectToken(token)}
+                        className={`min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] ${
+                          disabled
+                            ? 'opacity-50 cursor-not-allowed bg-neutral-900'
+                            : 'bg-white005 hover:bg-neutral-900 cursor-pointer'
+                        } px-[10px] gap-[6px] border-[2px] border-primary rounded-[15px] transition-colors`}
+                      >
+                        <div className="relative mt-1">
+                          <Image
+                            src={token.icon}
+                            alt={token.name}
+                            className={`w-[24px] h-[24px] rounded-full ${
+                              disabled ? 'grayscale' : ''
+                            }`}
+                            width={24}
+                            height={24}
+                            onError={handleImageError}
+                          />
+                          {disabled && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
+                              <span className="text-[8px] text-white">
+                                Selected
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                    <p className="">{token.symbol}</p>
+                        <p className="">{token.symbol}</p>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <p className="text-[20px] text-white">Tokens</p>
+
+              <div className="flex flex-col gap-1 my-[13px]">
+                {isLoading ? (
+                  <>
+                    <TokenSkeleton />
+                    <TokenSkeleton />
+                    <TokenSkeleton />
+                    <TokenSkeleton />
+                    <TokenSkeleton />
+                    <TokenSkeleton />
+                  </>
+                ) : getFilteredTokens().length === 0 ? (
+                  <div className="text-center p-4 text-white">
+                    No tokens found on {chainName}
                   </div>
-                )
-              })}
-            </div>
-
-            <p className="text-[20px] text-white">All Tokens on {chainName}</p>
-
-            <div className="flex flex-col gap-1 my-[13px] scrollbar-hide h-[30vh] overflow-y-auto pb-5">
-              {isLoading ? (
-                <div className="flex items-center justify-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                </div>
-              ) : getFilteredTokens().length === 0 ? (
-                <div className="text-center p-4 text-white">
-                  No tokens found on {chainName}
-                </div>
-              ) : (
-                getFilteredTokens().map((token, ind) => {
-                  const disabled = isTokenDisabled(token)
-                  return (
-                    <div
-                      key={ind}
-                      onClick={() => !disabled && handleSelectToken(token)}
-                      className={`w-full flex items-center min-h-[62px] ${
-                        disabled
-                          ? 'opacity-50 cursor-not-allowed bg-neutral-900'
-                          : 'hover:bg-neutral-900 cursor-pointer'
-                      } px-[13px] gap-[12px] rounded-[15px] transition-colors`}
-                    >
-                      <div className="relative h-fit">
-                        <Image
-                          src={token.icon}
-                          alt={token.name}
-                          className={`w-[40px] h-[40px] rounded-full ${
-                            disabled ? 'grayscale' : ''
-                          }`}
-                          width={40}
-                          height={40}
-                          onError={handleImageError}
-                        />
-                        {disabled && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
-                            <span className="text-xs text-white">Selected</span>
+                ) : (
+                  getFilteredTokens().map((token, ind) => {
+                    const disabled = isTokenDisabled(token)
+                    return (
+                      <div
+                        key={ind}
+                        onClick={() => !disabled && handleSelectToken(token)}
+                        className={`w-full flex items-center min-h-[62px] ${
+                          disabled
+                            ? 'opacity-50 cursor-not-allowed bg-neutral-900'
+                            : 'hover:bg-neutral-900 cursor-pointer'
+                        } px-[10px] gap-[12px] rounded-[15px] transition-all duration-300`}
+                      >
+                        <div className="relative h-fit">
+                          <Image
+                            src={token.icon}
+                            alt={token.name}
+                            className={`w-[40px] h-[40px] rounded-full ${
+                              disabled ? 'grayscale' : ''
+                            }`}
+                            width={40}
+                            height={40}
+                            onError={handleImageError}
+                          />
+                          <Image
+                            src="/tokens/ether.png"
+                            alt="Ethereum"
+                            width={26}
+                            height={26}
+                            className="absolute -right-1.5 -bottom-1.5 rounded-md w-[1.35rem] h-[1.35rem] border-[2px] border-black"
+                          />
+                          {disabled && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 rounded-full">
+                              <span className="text-xs text-white">
+                                Selected
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-[18px] p-0 leading-tight">
+                            {token.name}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <p className="text-[14px] uppercase text-[#adadad] p-0 leading-tight">
+                              {token.symbol}
+                            </p>
+                            {token.token_address && (
+                              <p className="text-[14px] uppercase text-gray p-0 leading-tight">
+                                {formatWalletAddress(token.token_address)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        {token.usd_price > 0 && (
+                          <div className="text-right">
+                            <p className="text-[14px] text-white">
+                              $
+                              {token.usd_price.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 6,
+                              })}
+                            </p>
+                            <p
+                              className={`text-[12px] ${
+                                token.status === 'increase'
+                                  ? 'text-green-500'
+                                  : 'text-red-500'
+                              }`}
+                            >
+                              {token.status === 'increase' ? '+' : '-'}
+                              {token.statusAmount.toFixed(2)}%
+                            </p>
                           </div>
                         )}
                       </div>
-                      <div className="flex-1">
-                        <p className="text-[18px] p-0 leading-tight">
-                          {token.name}
-                        </p>
-                        <p className="text-[14px] uppercase text-gray p-0 leading-tight">
-                          {token.symbol}
-                        </p>
-                      </div>
-                      {token.usd_price > 0 && (
-                        <div className="text-right">
-                          <p className="text-[14px] text-white">
-                            $
-                            {token.usd_price.toLocaleString(undefined, {
-                              minimumFractionDigits: 2,
-                              maximumFractionDigits: 6,
-                            })}
-                          </p>
-                          <p
-                            className={`text-[12px] ${
-                              token.status === 'increase'
-                                ? 'text-green-500'
-                                : 'text-red-500'
-                            }`}
-                          >
-                            {token.status === 'increase' ? '+' : '-'}
-                            {token.statusAmount.toFixed(2)}%
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })
-              )}
+                    )
+                  })
+                )}
+              </div>
             </div>
           </div>
         )}

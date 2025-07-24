@@ -85,14 +85,14 @@ const FeaturesSection = () => {
       icon: <Wallet size={24} />,
       title: 'A NEW WALLET STANDARD',
       description:
-        'DECASWAP is the first interface to use multi-factor wallets. Connect your wallet easily and securely.',
+        'DECAStream is the first interface to use multi-factor wallets. Connect your wallet easily and securely.',
       delay: 0.3,
     },
     {
       icon: <Blocks size={24} />,
       title: 'FULL FUNCTIONALITY',
       description:
-        'A single unified interface allows you to swap assets across different blockchains smoothly.',
+        'A single unified interface allows you to stream assets across different blockchains smoothly.',
       delay: 0.4,
     },
     {
@@ -132,7 +132,7 @@ const FeaturesSection = () => {
           variants={subtitleVariants}
         >
           Integrating robust security with versatile functionality across
-          multiple platforms, DECASWAP streamlines swaps, savers and more,
+          multiple platforms, DECAStream streamlines swaps, savers and more,
           enhancing accessibility for everyone.
         </motion.p>
 

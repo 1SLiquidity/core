@@ -97,7 +97,7 @@ const DigitalCustodySection = () => {
     {
       title: 'CROSS-CHAIN AGGREGATION',
       description:
-        "DECASWAP's innovative cross-chain aggregation allows for seamless transactions across multiple blockchain ecosystems.",
+        "DECAStream's innovative cross-chain aggregation allows for seamless transactions across multiple blockchain ecosystems.",
       image: '/dex2.png',
       alt: 'Cross-chain aggregation illustration',
       delay: 0.6,

@@ -271,6 +271,38 @@ body {
   animation: shimmer 1.5s infinite linear;
 }
 
+@keyframes refreshSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+  15% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-refresh-spin {
+  animation: refreshSpin 3s ease-out infinite;
+}
+
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-loading-bar {
+  animation: loading-bar 2s ease-in-out infinite;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

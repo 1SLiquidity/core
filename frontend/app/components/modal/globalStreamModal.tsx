@@ -99,9 +99,9 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
                       width={40}
                       height={40}
                     />
-                    <div className="absolute w-[24px] h-[12px] bg-primaryRed -bottom-1.5 text-xs font-semibold uppercase flex items-center justify-center rounded-[2px]">
+                    {/* <div className="absolute w-[24px] h-[12px] bg-primaryRed -bottom-1.5 text-xs font-semibold uppercase flex items-center justify-center rounded-[2px]">
                       LIVE
-                    </div>
+                    </div> */}
                   </div>
                   <p className="text-white text-[20px]">Global Stream</p>
                 </div>

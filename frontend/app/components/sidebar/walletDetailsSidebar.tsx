@@ -19,6 +19,35 @@ import {
 import { useTrades } from '@/app/lib/hooks/useTrades'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { formatUnits } from 'viem'
+import { SwitchOffIcon } from '@/app/lib/icons'
+import {
+  CheckIcon,
+  CircleCheckBigIcon,
+  CircleCheckIcon,
+  CopyIcon,
+} from 'lucide-react'
+import { useDisconnect } from '@reown/appkit/react'
+import JazzAvatar from '../shared/JazzAvatar'
+import { Skeleton } from '@/components/ui/skeleton'
+
+// Token Skeleton component for loading state
+const TokenSkeleton = () => {
+  return (
+    <div className="w-full flex items-center justify-between border border-white14 bg-white005 p-4 rounded-[15px] animate-pulse">
+      <div className="flex gap-[12px]">
+        <div className="w-[40px] h-[40px] rounded-full bg-neutral-800" />
+        <div>
+          <div className="h-[18px] w-24 bg-neutral-800 rounded mb-2" />
+          <div className="h-[14px] w-16 bg-neutral-800 rounded" />
+        </div>
+      </div>
+      <div className="flex flex-col items-end">
+        <div className="h-[16px] w-24 bg-neutral-800 rounded mb-2" />
+        <div className="h-[14px] w-16 bg-neutral-800 rounded" />
+      </div>
+    </div>
+  )
+}
 
 type WalletDetailsSidebarProps = {
   isOpen: boolean
@@ -56,9 +85,16 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     number | null
   >(null)
   const [dayChange, setDayChange] = useState<number | null>(null)
+  const [showCopied, setShowCopied] = useState(false)
 
   const { address, isConnected, caipAddress, status, embeddedWalletInfo } =
     useAppKitAccount()
+  const { disconnect } = useDisconnect()
+
+  const disconnectWallet = async () => {
+    await disconnect()
+    onClose()
+  }
 
   // Get current chain from AppKit
   const stateData = useAppKitState()
@@ -154,6 +190,18 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     await refetch()
   }
 
+  const handleCopyAddress = async () => {
+    if (address) {
+      try {
+        await navigator.clipboard.writeText(address)
+        setShowCopied(true)
+        setTimeout(() => setShowCopied(false), 1000) // Show tick for 1 second
+      } catch (err) {
+        console.error('Failed to copy address:', err)
+      }
+    }
+  }
+
   console.log('walletTokens', walletTokens)
   console.log('rawTokens', rawTokens)
   console.log('displayTokens', displayTokens)
@@ -167,7 +215,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
       {/* close icon */}
       <div
         onClick={onClose}
-        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-6 -left-[0.7rem] z-50"
+        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[1.9rem] -left-[0.7rem] z-50"
       >
         <Image
           src={'/icons/close.svg'}
@@ -191,9 +239,9 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
           />
         ) : (
           <>
-            <div className="flex justify-between gap-2 h-full sticky bg-black top-0 py-6 px-4 z-40">
-              <div className="flex gap-3 items-center">
-                <div className="relative h-fit">
+            <div className="flex justify-between gap-2 items-center h-full sticky bg-black top-0 py-6 z-40">
+              <div className="flex gap-2 items-center">
+                {/* <div className="relative h-fit">
                   <Image
                     src={'/icons/token.svg'}
                     alt="coin"
@@ -208,30 +256,49 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                     width={200}
                     height={200}
                   />
+                </div> */}
+                <JazzAvatar address={address || ''} diameter={30} />
+                <div className="flex items-center gap-2">
+                  <p className="text-white">
+                    {formatWalletAddress(address || 'GY68234nasmd234asfKT21')}
+                  </p>
+                  <button
+                    onClick={handleCopyAddress}
+                    className="hover:opacity-80 transition-opacity"
+                    title="Copy address"
+                  >
+                    {showCopied ? (
+                      <CircleCheckBigIcon className="w-4 h-4 text-primary" />
+                    ) : (
+                      <CopyIcon className="w-4 h-4 text-white" />
+                    )}
+                  </button>
                 </div>
-                <p className="text-white">
-                  {formatWalletAddress(address || 'GY68234nasmd234asfKT21')}
-                </p>
               </div>
-              <Image
+              {/* <Image
                 src={'/icons/switchoff.svg'}
                 alt="close"
                 className="w-6 cursor-pointer"
                 width={1000}
                 height={1000}
                 onClick={onClose}
-              />
+              /> */}
+              <div
+                className="p-0.5 rounded-md group hover:bg-[#222121] transition-all duration-300"
+                onClick={disconnectWallet}
+              >
+                <SwitchOffIcon className="w-6 cursor-pointer text-[#808080] transition-all duration-300" />
+              </div>
             </div>
 
             {/* Chain Indicator */}
-            <div className="mt-4 flex justify-between items-center">
+            {/* <div className="mt-4 flex justify-between items-center">
               <div className="flex items-center">
                 <div className="text-sm text-white px-2 py-1 bg-neutral-800 rounded-full flex items-center">
                   <span className="h-2 w-2 rounded-full bg-green-500 mr-2" />
                   {chainName}
                 </div>
               </div>
-              {/* Refresh button */}
               <button
                 onClick={handleRefresh}
                 disabled={isLoadingTokens || isFetching}
@@ -248,11 +315,11 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                 />
                 Refresh
               </button>
-            </div>
+            </div> */}
 
             {/* wallet amount details */}
             <div className="pb-6">
-              <div className="mt-4">
+              <div className="">
                 {isLoadingTokens || isFetching ? (
                   <p className="text-[24px] font-bold">Loading balance...</p>
                 ) : tokensError ? (
@@ -376,6 +443,218 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                         </>
                       )}
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {activeTab === WALLET_TABS[1] && (
+                <div className="mt-4">
+                  <p className="text-[20px]">Tokens</p>
+                  <div className="flex flex-col gap-2.5 my-[13px]">
+                    {isLoadingTokens || isFetching ? (
+                      <>
+                        <TokenSkeleton />
+                        <TokenSkeleton />
+                        <TokenSkeleton />
+                        <TokenSkeleton />
+                        <TokenSkeleton />
+                      </>
+                    ) : tokensError ? (
+                      <div className="text-center p-6 rounded-[15px] border border-primaryRed/30 bg-primaryRed/10">
+                        <p className="text-primaryRed mb-2">
+                          Error loading tokens: {tokensError.message}
+                        </p>
+                        <button
+                          onClick={handleRefresh}
+                          className="text-sm bg-primaryRed/20 hover:bg-primaryRed/30 px-4 py-2 rounded-md text-white transition-colors"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : walletTokens.length === 0 ? (
+                      <div className="text-center p-6 rounded-[15px] border border-white14 bg-white005">
+                        <p className="text-white mb-1">No tokens found</p>
+                        <p className="text-white52 text-sm">
+                          Connect your wallet or switch networks to view your
+                          tokens
+                        </p>
+                      </div>
+                    ) : (
+                      displayTokens
+                        .map((token, ind) => {
+                          // Skip tokens with no price data or insufficient liquidity
+                          if (!isShowingRealTokens && ind > 5) {
+                            return null // Limit fallback tokens to 5
+                          }
+
+                          // Only show tokens that have price data or are native tokens
+                          const hasValidPriceData =
+                            ((token as TOKENS_TYPE)?.usd_price ?? 0) > 0 ||
+                            ((token as TOKENS_TYPE)?.token_address ?? '') ===
+                              '0x0000000000000000000000000000000000000000' ||
+                            parseFloat((token as TOKENS_TYPE)?.balance ?? '0') >
+                              0 // Show tokens with balance
+
+                          if (isShowingRealTokens && !hasValidPriceData) {
+                            return null
+                          }
+
+                          return (
+                            <div
+                              key={ind}
+                              className="w-full flex items-center justify-between border border-white14 bg-white005 hover:bg-neutral-800 p-4 rounded-[15px] cursor-pointer hover:bg-tabsGradient transition-all duration-300"
+                            >
+                              <div className="flex gap-[12px]">
+                                <div className="relative h-fit">
+                                  <Image
+                                    src={token.icon}
+                                    alt={token.name}
+                                    className="w-[40px] h-[40px]"
+                                    width={1000}
+                                    height={1000}
+                                  />
+                                </div>
+                                <div>
+                                  <p className="text-[18px] p-0 leading-tight">
+                                    {token.symbol}
+                                  </p>
+                                  <p className="text-[14px] uppercase text-gray p-0 leading-tight">
+                                    {typeof token.value === 'number'
+                                      ? token.value.toFixed(6)
+                                      : (
+                                          parseFloat(
+                                            (token as TOKENS_TYPE)?.balance ??
+                                              '0'
+                                          ) /
+                                          Math.pow(
+                                            10,
+                                            (token as TOKENS_TYPE)?.decimals ??
+                                              18
+                                          )
+                                        ).toFixed(6)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex flex-col items-end">
+                                {isShowingRealTokens &&
+                                'usd_price' in token &&
+                                ((token as TOKENS_TYPE)?.usd_price ?? 0) > 0 ? (
+                                  <p
+                                    className={`text-[16px] p-0 leading-tight ${
+                                      token.status == 'increase'
+                                        ? 'text-primary'
+                                        : 'text-primaryRed'
+                                    }`}
+                                  >
+                                    {`${
+                                      token.status == 'increase' ? '+' : '-'
+                                    }${(token.statusAmount || 0).toFixed(2)}`}
+                                  </p>
+                                ) : (
+                                  <p className="text-[16px] p-0 leading-tight text-white text-right">
+                                    {'token_address' in token &&
+                                    ((token as TOKENS_TYPE)?.token_address ??
+                                      '') ===
+                                      '0x0000000000000000000000000000000000000000'
+                                      ? 'usd_price' in token &&
+                                        ((token as TOKENS_TYPE)?.usd_price ??
+                                          0) > 0
+                                        ? `${
+                                            token.status == 'increase'
+                                              ? '+'
+                                              : '-'
+                                          }${(token.statusAmount || 0).toFixed(
+                                            2
+                                          )}`
+                                        : 'Native token'
+                                      : parseFloat(
+                                          (token as TOKENS_TYPE)?.balance ?? '0'
+                                        ) > 0
+                                      ? `Balance: ${(
+                                          parseFloat(
+                                            (token as TOKENS_TYPE)?.balance ??
+                                              '0'
+                                          ) /
+                                          Math.pow(
+                                            10,
+                                            (token as TOKENS_TYPE)?.decimals ??
+                                              18
+                                          )
+                                        ).toFixed(4)}`
+                                      : 'No price data'}
+                                  </p>
+                                )}
+                                {isShowingRealTokens &&
+                                'usd_price' in token &&
+                                ((token as TOKENS_TYPE)?.usd_price ?? 0) > 0 ? (
+                                  <div className="flex gap-1 items-center">
+                                    <Image
+                                      src={
+                                        token.status == 'increase'
+                                          ? '/icons/progress-up.svg'
+                                          : '/icons/progress-down.svg'
+                                      }
+                                      alt="progress"
+                                      className="w-2"
+                                      width={1000}
+                                      height={1000}
+                                    />
+                                    <p className="text-[14px]">
+                                      {`${(token.statusAmount || 0).toFixed(
+                                        2
+                                      )}%`}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <div className="flex gap-1 items-center">
+                                    <p className="text-[14px] text-white text-right">
+                                      {'token_address' in token &&
+                                      ((token as TOKENS_TYPE)?.token_address ??
+                                        '') ===
+                                        '0x0000000000000000000000000000000000000000' ? (
+                                        'usd_price' in token &&
+                                        ((token as TOKENS_TYPE)?.usd_price ??
+                                          0) > 0 ? (
+                                          <span className="flex gap-1 items-center">
+                                            <Image
+                                              src={
+                                                token.status == 'increase'
+                                                  ? '/icons/progress-up.svg'
+                                                  : '/icons/progress-down.svg'
+                                              }
+                                              alt="progress"
+                                              className="w-2"
+                                              width={1000}
+                                              height={1000}
+                                            />
+                                            {`${(
+                                              token.statusAmount || 0
+                                            ).toFixed(2)}%`}
+                                          </span>
+                                        ) : (
+                                          'Native token'
+                                        )
+                                      ) : token.symbol === 'ZONE' ? (
+                                        'No price data available'
+                                      ) : parseFloat(
+                                          (token as TOKENS_TYPE)?.balance ?? '0'
+                                        ) > 0 ? (
+                                        'No price data'
+                                      ) : isShowingRealTokens ? (
+                                        'Insufficient liquidity'
+                                      ) : (
+                                        'Demo data'
+                                      )}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })
+                        .filter(Boolean) // Filter out null values
+                    )}
                   </div>
                 </div>
               )}
