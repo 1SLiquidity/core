@@ -665,20 +665,19 @@ export class SushiSwapCalculator extends BaseDexCalculator {
   ): Promise<string> {
     if (!reserveData || !reserveData.reserves) return '0'
 
-    // Check cache first
-    const cacheKey = this.getCacheKey('out', amountIn, reserveData)
-    const cachedResult = calculationCache.get(cacheKey)
-    if (cachedResult) {
-      console.log('Using cached output amount calculation')
-      return cachedResult
-    }
-
     try {
-      // Get token decimals from reserveData or default to 18
+      // Get token decimals from backend response
       const token0Decimals = reserveData.decimals.token0
       const token1Decimals = reserveData.decimals.token1
 
-      // Convert to BigNumber with proper decimals
+      console.log('SushiSwap calculation input:', {
+        amountIn,
+        token0Decimals,
+        token1Decimals,
+        reserves: reserveData.reserves,
+      })
+
+      // Convert input amount to proper decimals
       const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
 
       // Get amount out using the router contract
@@ -688,15 +687,20 @@ export class SushiSwapCalculator extends BaseDexCalculator {
         reserveData.reserves.token1
       )
 
-      console.log('SushiSwap output amount:', amountOut.toString())
+      console.log('SushiSwap raw output amount:', amountOut.toString())
 
-      // Convert back to string with proper decimals
-      const result = this.formatOutput(amountOut, token1Decimals)
+      // Use base class's formatOutput method which has proper handling for all value ranges
+      const result = super.formatOutput(amountOut, token1Decimals)
 
-      console.log('SushiSwap output result:', result)
+      console.log('SushiSwap final calculation result:', {
+        amountIn,
+        amountInBN: amountInBN.toString(),
+        amountOut: amountOut.toString(),
+        formattedResult: result,
+        token0Decimals,
+        token1Decimals,
+      })
 
-      // Cache the result
-      // calculationCache.set(cacheKey, result)
       return result
     } catch (error) {
       console.error('Error calculating output amount:', error)
@@ -704,47 +708,45 @@ export class SushiSwapCalculator extends BaseDexCalculator {
     }
   }
 
-  async calculateOutputAmountOld(
-    amountIn: string,
-    reserveData: ReserveData
-  ): Promise<string> {
-    if (!reserveData || !reserveData.reserves) return '0'
-
-    console.log('SushiSwap calculateOutputAmount', {
-      amountIn,
-      reserveData,
-    })
-
-    // Special case handling for exact value of 1 to avoid precision issues and looping
-    if (amountIn === '1' || parseFloat(amountIn) === 1) {
-      console.log('Special handling for exact input of 1')
-      // Return a stable, memoized value for input=1 to avoid flickering
-      return this.calculateStableOutputFor1(reserveData)
-    }
-
-    // Check cache first
-    const cacheKey = this.getCacheKey('out', amountIn, reserveData)
-    const cachedResult = calculationCache.get(cacheKey)
-    if (cachedResult) {
-      console.log('Using cached output amount calculation:', cachedResult)
-      return cachedResult
-    }
-
+  // Helper method to format output with specified decimals
+  protected formatOutput(
+    amount: ethers.BigNumber,
+    decimals: number = 18
+  ): string {
     try {
-      // Instead of going back and forth between implementations,
-      // let's directly use the UniswapV2 implementation for consistency
-      const v2Calculator = new UniswapV2Calculator(this.chainId)
-      const result = await v2Calculator.calculateOutputAmount(
-        amountIn,
-        reserveData
-      )
+      // Format with all decimals first
+      const formatted = ethers.utils.formatUnits(amount, decimals)
+      console.log('SushiSwap formatOutput:', {
+        amount: amount.toString(),
+        decimals,
+        formatted,
+      })
 
-      // Cache the result with longer expiry for stability
-      calculationCache.set(cacheKey, result, 120000) // Cache for 2 minutes
-      console.log('Using UniswapV2 calculation for SushiSwap:', result)
+      // Parse to float for comparison
+      const value = parseFloat(formatted)
+
+      // Format based on magnitude for consistent display
+      let result: string
+      if (value > 100) {
+        result = value.toFixed(2)
+      } else if (value > 10) {
+        result = value.toFixed(3)
+      } else if (value > 1) {
+        result = value.toFixed(4)
+      } else if (value > 0.1) {
+        result = value.toFixed(6)
+      } else {
+        result = value.toFixed(8)
+      }
+
+      console.log('SushiSwap final formatted result:', {
+        value,
+        result,
+      })
+
       return result
     } catch (error) {
-      console.error('Error in SushiSwap calculation:', error)
+      console.error('Error formatting output:', error)
       return '0'
     }
   }

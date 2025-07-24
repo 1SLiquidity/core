@@ -98,13 +98,8 @@ export const useSwapCalculator = ({
               if (!isNaN(numericBuyAmount)) {
                 // Only update buy amount if we still have a non-zero sell amount
                 if (currentSellAmount.current > 0) {
-                  if (amount === 1 && reserves?.dex === 'sushiswap') {
-                    setBuyAmount(numericBuyAmount / 1000)
-                  } else if (amount === 1) {
-                    setBuyAmount(parseFloat(calculatedBuyAmount))
-                  } else {
-                    setBuyAmount(parseFloat(numericBuyAmount.toFixed(8)))
-                  }
+                  // Use the calculated amount directly, no special case for SushiSwap
+                  setBuyAmount(parseFloat(numericBuyAmount.toFixed(8)))
                 }
               } else {
                 setCalculationError('Error calculating output amount')
