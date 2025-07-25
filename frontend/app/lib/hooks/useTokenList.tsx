@@ -480,7 +480,7 @@ const topTokens: EssentialToken[] = [
       'arbitrum-one': '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
     },
     image: 'https://assets.coingecko.com/coins/images/2518/large/weth.png',
-    current_price: 2800,
+    current_price: 0,
     price_change_percentage_24h: 0,
     market_cap_rank: 1,
     detail_platforms: {
@@ -503,7 +503,7 @@ const topTokens: EssentialToken[] = [
       'arbitrum-one': '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
     },
     image: 'https://assets.coingecko.com/coins/images/325/large/Tether.png',
-    current_price: 1,
+    current_price: 0,
     price_change_percentage_24h: 0,
     market_cap_rank: 2,
     detail_platforms: {
@@ -527,7 +527,7 @@ const topTokens: EssentialToken[] = [
     },
     image:
       'https://assets.coingecko.com/coins/images/6319/large/USD_Coin_icon.png',
-    current_price: 1,
+    current_price: 0,
     price_change_percentage_24h: 0,
     market_cap_rank: 3,
     detail_platforms: {
@@ -552,7 +552,6 @@ const topTokens: EssentialToken[] = [
     image:
       'https://assets.coingecko.com/coins/images/7598/large/wrapped_bitcoin_wbtc.png',
     current_price: 0,
-    // current_price: 65000,
     price_change_percentage_24h: 0,
     market_cap_rank: 4,
     detail_platforms: {
@@ -707,7 +706,24 @@ export const useTokenList = () => {
         }
 
         // Combine essential tokens with market data
-        const combinedTokens = [...essentialTokens]
+        const combinedTokens = [...essentialTokens].map((essentialToken) => {
+          // Find matching market data for essential token
+          const marketToken = marketData.find(
+            (t: CoinGeckoToken) => t.id === essentialToken.id
+          )
+          if (marketToken) {
+            // Update essential token with real market data
+            return {
+              ...essentialToken,
+              current_price:
+                marketToken.current_price || essentialToken.current_price,
+              price_change_percentage_24h:
+                marketToken.price_change_percentage_24h ||
+                essentialToken.price_change_percentage_24h,
+            }
+          }
+          return essentialToken
+        })
 
         // Add market data tokens that aren't in essential tokens
         const essentialTokenIds = new Set(essentialTokens.map((t) => t.id))
