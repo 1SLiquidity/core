@@ -10,7 +10,7 @@ import { StreamDaemon } from "src/StreamDaemon.sol";
 contract StreamDaemonTest is StreamDaemon {
     constructor() StreamDaemon(new address[](0), new address[](0)) { }
 
-    function testSqrt(uint256 y) public pure returns (uint256) {
+    function testSqrt(uint256 y) public view returns (uint256) {
         return sqrt(y);
     }
 }

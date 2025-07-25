@@ -106,15 +106,20 @@ contract StreamDaemon is Ownable {
      * alpha represents a scalar variable which scales the sweet spot elementaries to
      * eliminate shifts in algo output due to reserve differences
      */
-    function computeAlpha(uint256 numerator, uint256 denominator) internal pure returns (uint256 alpha) {
+    function computeAlpha(uint256 scaledReserveIn, uint256 scaledReserveOut) internal pure returns (uint256 alpha) {
         // alpha = reserveOut / (reserveIn^2)
-        require(numerator > 0, "Invalid reserve");
-        require(denominator > 0, "Invalid reserve");
+        require(scaledReserveIn > 0, "Invalid reserve");
+        require(scaledReserveOut > 0, "Invalid reserve");
 
-        // scale by 1e24 to maintain precision in division
-        return ((numerator * 1e24) / (denominator * denominator));
+        if (scaledReserveIn >= scaledReserveOut) {
+            alpha = (scaledReserveIn * 1e24) / (scaledReserveOut * scaledReserveOut);
+        } else {
+            alpha = (scaledReserveOut * 1e24) / (scaledReserveIn * scaledReserveIn);
+        }
     }
 
+    // -1 floor / ceiling
+    // -2 gas estimation
     function _sweetSpotAlgo(
         address tokenIn,
         address tokenOut,
@@ -149,26 +154,15 @@ contract StreamDaemon is Ownable {
         uint256 scaledReserveOut = reserveOut / (10 ** decimalsOut);
         console.log("scaledReserveOut", scaledReserveOut);
 
-        uint256 alpha;
-
-        if (scaledReserveIn >= scaledReserveOut) {
-            alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
-        } else {
-            alpha = computeAlpha(scaledReserveOut, scaledReserveIn);
-        }
-
-        console.log("alpha", alpha);
-
-        // N = sqrt(alpha * V^2)
-        uint256 numerator = alpha * scaledVolume * scaledVolume;
-        console.log("numerator", numerator);
-        uint256 denominator = 1e24;
-        console.log("denominator", denominator);
-
-        require(denominator > 0, "Invalid effective gas");
-
-        sweetSpot = sqrt(numerator / denominator);
+        sweetSpot = _sweetSpotAlgo_v1(scaledVolume, scaledReserveIn, scaledReserveOut);
         console.log("calculated sweetSpot", sweetSpot);
+
+        if (scaledReserveIn > scaledReserveOut && sweetSpot > 500) {
+            sweetSpot = _sweetSpotAlgo_v2(scaledVolume, scaledReserveIn);
+            console.log("sweetSpot_v2", sweetSpot);
+            console.log("calculated max % of reserveIn", 500 * 100_000 / sqrt(scaledReserveIn));
+            console.log("calculated current % of reserveIn", scaledVolume * 100_000 / scaledReserveIn);
+        }
 
         if (sweetSpot == 0) {
             sweetSpot = 4;
@@ -181,8 +175,59 @@ contract StreamDaemon is Ownable {
         // @audit need to add a case for volume < 0.001 pool depth whereby sweetspot = 1
     }
 
+    function _sweetSpotAlgo_v1(
+        uint256 scaledVolume,
+        uint256 scaledReserveIn,
+        uint256 scaledReserveOut
+    )
+        public
+        view
+        returns (uint256 sweetSpot)
+    {
+        uint256 gStart = gasleft();
+
+        uint256 alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
+        sweetSpot = sqrt((alpha * scaledVolume * scaledVolume) / 1e24);
+
+        uint256 gUsed = gStart - gasleft();
+        console.log("_sweetSpotAlgo_v1 gas used:", gUsed);
+    }
+
+    function _sweetSpotAlgo_v2(uint256 scaledVolume, uint256 scaledReserveIn) public view returns (uint256 sweetSpot) {
+        //         - ReserveIn = 1 000
+        //   • √Rin ≃ 31,6 ⇒ p_threshold ≃ 500/31,6 ≃ 15,8 (fraction)
+        //   • soit ≃ 1 580 % de ReserveIn
+        //   → **Impossible** de dépasser, on ne peut pas injecter plus de 100 %.
+
+        // - ReserveIn = 250 000
+        //   • √Rin = 500   ⇒ p_threshold = 500/500 = 1,0
+        //   • soit **100 %** de ReserveIn
+        //   → il faut injecter 100 % de la réserve pour que la 2ᵉ formule atteigne 500.
+
+        // - ReserveIn = 1 000 000
+        //   • √Rin = 1 000 ⇒ p_threshold = 500/1 000 = 0,50
+        //   • soit **50 %** de ReserveIn
+        //   → injection ≥ 50 % → sweetSpot_new > 500.
+
+        // - ReserveIn = 10 000 000
+        //   • √Rin = 3 162 ⇒ p_threshold ≃ 500/3 162 ≃ 0,158
+        //   • soit **15,8 %** de ReserveIn
+        //   → injection ≥ 15,8 % → sweetSpot_new > 500.
+
+        // !p_threshold = 500 / √(ReserveIn)
+        // !
+        uint256 gStart = gasleft();
+
+        sweetSpot = (scaledVolume) / sqrt(scaledReserveIn);
+
+        uint256 gUsed = gStart - gasleft();
+        console.log("_sweetSpotAlgo_v2 gas used:", gUsed);
+    }
+
     // babylonian
-    function sqrt(uint256 y) internal pure returns (uint256 z) {
+    function sqrt(uint256 y) internal view returns (uint256 z) {
+        uint256 gStart = gasleft();
+
         if (y > 3) {
             z = y;
             uint256 x = y / 2 + 1;
@@ -193,5 +238,12 @@ contract StreamDaemon is Ownable {
         } else if (y != 0) {
             z = 1;
         }
+
+        uint256 gUsed = gStart - gasleft();
+        console.log("sqrt gas used:", gUsed);
     }
+
+    // math for min vol
+    // Vmin_scaled = min(Rin, Rout) / √( max(Rin, Rout) )
+
 }
