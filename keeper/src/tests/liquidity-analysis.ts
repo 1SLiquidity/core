@@ -1,7 +1,5 @@
-import { ethers } from 'ethers';
 import { createProvider } from '../utils/provider';
 import { ReservesAggregator } from '../services/reserves-aggregator';
-import { PriceAggregator } from '../services/price-aggregator';
 import { TokenService } from '../services/token-service';
 import * as dotenv from 'dotenv';
 import * as XLSX from 'xlsx';
@@ -14,7 +12,6 @@ dotenv.config();
 // Create provider
 const provider = createProvider();
 const reservesAggregator = new ReservesAggregator(provider);
-const priceAggregator = new PriceAggregator(provider);
 const tokenService = TokenService.getInstance(provider);
 
 // Base tokens to test against (Ethereum addresses)
@@ -163,7 +160,6 @@ interface LiquidityResult {
     token0: number;
     token1: number;
   };
-  usdLiquidity: number;
   timestamp: number;
 }
 
@@ -172,9 +168,7 @@ interface TokenLiquiditySummary {
   tokenSymbol: string;
   tokenName: string;
   marketCap: number;
-  totalLiquidity: number;
   liquidityPairs: LiquidityResult[];
-  lowLiquidityScore: number; // Market cap / total liquidity ratio
 }
 
 async function fetchTopTokensByMarketCap(limit: number = 100): Promise<TokenInfo[]> {
@@ -288,35 +282,20 @@ async function analyzeTokenLiquidity(token: TokenInfo): Promise<TokenLiquiditySu
   console.log(`\nAnalyzing liquidity for ${token.symbol} (${tokenAddress})...`);
   
   const liquidityPairs: LiquidityResult[] = [];
-  let totalLiquidity = 0;
   
   // Test against each base token
   for (const [baseSymbol, baseAddress] of Object.entries(BASE_TOKENS)) {
     console.log(`  Testing against ${baseSymbol}...`);
     
     try {
-      // Get reserves from all DEXes
-      const reserves = await reservesAggregator.getAllReserves(tokenAddress, baseAddress);
+      // Get reserves from all DEXes for this token pair
+      const allReserves = await getAllReservesForPair(tokenAddress, baseAddress, token.symbol, baseSymbol);
       
-      if (reserves) {
-        const liquidityResult: LiquidityResult = {
-          tokenAddress,
-          tokenSymbol: token.symbol,
-          tokenName: token.name,
-          marketCap: token.market_cap,
-          baseToken: baseAddress,
-          baseTokenSymbol: baseSymbol,
-          dex: reserves.dex,
-          reserves: reserves.reserves,
-          decimals: reserves.decimals,
-          usdLiquidity: 0, // Set to 0 since we removed the calculation
-          timestamp: reserves.timestamp,
-        };
-        
-        liquidityPairs.push(liquidityResult);
-        totalLiquidity += 0; // Set to 0 since we removed the calculation
-        
-        console.log(`    Found ${reserves.dex} liquidity`);
+      if (allReserves.length > 0) {
+        liquidityPairs.push(...allReserves);
+        console.log(`    Found ${allReserves.length} DEX pools for ${token.symbol}/${baseSymbol}`);
+      } else {
+        console.log(`    No liquidity found for ${token.symbol}/${baseSymbol}`);
       }
     } catch (error) {
       console.warn(`    Error getting reserves for ${token.symbol}/${baseSymbol}:`, error);
@@ -331,17 +310,75 @@ async function analyzeTokenLiquidity(token: TokenInfo): Promise<TokenLiquiditySu
     return null;
   }
   
-  const lowLiquidityScore = token.market_cap / totalLiquidity;
-  
   return {
     tokenAddress,
     tokenSymbol: token.symbol,
     tokenName: token.name,
     marketCap: token.market_cap,
-    totalLiquidity,
     liquidityPairs,
-    lowLiquidityScore,
   };
+}
+
+async function getAllReservesForPair(
+  tokenA: string, 
+  tokenB: string, 
+  tokenSymbol: string, 
+  baseSymbol: string
+): Promise<LiquidityResult[]> {
+  const results: LiquidityResult[] = [];
+  
+  // Get token decimals
+  const [token0Info, token1Info] = await Promise.all([
+    tokenService.getTokenInfo(tokenA),
+    tokenService.getTokenInfo(tokenB)
+  ]);
+  
+  // Test each DEX individually
+  const dexes = [
+    { name: 'uniswap-v3-500', fee: 500 },
+    { name: 'uniswap-v3-3000', fee: 3000 },
+    { name: 'uniswap-v3-10000', fee: 10000 },
+    { name: 'uniswapV2', fee: null },
+    { name: 'sushiswap', fee: null }
+  ];
+  
+  for (const dex of dexes) {
+    try {
+      let reserves;
+      if (dex.fee) {
+        // Uniswap V3 with specific fee
+        reserves = await reservesAggregator.getReservesFromDex(tokenA, tokenB, `uniswapV3_${dex.fee}` as any);
+      } else {
+        // Uniswap V2 or SushiSwap
+        reserves = await reservesAggregator.getReservesFromDex(tokenA, tokenB, dex.name as any);
+      }
+      
+      if (reserves) {
+        const liquidityResult: LiquidityResult = {
+          tokenAddress: tokenA,
+          tokenSymbol: tokenSymbol,
+          tokenName: tokenSymbol, // Using symbol as name for simplicity
+          marketCap: 0, // Will be set by parent function
+          baseToken: tokenB,
+          baseTokenSymbol: baseSymbol,
+          dex: dex.name,
+          reserves: reserves.reserves,
+          decimals: reserves.decimals,
+          timestamp: reserves.timestamp,
+        };
+        
+        results.push(liquidityResult);
+        console.log(`      Found ${dex.name} liquidity`);
+      }
+    } catch (error) {
+      console.warn(`      Error getting reserves from ${dex.name}:`, error);
+    }
+    
+    // Small delay between DEX calls
+    await new Promise(resolve => setTimeout(resolve, 200));
+  }
+  
+  return results;
 }
 
 async function saveTokenToJson(tokenResult: TokenLiquiditySummary, timestamp: string): Promise<void> {
@@ -374,46 +411,39 @@ async function saveTokenToJson(tokenResult: TokenLiquiditySummary, timestamp: st
 async function generateExcelReport(results: TokenLiquiditySummary[], timestamp: string): Promise<void> {
   console.log('\nGenerating Excel report...');
   
-  // Prepare data for Excel
-  const excelData = results.map(result => ({
-    'Token Symbol': result.tokenSymbol,
-    'Token Name': result.tokenName,
-    'Token Address': result.tokenAddress,
-    'Market Cap (USD)': result.marketCap,
-    'Total Liquidity (USD)': result.totalLiquidity,
-    'Market Cap / Liquidity Ratio': result.lowLiquidityScore,
-    'Liquidity Pairs Count': result.liquidityPairs.length,
-    'Low Liquidity Score': result.lowLiquidityScore > 50 ? 'HIGH' : result.lowLiquidityScore > 20 ? 'MEDIUM' : 'LOW',
-  }));
-  
-  // Sort by low liquidity score (highest first)
-  excelData.sort((a, b) => b['Market Cap / Liquidity Ratio'] - a['Market Cap / Liquidity Ratio']);
-  
   // Create workbook
   const workbook = XLSX.utils.book_new();
   
-  // Add summary sheet
-  const summarySheet = XLSX.utils.json_to_sheet(excelData);
-  XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
-  
   // Add detailed liquidity pairs sheet
   const detailedData = results.flatMap(result =>
-    result.liquidityPairs.map(pair => ({
-      'Token Symbol': pair.tokenSymbol,
-      'Token Name': pair.tokenName,
-      'Token Address': pair.tokenAddress,
-      'Base Token': pair.baseTokenSymbol,
-      'DEX': pair.dex,
-      'Reserve Token0': pair.reserves.token0,
-      'Reserve Token1': pair.reserves.token1,
-      'USD Liquidity': pair.usdLiquidity,
-      'Market Cap': pair.marketCap,
-      'Timestamp': new Date(pair.timestamp).toISOString(),
-    }))
+    result.liquidityPairs.map(pair => {
+      // Calculate reserves in normal decimal units
+      const token0ReserveRaw = BigInt(pair.reserves.token0);
+      const token1ReserveRaw = BigInt(pair.reserves.token1);
+      
+      const token0ReserveNormal = Number(token0ReserveRaw) / Math.pow(10, pair.decimals.token0);
+      const token1ReserveNormal = Number(token1ReserveRaw) / Math.pow(10, pair.decimals.token1);
+      
+      return {
+        'Token Symbol': pair.tokenSymbol,
+        'Token Name': pair.tokenName,
+        'Token Address': pair.tokenAddress,
+        'Base Token': pair.baseTokenSymbol,
+        'DEX': pair.dex,
+        'Reserve Token0 (Raw)': pair.reserves.token0,
+        'Reserve Token1 (Raw)': pair.reserves.token1,
+        'Reserve Token0 (Normal)': token0ReserveNormal,
+        'Reserve Token1 (Normal)': token1ReserveNormal,
+        'Token0 Decimals': pair.decimals.token0,
+        'Token1 Decimals': pair.decimals.token1,
+        'Market Cap': result.marketCap,
+        'Timestamp': new Date(pair.timestamp).toISOString(),
+      };
+    })
   );
   
   const detailedSheet = XLSX.utils.json_to_sheet(detailedData);
-  XLSX.utils.book_append_sheet(workbook, detailedSheet, 'Detailed Pairs');
+  XLSX.utils.book_append_sheet(workbook, detailedSheet, 'All DEX Reserves');
   
   // Save to file using provided timestamp
   const filename = `liquidity-analysis-${timestamp}.xlsx`;
@@ -533,18 +563,21 @@ async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
     console.log('\n=== SUMMARY ===');
     console.log(`Total tokens analyzed: ${existingData.length}`);
     
-    const highScoreTokens = existingData.filter(r => r.lowLiquidityScore > 50);
-    const mediumScoreTokens = existingData.filter(r => r.lowLiquidityScore > 20 && r.lowLiquidityScore <= 50);
+    const totalPairs = existingData.reduce((sum, token) => sum + token.liquidityPairs.length, 0);
+    console.log(`Total DEX pairs found: ${totalPairs}`);
     
-    console.log(`High liquidity opportunity tokens (>50x ratio): ${highScoreTokens.length}`);
-    console.log(`Medium liquidity opportunity tokens (20-50x ratio): ${mediumScoreTokens.length}`);
-    
-    if (highScoreTokens.length > 0) {
-      console.log('\nTop 5 high-opportunity tokens:');
-      highScoreTokens.slice(0, 5).forEach((token, index) => {
-        console.log(`${index + 1}. ${token.tokenSymbol}: ${token.lowLiquidityScore.toFixed(2)}x ratio`);
+    // Count by DEX
+    const dexCounts: Record<string, number> = {};
+    existingData.forEach(token => {
+      token.liquidityPairs.forEach(pair => {
+        dexCounts[pair.dex] = (dexCounts[pair.dex] || 0) + 1;
       });
-    }
+    });
+    
+    console.log('\nPairs by DEX:');
+    Object.entries(dexCounts).forEach(([dex, count]) => {
+      console.log(`  ${dex}: ${count} pairs`);
+    });
     
   } catch (error) {
     console.error('Error running liquidity analysis:', error);
