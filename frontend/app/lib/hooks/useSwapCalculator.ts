@@ -16,6 +16,7 @@ interface UseSwapCalculatorProps {
   isSwapOperation?: boolean
   selectedTokenTo?: Token | null
   isRefresh?: boolean
+  forceRefreshKey?: number // Add this prop
 }
 
 export const useSwapCalculator = ({
@@ -25,6 +26,7 @@ export const useSwapCalculator = ({
   isSwapOperation = false,
   selectedTokenTo = null,
   isRefresh = false,
+  forceRefreshKey = 0, // Add default value
 }: UseSwapCalculatorProps) => {
   const [buyAmount, setBuyAmount] = useState(0)
   const [isCalculating, setIsCalculating] = useState(false)
@@ -188,6 +190,7 @@ export const useSwapCalculator = ({
     const calculateBuyAmount = async () => {
       // Skip calculation if no input amount or missing dependencies
       if (sellAmount <= 0 || !dexCalculator || !reserveData) {
+        setBuyAmount(0) // Explicitly set buy amount to 0 when conditions aren't met
         return
       }
 
@@ -296,6 +299,7 @@ export const useSwapCalculator = ({
     debouncedCalculation,
     selectedTokenTo,
     isRefresh,
+    forceRefreshKey, // Add forceRefreshKey to dependencies
   ])
 
   // Calculate estimated time when streamCount changes
