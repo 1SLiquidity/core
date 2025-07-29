@@ -33,6 +33,7 @@ const SELSection = () => {
     null
   )
   const [isRefresh, setIsRefresh] = useState(false)
+  const [forceRefreshKey, setForceRefreshKey] = useState(0) // Add this to force recalculation
 
   const { addToast } = useToast()
   const {
@@ -103,6 +104,7 @@ const SELSection = () => {
     isSwapOperation,
     selectedTokenTo,
     isRefresh,
+    forceRefreshKey, // Add this prop
   })
 
   // Use React Query to handle periodic reserve refreshing
@@ -226,6 +228,10 @@ const SELSection = () => {
       setSellAmount(0)
       setInvalidSellAmount(false)
       setInvalidBuyAmount(false)
+      // Force recalculation by updating the key
+      if (!isSwapOperation) {
+        setForceRefreshKey((prev) => prev + 1)
+      }
     }
 
     // Update the ref with current values
@@ -233,16 +239,17 @@ const SELSection = () => {
       from: currentFrom,
       to: currentTo,
     }
-  }, [selectedTokenFrom, selectedTokenTo])
+  }, [selectedTokenFrom, selectedTokenTo, isSwapOperation])
 
   const handleSwap = (): void => {
     setIsSwapOperation(true)
 
-    // Store current values
+    // Store current values before swap
     const currentBuyAmount = buyAmount
 
     // First reset amounts to prevent stale calculations
     setSellAmount(0)
+    setForceRefreshKey((prev) => prev + 1) // Force recalculation
 
     // Swap tokens
     const tempToken = selectedTokenFrom
