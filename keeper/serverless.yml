@@ -7,7 +7,13 @@ provider:
   runtime: nodejs18.x
   stage: ${opt:stage, 'dev'}
   region: us-east-1
-  timeout: 30 # Default timeout for all functions
+  timeout: 30 # Match API Gateway limit
+  memorySize: 256 # Default memory size for all functions
+  httpApi:
+    cors: true
+  apiGateway:
+    minimumCompressionSize: 1024 # Enable compression for responses
+    shouldStartNameWithService: true
   environment:
     NODE_ENV: ${self:provider.stage}
     RPC_URL: ${env:RPC_URL, 'fallback-rpc-url'}
@@ -15,11 +21,13 @@ provider:
     REDIS_HOST: ${env:REDIS_HOST, 'localhost'}
     REDIS_PORT: ${env:REDIS_PORT, 6379}
     REDIS_PASSWORD: ${env:REDIS_PASSWORD, ''}
+    REDIS_URL: ${env:REDIS_URL, ''}
 
 functions:
   reserves:
     handler: src/functions/reserves/handler.main
-    timeout: 30 # Override default timeout for this function
+    timeout: 30 # Set just under API Gateway limit
+    memorySize: 512 # Increase memory for better performance
     events:
       - http:
           path: reserves
@@ -28,6 +36,10 @@ functions:
       - http:
           path: reserves
           method: post
+          cors: true
+      - http:
+          path: reserves
+          method: options
           cors: true
   price:
     handler: src/functions/price/handler.main
@@ -64,3 +76,4 @@ custom:
       - REDIS_HOST
       - REDIS_PORT
       - REDIS_PASSWORD
+      - REDIS_URL
