@@ -65,3 +65,7 @@ Instead of staying stuck at 500, it falls to around 7 thanks to the second formu
 2. Decreasing behavior beyond it  
 
 → Avoids getting stuck at **500**.
+
+
+5 500000
+1 BTC what happens?
