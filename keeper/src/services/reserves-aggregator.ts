@@ -4,7 +4,12 @@ import { ReserveResult } from '../types/reserves'
 import { TokenInfo } from '../types/token'
 import { TokenService } from './token-service'
 
-export type DexType = 'uniswapV2' | 'uniswapV3_500' | 'uniswapV3_3000' | 'uniswapV3_10000' | 'sushiswap'
+export type DexType =
+  | 'uniswapV2'
+  | 'uniswapV3_500'
+  | 'uniswapV3_3000'
+  | 'uniswapV3_10000'
+  | 'sushiswap'
 
 export class ReservesAggregator {
   private uniswapV2: UniswapV2Service
@@ -31,6 +36,7 @@ export class ReservesAggregator {
     delay = 1000
   ): Promise<ReserveResult | null> {
     let retries = 0
+
     while (retries <= maxRetries) {
       try {
         const result = await fetchFn()
@@ -39,11 +45,16 @@ export class ReservesAggregator {
         }
         return result
       } catch (error) {
-        console.error(`${name} fetch error (attempt ${retries + 1}/${maxRetries + 1}):`, error)
+        console.error(
+          `${name} fetch error (attempt ${retries + 1}/${maxRetries + 1}):`,
+          error
+        )
+
         if (retries === maxRetries) {
           console.error(`Failed to fetch ${name} after ${maxRetries} retries`)
-          return null
+          throw error // Let the caller handle the error
         }
+
         console.log(`Retrying ${name} fetch (${retries + 1}/${maxRetries})...`)
         retries++
         // Simple delay to avoid rate limits
@@ -61,24 +72,34 @@ export class ReservesAggregator {
     return value * BigInt(10n ** BigInt(18 - fromDecimals))
   }
 
-  private calculateGeometricMean(reserves: { token0: string, token1: string }, decimals: { token0: number, token1: number }): bigint {
+  private calculateGeometricMean(
+    reserves: { token0: string; token1: string },
+    decimals: { token0: number; token1: number }
+  ): bigint {
     // Convert reserves to BigInt
     const reserve0 = BigInt(reserves.token0)
     const reserve1 = BigInt(reserves.token1)
 
-    const normalizedReserve0 = this.normalizeTo18Decimals(reserve0, decimals.token0)
-    const normalizedReserve1 = this.normalizeTo18Decimals(reserve1, decimals.token1)
+    const normalizedReserve0 = this.normalizeTo18Decimals(
+      reserve0,
+      decimals.token0
+    )
+    const normalizedReserve1 = this.normalizeTo18Decimals(
+      reserve1,
+      decimals.token1
+    )
 
     // Calculate geometric mean
     // sqrt(a * b) = sqrt(a) * sqrt(b)
     const sqrtReserve0 = this.sqrt(normalizedReserve0)
     const sqrtReserve1 = this.sqrt(normalizedReserve1)
-    
+
     return sqrtReserve0 * sqrtReserve1
   }
 
   private sqrt(value: bigint): bigint {
-    if (value < 0n) throw new Error('Cannot calculate square root of negative number')
+    if (value < 0n)
+      throw new Error('Cannot calculate square root of negative number')
     if (value < 2n) return value
 
     let x = value
@@ -90,11 +111,15 @@ export class ReservesAggregator {
     return x
   }
 
-  async getReservesFromDex(tokenA: string, tokenB: string, dex: DexType): Promise<ReserveResult | null> {
+  async getReservesFromDex(
+    tokenA: string,
+    tokenB: string,
+    dex: DexType
+  ): Promise<ReserveResult | null> {
     // Get token decimals
     const [token0Info, token1Info] = await Promise.all([
       this.tokenService.getTokenInfo(tokenA),
-      this.tokenService.getTokenInfo(tokenB)
+      this.tokenService.getTokenInfo(tokenB),
     ])
 
     let reserves: ReserveResult | null = null
@@ -140,8 +165,8 @@ export class ReservesAggregator {
         ...reserves,
         decimals: {
           token0: token0Info.decimals,
-          token1: token1Info.decimals
-        }
+          token1: token1Info.decimals,
+        },
       }
     }
 
@@ -152,13 +177,37 @@ export class ReservesAggregator {
     tokenA: string,
     tokenB: string
   ): Promise<ReserveResult | null> {
+    return new Promise((resolve, reject) => {
+      // Set a timeout to ensure we respond before Lambda times out
+      const timeout = setTimeout(() => {
+        reject(new Error('Request timeout: Operation took too long'))
+      }, 25000) // 25 seconds to allow Lambda to respond
+
+      // Attempt to fetch reserves
+      this._fetchReserves(tokenA, tokenB)
+        .then((result) => {
+          clearTimeout(timeout)
+          resolve(result)
+        })
+        .catch((error) => {
+          clearTimeout(timeout)
+          reject(error)
+        })
+    })
+  }
+
+  // Move the actual fetching logic to a private method
+  private async _fetchReserves(
+    tokenA: string,
+    tokenB: string
+  ): Promise<ReserveResult | null> {
     // Get token decimals
     const [token0Info, token1Info] = await Promise.all([
       this.tokenService.getTokenInfo(tokenA),
-      this.tokenService.getTokenInfo(tokenB)
+      this.tokenService.getTokenInfo(tokenB),
     ])
 
-    const results: { result: ReserveResult, meanReserves: bigint }[] = []
+    const results: { result: ReserveResult; meanReserves: bigint }[] = []
 
     // Fetch data sequentially instead of in parallel to avoid rate limits
     console.log('Fetching Uniswap V3 (500) reserves...')
@@ -167,74 +216,113 @@ export class ReservesAggregator {
       'Uniswap V3 (500)'
     )
     if (uniswapV3_500Reserves) {
-      const meanReserves = this.calculateGeometricMean(uniswapV3_500Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      // console.log('Uniswap V3 (500) meanReserves:', meanReserves.toString())
+      const meanReserves = this.calculateGeometricMean(
+        uniswapV3_500Reserves.reserves,
+        { token0: token0Info.decimals, token1: token1Info.decimals }
+      )
       results.push({
         result: uniswapV3_500Reserves,
-        meanReserves: meanReserves
+        meanReserves,
       })
     }
 
-    console.log('Fetching Uniswap V3 (3000) reserves...')
-    const uniswapV3_3000Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
-      'Uniswap V3 (3000)' 
-    )
-    if (uniswapV3_3000Reserves) {
-      const meanReserves = this.calculateGeometricMean(uniswapV3_3000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      // console.log('Uniswap V3 (3000) meanReserves:', meanReserves.toString())
-      results.push({
-        result: uniswapV3_3000Reserves,
-        meanReserves: meanReserves
-      })
+    // If we already have a result, return early
+    if (results.length > 0) {
+      return {
+        ...results[0].result,
+        decimals: {
+          token0: token0Info.decimals,
+          token1: token1Info.decimals,
+        },
+      }
     }
 
-    console.log('Fetching Uniswap V3 (10000) reserves...')
-    const uniswapV3_10000Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
-      'Uniswap V3 (10000)'
-    )
-    if (uniswapV3_10000Reserves) {
-      const meanReserves = this.calculateGeometricMean(uniswapV3_10000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      // console.log('Uniswap V3 (10000) meanReserves:', meanReserves.toString())
-      results.push({
-        result: uniswapV3_10000Reserves,
-        meanReserves: meanReserves
-      })
+    // Continue with other DEXes if needed
+    try {
+      console.log('Fetching Uniswap V3 (3000) reserves...')
+      const uniswapV3_3000Reserves = await this.fetchWithRetry(
+        () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+        'Uniswap V3 (3000)'
+      )
+      if (uniswapV3_3000Reserves) {
+        const meanReserves = this.calculateGeometricMean(
+          uniswapV3_3000Reserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        results.push({
+          result: uniswapV3_3000Reserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch from Uniswap V3 (3000):', error)
+    }
+
+    try {
+      console.log('Fetching Uniswap V3 (10000) reserves...')
+      const uniswapV3_10000Reserves = await this.fetchWithRetry(
+        () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+        'Uniswap V3 (10000)'
+      )
+      if (uniswapV3_10000Reserves) {
+        const meanReserves = this.calculateGeometricMean(
+          uniswapV3_10000Reserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        results.push({
+          result: uniswapV3_10000Reserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch from Uniswap V3 (10000):', error)
     }
 
     // Add short delay before making more calls to avoid rate limits
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    console.log('Fetching Uniswap V2 reserves...')
-    const uniswapV2Reserves = await this.fetchWithRetry(
-      () => this.uniswapV2.getReserves(tokenA, tokenB),
-      'Uniswap V2'
-    )
-    if (uniswapV2Reserves) {
-      const meanReserves = this.calculateGeometricMean(uniswapV2Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      // console.log('Uniswap V2 meanReserves:', meanReserves.toString())
-      results.push({
-        result: uniswapV2Reserves,
-        meanReserves: meanReserves
-      })
+    try {
+      console.log('Fetching Uniswap V2 reserves...')
+      const uniswapV2Reserves = await this.fetchWithRetry(
+        () => this.uniswapV2.getReserves(tokenA, tokenB),
+        'Uniswap V2'
+      )
+      if (uniswapV2Reserves) {
+        const meanReserves = this.calculateGeometricMean(
+          uniswapV2Reserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        results.push({
+          result: uniswapV2Reserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch from Uniswap V2:', error)
     }
 
     // Add short delay before making more calls to avoid rate limits
     await new Promise((resolve) => setTimeout(resolve, 500))
 
-    console.log('Fetching SushiSwap reserves...')
-    const sushiswapReserves = await this.fetchWithRetry(
-      () => this.sushiswap.getReserves(tokenA, tokenB),
-      'SushiSwap'
-    )
-    if (sushiswapReserves) {
-      const meanReserves = this.calculateGeometricMean(sushiswapReserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      console.log('SushiSwap meanReserves:', meanReserves.toString())
-      results.push({
-        result: sushiswapReserves,
-        meanReserves: meanReserves
-      })
+    try {
+      console.log('Fetching SushiSwap reserves...')
+      const sushiswapReserves = await this.fetchWithRetry(
+        () => this.sushiswap.getReserves(tokenA, tokenB),
+        'SushiSwap'
+      )
+      if (sushiswapReserves) {
+        const meanReserves = this.calculateGeometricMean(
+          sushiswapReserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        console.log('SushiSwap meanReserves:', meanReserves.toString())
+        results.push({
+          result: sushiswapReserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.error('Failed to fetch from SushiSwap:', error)
     }
 
     if (results.length === 0) {
@@ -248,13 +336,12 @@ export class ReservesAggregator {
 
     console.log('Selected deepest pool with liquidity:', deepestPool.result)
 
-    // Add decimals information to the result
     return {
       ...deepestPool.result,
       decimals: {
         token0: token0Info.decimals,
-        token1: token1Info.decimals
-      }
+        token1: token1Info.decimals,
+      },
     }
   }
 }

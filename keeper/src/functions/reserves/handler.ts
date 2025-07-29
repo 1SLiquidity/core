@@ -32,6 +32,21 @@ function parseRequestBody(event: APIGatewayProxyEvent): ReserveRequest | null {
 export const main = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Content-Type': 'application/json',
+  }
+
+  // Handle OPTIONS request for CORS
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: '',
+    }
+  }
+
   try {
     let tokenA: string | undefined
     let tokenB: string | undefined
@@ -47,7 +62,11 @@ export const main = async (
       if (!body) {
         return {
           statusCode: 400,
-          body: JSON.stringify({ error: 'Invalid request body' }),
+          headers,
+          body: JSON.stringify({
+            error: 'Invalid request',
+            message: 'Invalid request body',
+          }),
         }
       }
       tokenA = body.tokenA
@@ -58,12 +77,10 @@ export const main = async (
     if (!tokenA || !tokenB) {
       return {
         statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers,
         body: JSON.stringify({
-          error: 'Both tokenA and tokenB addresses are required',
+          error: 'Missing parameters',
+          message: 'Both tokenA and tokenB addresses are required',
         }),
       }
     }
@@ -71,11 +88,11 @@ export const main = async (
     if (!validateTokenAddress(tokenA) || !validateTokenAddress(tokenB)) {
       return {
         statusCode: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
-        body: JSON.stringify({ error: 'Invalid token address format' }),
+        headers,
+        body: JSON.stringify({
+          error: 'Invalid address',
+          message: 'One or both token addresses are invalid',
+        }),
       }
     }
 
@@ -86,73 +103,95 @@ export const main = async (
     )
 
     // Try to get from cache first
-    const cachedData = await getCache<any>(cacheKey)
+    const cachedData = await getCache(cacheKey)
     if (cachedData) {
-      console.log(`Cache hit for reserves of ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}`)
       return {
         statusCode: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Access-Control-Allow-Origin': '*',
-        },
+        headers,
         body: JSON.stringify(cachedData),
       }
     }
 
     // If not in cache, fetch from API
-    console.log(
-      `Cache miss for reserves of ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}, fetching from API...`
-    )
     let reservesData
-    
-    if (dex) {
-      // Fetch reserves from specific DEX
-      reservesData = await reservesService.getReservesFromDex(tokenA, tokenB, dex)
+    try {
+      if (dex) {
+        reservesData = await reservesService.getReservesFromDex(
+          tokenA,
+          tokenB,
+          dex
+        )
+      } else {
+        reservesData = await reservesService.getAllReserves(tokenA, tokenB)
+      }
+
       if (!reservesData) {
         return {
           statusCode: 404,
-          headers: {
-            'Content-Type': 'application/json',
-            'Access-Control-Allow-Origin': '*',
-          },
-          body: JSON.stringify({ error: `No reserves found for ${tokenA}-${tokenB} on ${dex}` }),
+          headers,
+          body: JSON.stringify({
+            error: 'No liquidity',
+            message: 'No liquidity found for the token pair',
+          }),
         }
       }
-    } else {
-      // Fetch reserves from all DEXes
-      reservesData = await reservesService.getAllReserves(tokenA, tokenB)
-    }
 
-    // Only store in cache if we have valid data
-    if (
-      reservesData &&
-      (Array.isArray(reservesData)
-        ? reservesData.length > 0
-        : Object.keys(reservesData).length > 0)
-    ) {
+      // Cache the successful result
       await setCache(cacheKey, reservesData, CACHE_TTL)
-    } else {
-      console.log(`Skipping cache for empty response: ${tokenA}-${tokenB}${dex ? ` from ${dex}` : ''}`)
-    }
 
-    return {
-      statusCode: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify(reservesData),
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify(reservesData),
+      }
+    } catch (error: any) {
+      console.error('Error fetching reserves:', error)
+
+      // Handle specific error cases
+      if (
+        error.message?.includes('timeout') ||
+        error.message?.includes('Timeout')
+      ) {
+        return {
+          statusCode: 504,
+          headers,
+          body: JSON.stringify({
+            error: 'Timeout',
+            message: 'Request timed out while fetching reserves',
+          }),
+        }
+      }
+
+      if (error.message?.includes('Failed to fetch token information')) {
+        return {
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({
+            error: 'Invalid token',
+            message: 'Failed to fetch token information',
+          }),
+        }
+      }
+
+      // Default error response
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Server error',
+          message: 'Failed to fetch reserves',
+        }),
+      }
     }
   } catch (error) {
-    console.error('Error in reserves handler:', error)
-
+    console.error('Unhandled error:', error)
     return {
       statusCode: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({ error: 'Internal server error' }),
+      headers,
+      body: JSON.stringify({
+        error: 'Server error',
+        message: 'An unexpected error occurred',
+      }),
     }
   }
 }
