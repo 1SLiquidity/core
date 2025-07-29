@@ -93,6 +93,10 @@ export default {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      screens: {
+        xs: '520px',
+        '400': '400px',
+      },
     },
   },
   plugins: [scrollbarHide, require('tailwindcss-animate')],

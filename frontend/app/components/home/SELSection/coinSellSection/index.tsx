@@ -37,7 +37,7 @@ const CoinSellSection: React.FC<Props> = ({
         <Image
           src="/assets/valid-amount-succes.svg"
           alt="valid"
-          className={`w-[95vw] md:w-full h-full scale-y-[160%] -z-10 scale-x-[110%] sm:scale-[123%] absolute left-0 top-0 ${
+          className={`w-full h-full -z-10 scale-y-[145%] scale-[110%] xs:scale-[128%] md:scale-[123%] absolute left-0 top-0 ${
             amount > 0 ? 'blink-animation' : ''
           }`}
           width={20}

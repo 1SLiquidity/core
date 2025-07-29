@@ -404,7 +404,7 @@ const SELSection = () => {
                 ? () => {}
                 : handleSwap
             }
-            className={`absolute items-center flex border-[2px] border-opacity-[1.5] bg-black justify-center rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2.25rem)] md:top-[calc(50%_-_2rem)] rotate-45 z-50 ${
+            className={`absolute items-center flex border-[2px] border-opacity-[1.5] bg-black justify-center rounded-[6px] right-[calc(50%_-_42px)] top-[calc(50%_-_2rem)] rotate-45 z-50 ${
               !selectedTokenFrom ||
               !selectedTokenTo ||
               isFetchingReserves ||
@@ -420,8 +420,8 @@ const SELSection = () => {
             
             `}
           >
-            <div className="w-[25.3px] h-[22.8px] absolute bg-transparent md:bg-black -rotate-45 -z-30 -left-[14px] top-[50.8px]" />
-            <div className="w-[26.4px] h-[22.8px] absolute bg-transparent md:bg-black -rotate-45 -z-30 -right-[11.8px] -top-[13.2px]" />
+            <div className="w-[25.3px] h-[22.8px] absolute bg-black -rotate-45 -z-30 -left-[14px] top-[50.8px]" />
+            <div className="w-[26.4px] h-[22.8px] absolute bg-black -rotate-45 -z-30 -right-[11.8px] -top-[13.2px]" />
             <SwapBox
               active={sellAmount > 0 || buyAmount > 0}
               disabled={

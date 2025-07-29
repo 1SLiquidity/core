@@ -31,50 +31,74 @@ const Instasettle = () => {
   }
   return (
     <>
-      {/* <div className="relative min-h-screen overflow-hidden"> */}
-      {/* Navbar and SELSection */}
-      {/* <Navbar /> */}
-      {/* <div className="mt-[60px] mb-10 mx-auto relative z-10 w-full px-4 md:max-w-4xl"> */}
-      <div className="mx-auto relative z-10 w-full px-4 md:max-w-4xl">
-        {/* <h1 className="text-4xl md:text-6xl font-bold mb-4 sm:mb-4 text-white text-center">
-          Instasettle
-        </h1>
-        <h2 className="text-3xl md:text-5xl font-bold mb-6 sm:mb-16 text-white text-center">
-          Peer to peer otc trades. Beat market prices. Instantly.
-        </h2> */}
+      <div className="relative min-h-screen overflow-hidden">
+        {/* Navbar and SELSection */}
+        <Navbar />
 
-        <div className="flex flex-col items-center justify-center gap-2">
-          <motion.div
-            className="flex items-center gap-2"
-            initial="hidden"
-            animate={controls}
-            variants={titleVariants}
-          >
-            <InstasettleIcon className="w-12 h-12 text-[#40fdb5]" />
-            <h1
-              className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent text-center"
-              style={{
-                backgroundImage:
-                  'linear-gradient(90deg, #00FF85 0%, #00CCFF 100%)',
-              }}
+        <motion.div
+          className="absolute -top-28 right-0 w-full 400:w-3/4 h-full sm:w-1/2 sm:h-2/3 pointer-events-none block"
+          animate={{
+            y: [0, -10, 0], // float up 10px and back
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            repeatType: 'loop',
+            ease: 'easeInOut',
+          }}
+        >
+          <Image
+            src="/heros/hero-1.svg"
+            alt="hero background"
+            fill
+            className="object-contain object-right-top"
+            style={{
+              filter: 'brightness(50%) contrast(100%)',
+            }}
+            priority
+          />
+        </motion.div>
+        <div className="mt-[60px] mb-10 mx-auto relative z-10 w-full px-4 md:max-w-4xl">
+          {/* <div className="mx-auto relative z-10 w-full px-4 md:max-w-4xl"> */}
+          {/* <h1 className="text-4xl md:text-6xl font-bold mb-4 sm:mb-4 text-white text-center">
+            Instasettle
+          </h1>
+          <h2 className="text-3xl md:text-5xl font-bold mb-6 sm:mb-16 text-white text-center">
+            Peer to peer otc trades. Beat market prices. Instantly.
+          </h2> */}
+
+          <div className="flex flex-col items-center justify-center gap-2">
+            <motion.div
+              className="flex items-center gap-2"
+              initial="hidden"
+              animate={controls}
+              variants={titleVariants}
             >
-              Instasettle
-            </h1>
-          </motion.div>
-          <motion.h2
-            className="text-3xl md:text-5xl font-bold mb-10 sm:mb-16 text-white text-center"
-            initial="hidden"
-            animate={controls}
-            variants={titleVariants}
-          >
-            Peer-to-Peer OTC Trades. Beat Market Prices. Instantly.
-          </motion.h2>
+              <InstasettleIcon className="w-12 h-12 text-[#40fdb5]" />
+              <h1
+                className="text-5xl md:text-6xl font-bold bg-clip-text text-transparent text-center"
+                style={{
+                  backgroundImage:
+                    'linear-gradient(90deg, #00FF85 0%, #00CCFF 100%)',
+                }}
+              >
+                Instasettle
+              </h1>
+            </motion.div>
+            <motion.h2
+              className="text-3xl md:text-5xl font-bold mb-10 sm:mb-16 text-white text-center"
+              initial="hidden"
+              animate={controls}
+              variants={titleVariants}
+            >
+              Peer-to-Peer OTC Trades. Beat Market Prices. Instantly.
+            </motion.h2>
+          </div>
+          <TokenSelector />
+          <TradesChart />
         </div>
-        <TokenSelector />
-        <TradesChart />
-      </div>
 
-      {/* <motion.div
+        {/* <motion.div
         className="absolute bottom-[20%] left-1/2 transform -translate-x-1/2 w-full h-full pointer-events-none z-0"
         initial={{ bottom: '-100%', opacity: 0 }}
         animate={{ bottom: '-60%', opacity: 1 }}
@@ -89,7 +113,7 @@ const Instasettle = () => {
         />
       </motion.div> */}
 
-      {/* <div className="absolute inset-0 w-full h-full pointer-events-none">
+        {/* <div className="absolute inset-0 w-full h-full pointer-events-none">
         <Image
           src="/heros/gradient-overlay.svg"
           alt="hero background"
@@ -129,7 +153,7 @@ const Instasettle = () => {
           maskSize: 'cover',
         }}
       ></div> */}
-      {/* </div> */}
+      </div>
     </>
   )
 }

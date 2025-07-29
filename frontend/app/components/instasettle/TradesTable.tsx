@@ -504,7 +504,7 @@ const TradesTable = ({
       </div>
 
       <ScrollArea className="w-full whitespace-nowrap">
-        <Table className="min-w-[800px]">
+        <Table className="">
           <TableHeader>
             <TableRow>
               <TableHead className="text-center">Token Pair</TableHead>
