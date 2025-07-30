@@ -245,5 +245,4 @@ contract StreamDaemon is Ownable {
 
     // math for min vol
     // Vmin_scaled = min(Rin, Rout) / √( max(Rin, Rout) )
-
 }

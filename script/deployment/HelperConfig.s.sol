@@ -20,7 +20,8 @@ contract HelperConfig is Script {
     uint256 public activeLastGasUsed;
 
     constructor() {
-        if (block.chainid == 25_875) {
+        if (block.chainid == 1) {
+            console.log("Deploying on Mainnet");
             //Registry.sol
             address UNISWAP_V2_ROUTER = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
             address UNISWAP_V3_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
@@ -49,6 +50,7 @@ contract HelperConfig is Script {
 
             activeLastGasUsed = 100_000;
         } else if (block.chainid == 31_337) {
+            console.log("Deploying on anvil");
             address router1 = address(0x0000000000000000000000000000000000000001);
             address router2 = address(0x0000000000000000000000000000000000000002);
 
