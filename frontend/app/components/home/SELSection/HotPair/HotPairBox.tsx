@@ -26,6 +26,7 @@ import HotPairButton from './button'
 import { FireIcon } from './fire-icon'
 import { InfoIcon } from '@/app/lib/icons'
 import CryptoCard from './CryptoCard'
+import CryptoCard2 from './CryptoCard2'
 
 export default function HotPairBox() {
   const [isOpen, setIsOpen] = useState(false)
@@ -120,7 +121,7 @@ export default function HotPairBox() {
                 <div className="flex flex-col gap-4">
                   <CryptoCard />
                   <CryptoCard />
-                  <CryptoCard />
+                  <CryptoCard2 />
                 </div>
                 <div className="flex w-full justify-center items-center group">
                   <div className="flex items-center justify-center gap-2 cursor-pointer text-zinc-400 group-hover:text-white hover:text-white">
