@@ -8,7 +8,7 @@ provider:
   stage: ${opt:stage, 'dev'}
   region: us-east-1
   timeout: 30 # Match API Gateway limit
-  memorySize: 256 # Default memory size for all functions
+  memorySize: 1024 # Increase memory for better performance
   httpApi:
     cors: true
   apiGateway:
@@ -26,8 +26,8 @@ provider:
 functions:
   reserves:
     handler: src/functions/reserves/handler.main
-    timeout: 30 # Set just under API Gateway limit
-    memorySize: 512 # Increase memory for better performance
+    timeout: 25 # Set just under API Gateway limit
+    memorySize: 1024 # Increase memory for better performance
     events:
       - http:
           path: reserves
