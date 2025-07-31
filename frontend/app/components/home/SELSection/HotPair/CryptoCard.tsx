@@ -41,7 +41,7 @@ export default function CryptoCard() {
                   />
                 </div>
               </div>
-              <h2 className="text-white text-xl font-semibold">USDT / USDC</h2>
+              <h2 className="text-white text-xl font-semibold">USDC / BNB</h2>
             </div>
             <div className="text-2xl font-bold text-[#40FAAC]">$1,563</div>
           </div>

@@ -40,7 +40,7 @@ export default function CryptoCard2() {
                 />
               </div>
             </div>
-            <h2 className="text-white text-xl font-semibold">WETH / USDC</h2>
+            <h2 className="text-white text-xl font-semibold">USDC / BNB</h2>
           </div>
 
           {/* Data Grid */}
