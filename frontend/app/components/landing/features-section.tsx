@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import { motion, useInView, useAnimation, type Variants } from 'framer-motion'
 import { Wallet, Blocks, Headset, Shield, Flame } from 'lucide-react'
 import {
+  FlameIcon,
   InstasettleIcon,
   TypewriterIconWithoutAnimation,
 } from '@/app/lib/icons'
@@ -96,21 +97,21 @@ const FeaturesSection = () => {
     },
     {
       // icon: <Blocks size={24} />,
-      icon: <InstasettleIcon className="w-6 h-6 text-[#15b8a6]" />,
+      icon: <Headset size={24} />,
       title: 'Multi-DEX Aggregation',
       description:
         'Trade streams route across top DEXs, accessing the best liquidity and pricing in real-time.',
       delay: 0.4,
     },
     {
-      icon: <Headset size={24} />,
+      icon: <InstasettleIcon className="w-6 h-6 text-[#15b8a6]" />,
       title: 'Instasettle for OTC',
       description:
         'Settle high-volume trades instantly, peer-to-peer—ideal for OTC and institutional swaps.',
       delay: 0.5,
     },
     {
-      icon: <Flame size={24} />,
+      icon: <FlameIcon className="w-6 h-6 text-[#15b8a6]" />,
       title: 'HOT PAIRS',
       description:
         'Tap into real-time insights with dynamically refreshed token pairs identified for optimal slippage savings.',
