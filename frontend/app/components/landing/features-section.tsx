@@ -5,7 +5,9 @@ import { motion, useInView, useAnimation, type Variants } from 'framer-motion'
 import { Wallet, Blocks, Headset, Shield, Flame } from 'lucide-react'
 import {
   FlameIcon,
+  HeadsetIcon,
   InstasettleIcon,
+  InstasettleIconGradient,
   TypewriterIconWithoutAnimation,
 } from '@/app/lib/icons'
 
@@ -97,14 +99,14 @@ const FeaturesSection = () => {
     },
     {
       // icon: <Blocks size={24} />,
-      icon: <Headset size={24} />,
+      icon: <HeadsetIcon className="w-6 h-6 text-[#15b8a6]" />,
       title: 'Multi-DEX Aggregation',
       description:
         'Trade streams route across top DEXs, accessing the best liquidity and pricing in real-time.',
       delay: 0.4,
     },
     {
-      icon: <InstasettleIcon className="w-6 h-6 text-[#15b8a6]" />,
+      icon: <InstasettleIconGradient className="w-6 h-6 text-[#15b8a6]" />,
       title: 'Instasettle for OTC',
       description:
         'Settle high-volume trades instantly, peer-to-peer—ideal for OTC and institutional swaps.',
@@ -158,12 +160,14 @@ const FeaturesSection = () => {
             >
               <div className="flex items-start">
                 <motion.div
-                  className="mr-4 p-2 bg-black border border-teal-500 rounded-md text-teal-500"
                   initial="hidden"
                   animate={controls}
                   variants={iconVariants}
+                  className="mr-4 rounded-lg p-[1px] bg-gradient-to-b from-[#29e6ad] to-[#15cfcb]"
                 >
-                  {feature.icon}
+                  <div className="p-2 bg-gradient-to-b from-[#041510] to-[#021211] rounded-lg text-teal-500">
+                    {feature.icon}
+                  </div>
                 </motion.div>
                 <div>
                   <h3 className="text-xl font-semibold text-white mb-2 uppercase">

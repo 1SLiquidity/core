@@ -46,6 +46,31 @@ export const InstasettleIcon = ({ className }: { className?: string }) => {
   )
 }
 
+export const InstasettleIconGradient = ({
+  className,
+}: {
+  className?: string
+}) => {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="url(#instasettle-gradient)"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <linearGradient id="instasettle-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#29e6ad" />
+          <stop offset="100%" stopColor="#15cfcb" />
+        </linearGradient>
+      </defs>
+      <path d="M13 2L6 14H11V22L18 10H13V2Z" />
+    </svg>
+  )
+}
+
 export const LiveStatisticsIcon = ({ className }: { className?: string }) => {
   return (
     <svg
@@ -191,10 +216,18 @@ export const TypewriterIconWithoutAnimation = ({
       width="24"
       height="24"
       viewBox="0 0 24 24"
-      fill="currentColor"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
+      {/* SVG Gradient Definition */}
+      <defs>
+        <linearGradient id="typewriter-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#29e6ad" />
+          <stop offset="100%" stopColor="#15cfcb" />
+        </linearGradient>
+      </defs>
+
+      {/* Animated bars with gradient fill */}
       {bars.map((bar, index) => (
         <motion.rect
           key={index}
@@ -203,7 +236,7 @@ export const TypewriterIconWithoutAnimation = ({
           width={bar.width}
           height={bar.height}
           rx="1"
-          fill="currentColor"
+          fill="url(#typewriter-gradient)"
           transition={{
             duration: 3.5,
             delay: index * 0.2,
@@ -250,13 +283,20 @@ export const FlameIcon = ({ className }: { className?: string }) => {
       width="24"
       height="24"
       viewBox="0 0 24 24"
-      fill="currentColor"
-      stroke="currentColor"
+      // fill="currentColor"
+      fill="url(#flame-gradient)"
+      stroke="url(#flame-gradient)"
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
     >
+      <defs>
+        <linearGradient id="flame-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#29e6ad" />
+          <stop offset="100%" stopColor="#15cfcb" />
+        </linearGradient>
+      </defs>
       <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
     </svg>
   )
@@ -280,6 +320,33 @@ export const RefreshIcon = ({ className }: { className?: string }) => {
       <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
       <path d="M3 22v-6h6"></path>
       <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+    </svg>
+  )
+}
+
+export const HeadsetIcon = ({ className }: { className?: string }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      // stroke="currentColor"
+      stroke="url(#headset-gradient)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <defs>
+        <linearGradient id="headset-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#29e6ad" />
+          <stop offset="100%" stopColor="#15cfcb" />
+        </linearGradient>
+      </defs>
+      <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z" />
+      <path d="M21 16v2a4 4 0 0 1-4 4h-5" />
     </svg>
   )
 }
