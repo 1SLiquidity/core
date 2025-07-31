@@ -11,7 +11,6 @@ abstract contract Fork_Test is Deploys {
     function setUp() public virtual override {
         vm.createSelectFork({ blockNumber: 23_029_092, urlOrAlias: "mainnet" });
         super.setUp();
-        // Fork Polygon Mainnet at a specific block number.
     }
 
     function getTokenDecimals(address token) public view returns (uint8) {

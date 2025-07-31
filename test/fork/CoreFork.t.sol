@@ -9,26 +9,26 @@ import "forge-std/console.sol";
 contract CoreForkTest is Fork_Test {
     address constant USDC_WHALE = 0x55FE002aefF02F77364de339a1292923A15844B8;
 
-    // Config et adresses USDC
+    // Config and USDC addresses
     Config public config;
     address[] public usdcPairAddresses;
 
     function setUp() public virtual override {
         super.setUp();
 
-        // Charger les adresses USDC depuis le JSON
-        console.log("Chargement des adresses USDC...");
+        // Load USDC addresses from JSON
+        console.log("Loading USDC addresses...");
         config = new Config();
         config.loadUSDCPairAddresses();
 
-        // Récupérer toutes les adresses dans le tableau local
+        // Get all addresses in local array
         usdcPairAddresses = config.getUSDCPairAddresses();
 
-        console.log("Nombre d'adresses USDC chargees:", usdcPairAddresses.length);
-        console.log("Setup complete avec", usdcPairAddresses.length, "tokens USDC");
+        console.log("Number of USDC addresses loaded:", usdcPairAddresses.length);
+        console.log("Setup complete with", usdcPairAddresses.length, "USDC tokens");
     }
 
-    // ===== FONCTIONS UTILITAIRES POUR ACCEDER AUX ADRESSES =====
+    // ===== UTILITY FUNCTIONS TO ACCESS ADDRESSES =====
 
     function getUSDCPairAddress(uint256 index) public view returns (address) {
         require(index < usdcPairAddresses.length, "Index out of bounds");
@@ -50,11 +50,11 @@ contract CoreForkTest is Fork_Test {
     // ===== TESTS =====
 
     function test_USDCAddressesLoaded() public view {
-        // Vérifier que les adresses sont chargées
-        assertTrue(usdcPairAddresses.length > 0, "Aucune adresse USDC chargee");
-        console.log("Total adresses USDC:", usdcPairAddresses.length);
+        // Verify that addresses are loaded
+        assertTrue(usdcPairAddresses.length > 0, "No USDC addresses loaded");
+        console.log("Total USDC addresses:", usdcPairAddresses.length);
 
-        // Vérifier quelques tokens connus
+        // Verify some known tokens
         address usdc = getTokenByName("USDC");
         address weth = getTokenByName("WETH");
         address wbtc = getTokenByName("WBTC");
@@ -67,8 +67,8 @@ contract CoreForkTest is Fork_Test {
         console.log("WETH address:", weth);
         console.log("WBTC address:", wbtc);
 
-        // Afficher les 5 premiers tokens
-        console.log("\nPremiers 5 tokens:");
+        // Display the first 5 tokens
+        console.log("\nFirst 5 tokens:");
         uint256 displayCount = usdcPairAddresses.length > 5 ? 5 : usdcPairAddresses.length;
         for (uint256 i = 0; i < displayCount; i++) {
             address addr = usdcPairAddresses[i];
@@ -79,10 +79,10 @@ contract CoreForkTest is Fork_Test {
     }
 
     function test_PlaceTradeWithUSDCTokens() public {
-        console.log("Test avec les tokens USDC pairs");
+        console.log("Test with USDC pair tokens");
 
-        // Test avec les 3 premiers tokens du tableau
-        uint256 testCount = usdcPairAddresses.length > 10 ? 10 : usdcPairAddresses.length;
+        // Test with the first tokens from the array
+        uint256 testCount = usdcPairAddresses.length > 25 ? 25 : usdcPairAddresses.length;
 
         for (uint256 i = 0; i < testCount; i++) {
             address tokenAddress = usdcPairAddresses[i];
@@ -91,7 +91,7 @@ contract CoreForkTest is Fork_Test {
             console.log("Testing token", i, ":", tokenName);
             console.log("  Address:", tokenAddress);
 
-            // Vérifier que c'est bien un token USDC pair
+            // Verify that it's indeed a USDC pair token
             assertTrue(isUSDCPair(tokenAddress), "Token should be USDC pair");
 
             if (tokenAddress != address(0)) {
