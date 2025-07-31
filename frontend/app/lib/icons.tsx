@@ -171,6 +171,53 @@ export const TypewriterIcon = ({ className }: { className?: string }) => {
   )
 }
 
+export const TypewriterIconWithoutAnimation = ({
+  className,
+}: {
+  className?: string
+}) => {
+  const bars = [
+    { x: '10', y: '2', width: '4', height: '2' },
+    { x: '6', y: '5', width: '12', height: '2' },
+    { x: '3', y: '8', width: '18', height: '2' },
+    { x: '2', y: '11', width: '20', height: '2' },
+    { x: '3', y: '14', width: '18', height: '2' },
+    { x: '6', y: '17', width: '12', height: '2' },
+    { x: '10', y: '20', width: '4', height: '2' },
+  ]
+
+  return (
+    <motion.svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {bars.map((bar, index) => (
+        <motion.rect
+          key={index}
+          x={bar.x}
+          y={bar.y}
+          width={bar.width}
+          height={bar.height}
+          rx="1"
+          fill="currentColor"
+          transition={{
+            duration: 3.5,
+            delay: index * 0.2,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: 'easeInOut',
+            times: [0, 0.2, 0.6, 0.8, 1],
+          }}
+          style={{ originX: 0 }}
+        />
+      ))}
+    </motion.svg>
+  )
+}
+
 export const SwitchOffIcon = ({
   className,
   onClick,

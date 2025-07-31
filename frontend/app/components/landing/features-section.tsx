@@ -2,7 +2,11 @@
 
 import { useEffect, useRef } from 'react'
 import { motion, useInView, useAnimation, type Variants } from 'framer-motion'
-import { Wallet, Blocks, Headset, Shield } from 'lucide-react'
+import { Wallet, Blocks, Headset, Shield, Flame } from 'lucide-react'
+import {
+  InstasettleIcon,
+  TypewriterIconWithoutAnimation,
+} from '@/app/lib/icons'
 
 const FeaturesSection = () => {
   const sectionRef = useRef(null)
@@ -82,30 +86,34 @@ const FeaturesSection = () => {
   // Feature cards data
   const features = [
     {
-      icon: <Wallet size={24} />,
-      title: 'A NEW WALLET STANDARD',
+      icon: (
+        <TypewriterIconWithoutAnimation className="w-6 h-6 text-[#15b8a6]" />
+      ),
+      title: 'Stream-Based Execution',
       description:
-        'DECAStream is the first interface to use multi-factor wallets. Connect your wallet easily and securely.',
+        'Large swaps are auto-split into smaller streams using our Sweet Spot algorithm—reducing price impact and total cost.',
       delay: 0.3,
     },
     {
-      icon: <Blocks size={24} />,
-      title: 'FULL FUNCTIONALITY',
+      // icon: <Blocks size={24} />,
+      icon: <InstasettleIcon className="w-6 h-6 text-[#15b8a6]" />,
+      title: 'Multi-DEX Aggregation',
       description:
-        'A single unified interface allows you to stream assets across different blockchains smoothly.',
+        'Trade streams route across top DEXs, accessing the best liquidity and pricing in real-time.',
       delay: 0.4,
     },
     {
       icon: <Headset size={24} />,
-      title: 'CUSTOMER SERVICE',
+      title: 'Instasettle for OTC',
       description:
-        'Unsure of decentralised swaps? Have questions? A 24-7 community will help you.',
+        'Settle high-volume trades instantly, peer-to-peer—ideal for OTC and institutional swaps.',
       delay: 0.5,
     },
     {
-      icon: <Shield size={24} />,
-      title: 'SAFE AND SECURE',
-      description: 'Your funds are safe in your wallet.',
+      icon: <Flame size={24} />,
+      title: 'HOT PAIRS',
+      description:
+        'Tap into real-time insights with dynamically refreshed token pairs identified for optimal slippage savings.',
       delay: 0.6,
     },
   ]
@@ -117,12 +125,12 @@ const FeaturesSection = () => {
     >
       <div className="max-w-6xl mx-auto px-4 text-center">
         <motion.h2
-          className="text-4xl md:text-5xl font-bold mb-6 text-white"
+          className="text-4xl md:text-5xl font-bold mb-6 text-white uppercase"
           initial="hidden"
           animate={controls}
           variants={titleVariants}
         >
-          THE EXCHANGE OF THE FUTURE
+          Built for Precision, Speed, and Scale
         </motion.h2>
 
         <motion.p
@@ -131,9 +139,9 @@ const FeaturesSection = () => {
           animate={controls}
           variants={subtitleVariants}
         >
-          Integrating robust security with versatile functionality across
-          multiple platforms, DECAStream streamlines swaps, savers and more,
-          enhancing accessibility for everyone.
+          An execution layer purpose-built for large trades. DECAStream combines
+          smart order streaming, real-time DEX routing, and instant OTC
+          settlement into a single interface.
         </motion.p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -157,7 +165,7 @@ const FeaturesSection = () => {
                   {feature.icon}
                 </motion.div>
                 <div>
-                  <h3 className="text-xl font-semibold text-white mb-2">
+                  <h3 className="text-xl font-semibold text-white mb-2 uppercase">
                     {feature.title}
                   </h3>
                   <p className="text-gray-400">{feature.description}</p>
