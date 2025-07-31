@@ -34,7 +34,7 @@ export default function CryptoCard2({
         <div className="flex flex-col gap-2">
           {/* Top section: Icons and Pair Name */}
           <div className="flex items-center gap-3 w-full justify-center">
-            <div className="flex items-center -space-x-4">
+            <div className="flex items-center group-hover:-translate-x-1 transition-all duration-300">
               {/* Ethereum icon */}
               <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
                 <Image
@@ -46,7 +46,7 @@ export default function CryptoCard2({
                 />
               </div>
 
-              <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33]">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] -ml-3 transition-all duration-300 group-hover:translate-x-0 group-hover:ml-0">
                 <Image
                   src={icon2}
                   alt="dai"
