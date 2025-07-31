@@ -1,21 +1,21 @@
 # Config.sol - Configuration Contract
 
-Ce fichier `Config.sol` charge dynamiquement toutes les adresses des tokens qui forment des paires avec USDC depuis le fichier JSON `config/usdc_pairs_clean.json`.
+This `Config.sol` file dynamically loads all token addresses that form pairs with USDC from the JSON file `config/usdc_pairs_clean.json`.
 
-## Fonctionnalités
+## Features
 
-- ✅ **Aucune adresse hardcodée** - Toutes les adresses sont chargées depuis le JSON
-- ✅ **89 adresses USDC pairs** - Tous les tokens du fichier JSON sont disponibles
-- ✅ **Recherche par nom** - Obtenez une adresse par nom de token
-- ✅ **Recherche par adresse** - Obtenez le nom d'un token par son adresse
-- ✅ **Fonctions utilitaires** - Vérification, indexation, sous-ensembles
+- ✅ **No hardcoded addresses** - All addresses are loaded from JSON
+- ✅ **89 USDC pair addresses** - All tokens from the JSON file are available
+- ✅ **Search by name** - Get an address by token name
+- ✅ **Search by address** - Get a token name by its address
+- ✅ **Utility functions** - Verification, indexing, subsets
 
-## Utilisation dans votre CoreFork.t.sol
+## Usage in your CoreFork.t.sol
 
-### 1. Import et Setup
+### 1. Import and Setup
 
 ```solidity
-// Dans votre fichier test/fork/CoreFork.t.sol
+// In your test/fork/CoreFork.t.sol file
 import { Config } from "../../config/Config.sol";
 
 contract CoreForkTest is Fork_Test {
@@ -29,52 +29,52 @@ contract CoreForkTest is Fork_Test {
         config = new Config();
         config.loadUSDCPairAddresses();
 
-        // Load addresses locally (optionnel)
+        // Load addresses locally (optional)
         usdcPairAddresses = config.getUSDCPairAddresses();
     }
 }
 ```
 
-### 2. Fonctions Principales
+### 2. Main Functions
 
 ```solidity
-// Obtenir toutes les adresses
+// Get all addresses
 address[] memory allAddresses = config.getUSDCPairAddresses();
 
-// Obtenir le nombre d'adresses
+// Get the number of addresses
 uint256 count = config.getUSDCPairAddressesCount();
 
-// Obtenir une adresse par index
+// Get an address by index
 address tokenAddr = config.getUSDCPairAddressAt(0);
 
-// Obtenir une adresse par nom
+// Get an address by name
 address usdcAddr = config.getTokenAddress("USDC");
 address wethAddr = config.getTokenAddress("WETH");
 
-// Obtenir le nom par adresse
+// Get the name by address
 string memory tokenName = config.getTokenName(tokenAddr);
 
-// Vérifier si une adresse est dans les pairs USDC
+// Check if an address is in USDC pairs
 bool isUSDCPair = config.isUSDCPairAddress(someAddress);
 
-// Trouver l'index d'une adresse
+// Find the index of an address
 (bool found, uint256 index) = config.findUSDCPairAddressIndex(tokenAddr);
 ```
 
-### 3. Fonctions Utilitaires
+### 3. Utility Functions
 
 ```solidity
-// Obtenir les N premières adresses
+// Get the first N addresses
 address[] memory first10 = config.getFirstNAddresses(10);
 
-// Obtenir des adresses par noms
+// Get addresses by names
 string[] memory tokenNames = new string[](3);
 tokenNames[0] = "USDC";
 tokenNames[1] = "WETH";
 tokenNames[2] = "WBTC";
 address[] memory addresses = config.getAddressesByNames(tokenNames);
 
-// Obtenir des adresses par indices
+// Get addresses by indices
 uint256[] memory indices = new uint256[](3);
 indices[0] = 0;
 indices[1] = 5;
@@ -82,7 +82,7 @@ indices[2] = 10;
 address[] memory selectedAddresses = config.getAddressesByIndices(indices);
 ```
 
-### 4. Exemple Complet pour CoreFork.t.sol
+### 4. Complete Example for CoreFork.t.sol
 
 ```solidity
 // SPDX-License-Identifier: UNLICENSED
@@ -99,11 +99,11 @@ contract CoreForkTest is Fork_Test {
     function setUp() public virtual override {
         super.setUp();
 
-        // Setup Config - charge toutes les adresses depuis JSON
+        // Setup Config - load all addresses from JSON
         config = new Config();
         config.loadUSDCPairAddresses();
 
-        // Optionnel: charger localement pour performance
+        // Optional: load locally for performance
         usdcPairAddresses = config.getUSDCPairAddresses();
     }
 
@@ -111,7 +111,7 @@ contract CoreForkTest is Fork_Test {
         uint256 count = config.getUSDCPairAddressesCount();
         console.log("Testing with", count, "USDC pair tokens");
 
-        // Test avec les 5 premiers tokens
+        // Test with the first 5 tokens
         for (uint256 i = 0; i < 5 && i < count; i++) {
             address tokenIn = config.getUSDCPairAddressAt(i);
             address tokenOut = config.getTokenAddress("USDC");
@@ -119,7 +119,7 @@ contract CoreForkTest is Fork_Test {
 
             console.log("Testing trade:", tokenName, "->", "USDC");
 
-            // Votre logique de test ici
+            // Your test logic here
             // uint256 amountIn = formatTokenAmount(tokenIn, 1);
             // bytes memory tradeData = abi.encode(tokenIn, tokenOut, amountIn, 0, false, 0.0005 ether);
             // core.placeTrade(tradeData);
@@ -127,7 +127,7 @@ contract CoreForkTest is Fork_Test {
     }
 
     function test_SpecificTokenTrades() public {
-        // Test avec des tokens spécifiques
+        // Test with specific tokens
         address wethAddr = config.getTokenAddress("WETH");
         address wbtcAddr = config.getTokenAddress("WBTC");
         address linkAddr = config.getTokenAddress("link");
@@ -136,11 +136,11 @@ contract CoreForkTest is Fork_Test {
         assertTrue(wbtcAddr != address(0), "WBTC should be available");
         assertTrue(linkAddr != address(0), "LINK should be available");
 
-        // Test trades avec ces tokens...
+        // Test trades with these tokens...
     }
 
     function test_BatchProcessing() public {
-        // Traiter par lots de 10
+        // Process in batches of 10
         uint256 batchSize = 10;
         uint256 totalCount = config.getUSDCPairAddressesCount();
 
@@ -159,42 +159,42 @@ contract CoreForkTest is Fork_Test {
 }
 ```
 
-## Tokens Disponibles
+## Available Tokens
 
-Le fichier JSON contient **89 tokens** incluant :
+The JSON file contains **89 tokens** including:
 
 - USDC, USDT, WBTC, WETH
 - 1inch, AAVE, APE, ARB, BNB
 - DAI, ENS, CVX, SHIB, SAND
 - MKR, FRAX, SNX, LDO, LINK
-- STETH, WSTETH, et bien d'autres...
+- STETH, WSTETH, and many others...
 
-## Gestion d'Erreurs
+## Error Handling
 
 ```solidity
-// Toujours vérifier si les données sont chargées
+// Always check if data is loaded
 require(config.isLoaded(), "Config not loaded");
 
-// Vérifier les indices
+// Check indices
 require(index < config.getUSDCPairAddressesCount(), "Index out of bounds");
 
-// Vérifier les adresses nulles
+// Check null addresses
 address tokenAddr = config.getTokenAddress("SOME_TOKEN");
 require(tokenAddr != address(0), "Token not found");
 ```
 
 ## Performance
 
-- **Chargement initial** : ~8M gas (une seule fois)
-- **Accès aux données** : ~2-5k gas par appel
-- **Recherche** : O(n) pour recherche par adresse, O(1) pour recherche par nom
+- **Initial loading**: ~8M gas (one time only)
+- **Data access**: ~2-5k gas per call
+- **Search**: O(n) for address search, O(1) for name search
 
-## Test
+## Testing
 
 ```bash
-# Tester Config.sol
+# Test Config.sol
 forge script script/TestConfig.s.sol:TestConfig --ffi -vv
 
-# Voir l'exemple d'utilisation
+# See usage example
 forge script script/ExampleUsage.s.sol:ExampleUsage --ffi -vv
 ```
