@@ -97,9 +97,9 @@ export default function HotPairBox() {
             <Card className="w-[350px] bg-zinc-900 border-zinc-800 text-white rounded-xl border-2">
               <CardContent className="p-4 space-y-5">
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <FireIcon
-                      className="transition-all duration-300 w-6 h-6"
+                      className="transition-all duration-300 w-5 h-5"
                       isActive={isHovered || isOpen}
                     />
                     <h2 className="text-xl font-medium text-center flex-1">
