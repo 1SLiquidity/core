@@ -2,7 +2,27 @@
 
 import Image from 'next/image'
 
-export default function CryptoCard() {
+export default function CryptoCard({
+  icon1,
+  icon2,
+  pair,
+  price,
+  vol,
+  details1,
+  details2,
+  showBgIcon1,
+  showBgIcon2,
+}: {
+  icon1: string
+  icon2: string
+  showBgIcon1?: boolean
+  showBgIcon2?: boolean
+  pair: string
+  price: number
+  vol: number
+  details1: string
+  details2: string
+}) {
   return (
     <div className="group relative rounded-md p-[1px] transition-all duration-300 cursor-pointer">
       <div
@@ -23,7 +43,7 @@ export default function CryptoCard() {
                 {/* Ethereum icon */}
                 <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
                   <Image
-                    src="/icons/usdc.svg"
+                    src={icon1}
                     alt="eth"
                     width={20}
                     height={20}
@@ -33,7 +53,7 @@ export default function CryptoCard() {
 
                 <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33]">
                   <Image
-                    src="/icons/bnb.svg"
+                    src={icon2}
                     alt="dai"
                     width={20}
                     height={20}
@@ -41,13 +61,13 @@ export default function CryptoCard() {
                   />
                 </div>
               </div>
-              <h2 className="text-white text-xl font-semibold">USDC / BNB</h2>
+              <h2 className="text-white text-xl font-semibold">{pair}</h2>
             </div>
-            <div className="text-2xl font-bold text-[#40FAAC]">$1,563</div>
+            <div className="text-2xl font-bold text-[#40FAAC]">${price}</div>
           </div>
           <div className="flex items-center justify-between w-full">
-            <p className="text-zinc-400 text-lg">1,000 USDT - 5.2%</p>
-            <p className="text-zinc-400 text-lg">in est. savings</p>
+            <p className="text-zinc-400 text-lg">{details1}</p>
+            <p className="text-zinc-400 text-lg">{details2}</p>
           </div>
         </div>
       </div>

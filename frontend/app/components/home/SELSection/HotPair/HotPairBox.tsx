@@ -28,6 +28,41 @@ import { InfoIcon } from '@/app/lib/icons'
 import CryptoCard from './CryptoCard'
 import CryptoCard2 from './CryptoCard2'
 
+const hotPairs = [
+  {
+    icon1: '/tokens/leo.png',
+    icon2: '/tokens/usdt.webp',
+    pair: 'LEO / USDT',
+    price: 1000,
+    vol: 1000,
+    win: 1000,
+    save: 1000,
+    details1: '1,000 USDT - 5.2%',
+    details2: 'in est. savings',
+  },
+  {
+    icon1: '/tokens/aave.webp',
+    icon2: '/tokens/eth.svg',
+    pair: 'AAVE / ETH',
+    price: 2000,
+    vol: 1000,
+    win: 1000,
+    save: 1000,
+    details1: '1,000 USDT - 5.2%',
+    details2: 'in est. savings',
+  },
+  {
+    icon1: '/tokens/etc.png',
+    icon2: '/tokens/usdt.webp',
+    pair: 'ETC / USDT',
+    price: 3000,
+    vol: 1000,
+    win: 1000,
+    save: 1000,
+    details1: '1,000 USDT - 5.2%',
+    details2: 'in est. savings',
+  },
+]
 export default function HotPairBox() {
   const [isOpen, setIsOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -119,9 +154,19 @@ export default function HotPairBox() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  <CryptoCard />
-                  <CryptoCard />
-                  <CryptoCard2 />
+                  {hotPairs.map((pair, index) => (
+                    <CryptoCard2
+                      key={index}
+                      icon1={pair.icon1}
+                      icon2={pair.icon2}
+                      pair={pair.pair}
+                      price={pair.price}
+                      vol={pair.vol}
+                      win={pair.win}
+                    />
+                  ))}
+                  {/* <CryptoCard />
+                  <CryptoCard2 /> */}
                 </div>
                 <div className="flex w-full justify-center items-center group">
                   <div className="flex items-center justify-center gap-2 cursor-pointer text-zinc-400 group-hover:text-white hover:text-white">

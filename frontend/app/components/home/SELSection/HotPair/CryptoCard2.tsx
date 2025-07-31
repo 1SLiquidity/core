@@ -1,7 +1,23 @@
 'use client'
 import Image from 'next/image'
 
-export default function CryptoCard2() {
+export default function CryptoCard2({
+  icon1,
+  icon2,
+  pair,
+  price,
+  vol,
+  win,
+}: {
+  icon1: string
+  icon2: string
+  showBgIcon1?: boolean
+  showBgIcon2?: boolean
+  pair: string
+  price: number
+  vol: number
+  win: number
+}) {
   return (
     <div className="group relative rounded-md p-[1px] transition-all duration-300 cursor-pointer">
       <div
@@ -22,7 +38,7 @@ export default function CryptoCard2() {
               {/* Ethereum icon */}
               <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
                 <Image
-                  src="/icons/usdc.svg"
+                  src={icon1}
                   alt="eth"
                   width={20}
                   height={20}
@@ -32,7 +48,7 @@ export default function CryptoCard2() {
 
               <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33]">
                 <Image
-                  src="/icons/bnb.svg"
+                  src={icon2}
                   alt="dai"
                   width={20}
                   height={20}
@@ -40,7 +56,7 @@ export default function CryptoCard2() {
                 />
               </div>
             </div>
-            <h2 className="text-white text-xl font-semibold">USDC / BNB</h2>
+            <h2 className="text-white text-xl font-semibold">{pair}</h2>
           </div>
 
           {/* Data Grid */}
@@ -59,13 +75,13 @@ export default function CryptoCard2() {
             </div>
             <p className="text-white text-sm uppercase">SAVE</p>
             {/* Values */}
-            <p className="text-zinc-400 text-lg font-bold">1500</p>
+            <p className="text-zinc-400 text-lg font-bold">{vol}</p>
             <div className="col-span-1"></div>{' '}
             {/* Empty div to align values under labels */}
-            <p className="text-zinc-400 text-lg font-bold">27%</p>
+            <p className="text-zinc-400 text-lg font-bold">{win}</p>
             <div className="col-span-1"></div>{' '}
             {/* Empty div to align values under labels */}
-            <p className="text-[#40FAAC] text-lg font-bold">$1,234</p>
+            <p className="text-[#40FAAC] text-lg font-bold">${price}</p>
           </div>
         </div>
       </div>
