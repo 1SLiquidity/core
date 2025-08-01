@@ -169,12 +169,12 @@ const GatewaySection = () => {
       {/* Main content */}
       <div className="w-full mx-auto px-4 text-center relative z-10">
         <motion.h1
-          className="text-3xl md:text-5xl font-bold mb-16 text-white"
+          className="text-3xl md:text-5xl font-bold mb-16 text-white uppercase"
           initial="hidden"
           animate={controls}
           variants={titleVariants}
         >
-          A SINGLE GATEWAY
+          A Smarter Way to Execute Large Swaps
         </motion.h1>
 
         {/* Ovals */}
@@ -266,17 +266,18 @@ const GatewaySection = () => {
         </div>
 
         <motion.div
-          className="max-w-2xl mx-auto text-white"
+          className="max-w-3xl mx-auto text-white"
           initial="hidden"
           animate={controls}
           variants={textVariants}
         >
           <p className="text-lg md:text-xl mb-2">
-            DECAStream is your portal to decentralised cross-chain swaps.
+            DECAStream intelligently splits large trades into optimized streams
+            across multiple DEXs.
           </p>
           <p className="text-lg md:text-xl">
-            With support for 40+ chains and 5000+ tokens, you can call
-            DECAStream home.
+            Minimizing slippage, reducing gas costs, and delivering superior
+            execution.
           </p>
         </motion.div>
       </div>

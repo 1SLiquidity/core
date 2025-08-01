@@ -87,25 +87,25 @@ const DigitalCustodySection = () => {
   // Feature data
   const features = [
     {
-      title: 'MULTI-FACTOR SECURITY WALLET',
+      title: 'Trade Streaming Engine',
       description:
-        'Our state-of-the-art multi-factor wallet offers unparalleled security, ensuring your digital assets are safe from unauthorized access.',
+        'Our core engine dynamically breaks trades into optimal slices, achieving better pricing across volatile or illiquid pairs.',
       image: '/dex1.png',
       alt: 'Multi-factor security wallet illustration',
       delay: 0.5,
     },
     {
-      title: 'CROSS-CHAIN AGGREGATION',
+      title: 'Cross-Chain Liquidity Routing',
       description:
-        "DECAStream's innovative cross-chain aggregation allows for seamless transactions across multiple blockchain ecosystems.",
+        'Connects to 40+ chains and routes each stream through the best liquidity pools automatically.',
       image: '/dex2.png',
       alt: 'Cross-chain aggregation illustration',
       delay: 0.6,
     },
     {
-      title: 'UNIFIED USER INTERFACE',
+      title: 'Unified Execution Interface',
       description:
-        'A streamlined digital exchange with a unified user interface that combines all trading functionalities into a single, easy-to-navigate platform.',
+        'All features—streaming, DEX routing, and Instasettle—are built into one intuitive dashboard optimized for high-throughput users.',
       image: '/dex3.png',
       alt: 'Unified user interface illustration',
       delay: 0.7,
@@ -131,10 +131,10 @@ const DigitalCustodySection = () => {
               FUTURE OF DEX
             </motion.div>
             <motion.h2
-              className="text-3xl md:text-4xl font-bold text-white"
+              className="text-3xl md:text-4xl font-bold text-white uppercase"
               variants={titleVariants}
             >
-              POWERING DIGITAL SELF-CUSTODY
+              Execution Infrastructure for Onchain Traders
             </motion.h2>
           </div>
 
@@ -164,7 +164,7 @@ const DigitalCustodySection = () => {
                   />
                 </motion.div>
                 <motion.h3
-                  className="text-xl font-bold text-green-400 mb-4"
+                  className="text-xl font-bold text-green-400 mb-4 uppercase"
                   variants={featureVariants}
                   custom={feature.delay + 0.1}
                 >

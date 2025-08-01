@@ -19,6 +19,7 @@ import TradingSettings from './TradeSettings'
 import { useReserves } from '@/app/lib/hooks/useReserves'
 import { useRefreshTimer } from '@/app/lib/hooks/useRefreshTimer'
 import { useSwapCalculator } from '@/app/lib/hooks/useSwapCalculator'
+import HotPairBox from './HotPair/HotPairBox'
 
 const TIMER_DURATION = 10 // 10 seconds
 
@@ -340,7 +341,8 @@ const SELSection = () => {
         animate={controls}
         variants={containerVariants}
       >
-        <div className="w-full flex justify-end gap-2 mb-4">
+        <div className="w-full flex justify-between gap-2 mb-4">
+          <HotPairBox />
           <div className="flex items-center gap-2">
             {timerActive && (
               <div className="flex items-center justify-end">

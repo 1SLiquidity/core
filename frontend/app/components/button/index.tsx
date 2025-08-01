@@ -35,6 +35,7 @@ const Button: React.FC<Props> = ({
     open()
   }
   // : 'bg-gray text-white opacity-50 cursor-not-allowed bg-opacity-[23%]'
+  // ? 'text-[#951b1d] bg-[#ec6264]'
 
   return (
     <button
@@ -50,7 +51,7 @@ const Button: React.FC<Props> = ({
         `min-w-[130px] w-full p-2 h-10 rounded-[12px] flex items-center justify-center uppercase
         ${
           error
-            ? 'text-[#951b1d] bg-[#ec6264]'
+            ? 'text-[#E43A3D] bg-[#3d0e0e]'
             : // ? 'text-primaryRed border-error border-[2px] bg-opacity-[23%]'
             disabled
             ? text === 'STREAM'

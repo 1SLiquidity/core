@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils'
 import { motion } from 'framer-motion'
+import React from 'react'
 
 export const HomeIcon = ({ className }: { className?: string }) => {
   return (
@@ -41,6 +42,31 @@ export const InstasettleIcon = ({ className }: { className?: string }) => {
       xmlns="http://www.w3.org/2000/svg"
       className={className}
     >
+      <path d="M13 2L6 14H11V22L18 10H13V2Z" />
+    </svg>
+  )
+}
+
+export const InstasettleIconGradient = ({
+  className,
+}: {
+  className?: string
+}) => {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="url(#instasettle-gradient)"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <defs>
+        <linearGradient id="instasettle-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#29e6ad" />
+          <stop offset="100%" stopColor="#15cfcb" />
+        </linearGradient>
+      </defs>
       <path d="M13 2L6 14H11V22L18 10H13V2Z" />
     </svg>
   )
@@ -171,6 +197,61 @@ export const TypewriterIcon = ({ className }: { className?: string }) => {
   )
 }
 
+export const TypewriterIconWithoutAnimation = ({
+  className,
+}: {
+  className?: string
+}) => {
+  const bars = [
+    { x: '10', y: '2', width: '4', height: '2' },
+    { x: '6', y: '5', width: '12', height: '2' },
+    { x: '3', y: '8', width: '18', height: '2' },
+    { x: '2', y: '11', width: '20', height: '2' },
+    { x: '3', y: '14', width: '18', height: '2' },
+    { x: '6', y: '17', width: '12', height: '2' },
+    { x: '10', y: '20', width: '4', height: '2' },
+  ]
+
+  return (
+    <motion.svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      {/* SVG Gradient Definition */}
+      <defs>
+        <linearGradient id="typewriter-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#29e6ad" />
+          <stop offset="100%" stopColor="#15cfcb" />
+        </linearGradient>
+      </defs>
+
+      {/* Animated bars with gradient fill */}
+      {bars.map((bar, index) => (
+        <motion.rect
+          key={index}
+          x={bar.x}
+          y={bar.y}
+          width={bar.width}
+          height={bar.height}
+          rx="1"
+          fill="url(#typewriter-gradient)"
+          transition={{
+            duration: 3.5,
+            delay: index * 0.2,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: 'easeInOut',
+            times: [0, 0.2, 0.6, 0.8, 1],
+          }}
+          style={{ originX: 0 }}
+        />
+      ))}
+    </motion.svg>
+  )
+}
+
 export const SwitchOffIcon = ({
   className,
   onClick,
@@ -196,6 +277,32 @@ export const SwitchOffIcon = ({
   )
 }
 
+export const FlameIcon = ({ className }: { className?: string }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      // fill="currentColor"
+      fill="url(#flame-gradient)"
+      stroke="url(#flame-gradient)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <defs>
+        <linearGradient id="flame-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#29e6ad" />
+          <stop offset="100%" stopColor="#15cfcb" />
+        </linearGradient>
+      </defs>
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+    </svg>
+  )
+}
+
 export const RefreshIcon = ({ className }: { className?: string }) => {
   return (
     <svg
@@ -217,3 +324,73 @@ export const RefreshIcon = ({ className }: { className?: string }) => {
     </svg>
   )
 }
+
+export const HeadsetIcon = ({ className }: { className?: string }) => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="url(#headset-gradient)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <defs>
+        <linearGradient id="headset-gradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#29e6ad" />
+          <stop offset="100%" stopColor="#15cfcb" />
+        </linearGradient>
+      </defs>
+      <path d="M3 11h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5Zm0 0a9 9 0 1 1 18 0m0 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3Z" />
+      <path d="M21 16v2a4 4 0 0 1-4 4h-5" />
+    </svg>
+  )
+}
+
+// export const InfoIcon = ({ className }: { className?: string }) => {
+//   return (
+//     <svg
+//       width="14"
+//       height="15"
+//       viewBox="0 0 14 15"
+//       fill="none"
+//       xmlns="http://www.w3.org/2000/svg"
+//       className={className}
+//     >
+//       <path
+//         d="M6.99992 10.834C7.18881 10.834 7.34714 10.7701 7.47492 10.6423C7.6027 10.5145 7.66658 10.3562 7.66658 10.1673V7.50065C7.66658 7.31176 7.6027 7.15343 7.47492 7.02565C7.34714 6.89787 7.18881 6.83398 6.99992 6.83398C6.81103 6.83398 6.6527 6.89787 6.52492 7.02565C6.39714 7.15343 6.33325 7.31176 6.33325 7.50065V10.1673C6.33325 10.3562 6.39714 10.5145 6.52492 10.6423C6.6527 10.7701 6.81103 10.834 6.99992 10.834ZM6.99992 5.50065C7.18881 5.50065 7.34714 5.43676 7.47492 5.30898C7.6027 5.18121 7.66658 5.02287 7.66658 4.83398C7.66658 4.6451 7.6027 4.48676 7.47492 4.35898C7.34714 4.23121 7.18881 4.16732 6.99992 4.16732C6.81103 4.16732 6.6527 4.23121 6.52492 4.35898C6.39714 4.48676 6.33325 4.6451 6.33325 4.83398C6.33325 5.02287 6.39714 5.18121 6.52492 5.30898C6.6527 5.43676 6.81103 5.50065 6.99992 5.50065ZM6.99992 14.1673C6.0777 14.1673 5.21103 13.9923 4.39992 13.6423C3.58881 13.2923 2.88325 12.8173 2.28325 12.2173C1.68325 11.6173 1.20825 10.9118 0.858252 10.1007C0.508252 9.28954 0.333252 8.42287 0.333252 7.50065C0.333252 6.57843 0.508252 5.71176 0.858252 4.90065C1.20825 4.08954 1.68325 3.38398 2.28325 2.78398C2.88325 2.18398 3.58881 1.70898 4.39992 1.35898C5.21103 1.00898 6.0777 0.833984 6.99992 0.833984C7.92214 0.833984 8.78881 1.00898 9.59992 1.35898C10.411 1.70898 11.1166 2.18398 11.7166 2.78398C12.3166 3.38398 12.7916 4.08954 13.1416 4.90065C13.4916 5.71176 13.6666 6.57843 13.6666 7.50065C13.6666 8.42287 13.4916 9.28954 13.1416 10.1007C12.7916 10.9118 12.3166 11.6173 11.7166 12.2173C11.1166 12.8173 10.411 13.2923 9.59992 13.6423C8.78881 13.9923 7.92214 14.1673 6.99992 14.1673Z"
+//         fill="#767676"
+//       />
+//     </svg>
+//   )
+// }
+
+// Update the InfoIcon component to accept and forward ref and other props
+export const InfoIcon = React.forwardRef<
+  SVGSVGElement,
+  React.SVGProps<SVGSVGElement>
+>(({ className, ...props }, ref) => {
+  return (
+    <svg
+      width="14"
+      height="15"
+      viewBox="0 0 14 15"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      ref={ref} // Forward the ref
+      {...props} // Spread any other props (like onClick, onMouseEnter, etc.)
+    >
+      <path
+        d="M6.99992 10.834C7.18881 10.834 7.34714 10.7701 7.47492 10.6423C7.6027 10.5145 7.66658 10.3562 7.66658 10.1673V7.50065C7.66658 7.31176 7.6027 7.15343 7.47492 7.02565C7.34714 6.89787 7.18881 6.83398 6.99992 6.83398C6.81103 6.83398 6.6527 6.89787 6.52492 7.02565C6.39714 7.15343 6.33325 7.31176 6.33325 7.50065V10.1673C6.33325 10.3562 6.39714 10.5145 6.52492 10.6423C6.6527 10.7701 6.81103 10.834 6.99992 10.834ZM6.99992 5.50065C7.18881 5.50065 7.34714 5.43676 7.47492 5.30898C7.6027 5.18121 7.66658 5.02287 7.66658 4.83398C7.66658 4.6451 7.6027 4.48676 7.47492 4.35898C7.34714 4.23121 7.18881 4.16732 6.99992 4.16732C6.81103 4.16732 6.6527 4.23121 6.52492 4.35898C6.39714 4.48676 6.33325 4.6451 6.33325 4.83398C6.33325 5.02287 6.39714 5.18121 6.52492 5.30898C6.6527 5.43676 6.81103 5.50065 6.99992 5.50065ZM6.99992 14.1673C6.0777 14.1673 5.21103 13.9923 4.39992 13.6423C3.58881 13.2923 2.88325 12.8173 2.28325 12.2173C1.68325 11.6173 1.20825 10.9118 0.858252 10.1007C0.508252 9.28954 0.333252 8.42287 0.333252 7.50065C0.333252 6.57843 0.508252 5.71176 0.858252 4.90065C1.20825 4.08954 1.68325 3.38398 2.28325 2.78398C2.88325 2.18398 3.58881 1.70898 4.39992 1.35898C5.21103 1.00898 6.0777 0.833984 6.99992 0.833984C7.92214 0.833984 8.78881 1.00898 9.59992 1.35898C10.411 1.70898 11.1166 2.18398 11.7166 2.78398C12.3166 3.38398 12.7916 4.08954 13.1416 4.90065C13.4916 5.71176 13.6666 6.57843 13.6666 7.50065C13.6666 8.42287 13.4916 9.28954 13.1416 10.1007C12.7916 10.9118 12.3166 11.6173 11.7166 12.2173C11.1166 12.8173 10.411 13.2923 9.59992 13.6423C8.78881 13.9923 7.92214 14.1673 6.99992 14.1673Z"
+        fill="#767676"
+      />
+    </svg>
+  )
+})
+
+InfoIcon.displayName = 'InfoIcon' // Good practice for debugging
