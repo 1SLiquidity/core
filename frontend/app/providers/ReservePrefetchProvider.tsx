@@ -18,7 +18,7 @@ export const ReservePrefetchProvider = ({
   const chainId = chainIdWithPrefix.split(':')[1]
 
   // Initialize both prefetched and dynamic caches
-  // usePrefetchReserves({ chainId })
+  usePrefetchReserves({ chainId })
   useDynamicReserveCache({ chainId })
 
   // Simply render children since this is just for background prefetching

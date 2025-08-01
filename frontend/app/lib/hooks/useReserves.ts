@@ -5,7 +5,7 @@ import {
   ReserveData,
 } from '@/app/lib/dex/calculators'
 import { Token } from '@/app/types'
-// import { usePrefetchReserves } from './usePrefetchReserves'
+import { usePrefetchReserves } from './usePrefetchReserves'
 import { useDynamicReserveCache } from './useDynamicReserveCache'
 
 interface UseReservesProps {
@@ -26,8 +26,8 @@ export const useReserves = ({
   const [shouldFetchFromBackend, setShouldFetchFromBackend] = useState(true)
 
   // Get prefetched reserves and dynamic cache
-  // const { prefetchedReserves, getPairKey: getPrefetchedPairKey } =
-  //   usePrefetchReserves({ chainId })
+  const { prefetchedReserves, getPairKey: getPrefetchedPairKey } =
+    usePrefetchReserves({ chainId })
   const { dynamicReserves, updateCache, getCachedReserves } =
     useDynamicReserveCache({ chainId })
 
@@ -39,33 +39,33 @@ export const useReserves = ({
   }, [])
 
   // Check if a token pair is in our prefetched list
-  // const checkPrefetchedPair = useCallback(
-  //   (fromSymbol: string | undefined, toSymbol: string | undefined) => {
-  //     if (!fromSymbol || !toSymbol) return null
+  const checkPrefetchedPair = useCallback(
+    (fromSymbol: string | undefined, toSymbol: string | undefined) => {
+      if (!fromSymbol || !toSymbol) return null
 
-  //     // Only check the exact pair key, no reverse lookup
-  //     const directKey = getPrefetchedPairKey(fromSymbol, toSymbol)
-  //     const directPair = prefetchedReserves[directKey]
+      // Only check the exact pair key, no reverse lookup
+      const directKey = getPrefetchedPairKey(fromSymbol, toSymbol)
+      const directPair = prefetchedReserves[directKey]
 
-  //     // Only return cached data if there's no error and it matches our exact order
-  //     if (directPair?.error === null && directPair?.reserveData) {
-  //       console.log('useReserves - Found exact prefetched pair:', {
-  //         fromSymbol,
-  //         toSymbol,
-  //         key: directKey,
-  //       })
-  //       return directPair
-  //     }
+      // Only return cached data if there's no error and it matches our exact order
+      if (directPair?.error === null && directPair?.reserveData) {
+        console.log('useReserves - Found exact prefetched pair:', {
+          fromSymbol,
+          toSymbol,
+          key: directKey,
+        })
+        return directPair
+      }
 
-  //     console.log('useReserves - No exact prefetched pair found:', {
-  //       fromSymbol,
-  //       toSymbol,
-  //       key: directKey,
-  //     })
-  //     return null
-  //   },
-  //   [prefetchedReserves, getPrefetchedPairKey]
-  // )
+      console.log('useReserves - No exact prefetched pair found:', {
+        fromSymbol,
+        toSymbol,
+        key: directKey,
+      })
+      return null
+    },
+    [prefetchedReserves, getPrefetchedPairKey]
+  )
 
   // Effect to check both prefetched data and dynamic cache when tokens change
   useEffect(() => {
@@ -85,22 +85,22 @@ export const useReserves = ({
     })
 
     // First try prefetched cache - only exact matches
-    // const prefetchedPair = checkPrefetchedPair(fromSymbol, toSymbol)
+    const prefetchedPair = checkPrefetchedPair(fromSymbol, toSymbol)
 
-    // if (prefetchedPair?.reserveData && prefetchedPair?.dexCalculator) {
-    //   console.log('useReserves - Using prefetched reserves:', {
-    //     fromSymbol,
-    //     toSymbol,
-    //     token0Address: prefetchedPair.reserveData.token0Address,
-    //     token1Address: prefetchedPair.reserveData.token1Address,
-    //     reserves: prefetchedPair.reserveData.reserves,
-    //     decimals: prefetchedPair.reserveData.decimals,
-    //   })
-    //   setReserveData(prefetchedPair.reserveData)
-    //   setDexCalculator(prefetchedPair.dexCalculator)
-    //   setShouldFetchFromBackend(false)
-    //   return
-    // }
+    if (prefetchedPair?.reserveData && prefetchedPair?.dexCalculator) {
+      console.log('useReserves - Using prefetched reserves:', {
+        fromSymbol,
+        toSymbol,
+        token0Address: prefetchedPair.reserveData.token0Address,
+        token1Address: prefetchedPair.reserveData.token1Address,
+        reserves: prefetchedPair.reserveData.reserves,
+        decimals: prefetchedPair.reserveData.decimals,
+      })
+      setReserveData(prefetchedPair.reserveData)
+      setDexCalculator(prefetchedPair.dexCalculator)
+      setShouldFetchFromBackend(false)
+      return
+    }
 
     // Then check dynamic cache
     const dynamicCacheData = getCachedReserves(
@@ -131,7 +131,7 @@ export const useReserves = ({
   }, [
     selectedTokenFrom,
     selectedTokenTo,
-    // checkPrefetchedPair,
+    checkPrefetchedPair,
     getCachedReserves,
   ])
 
