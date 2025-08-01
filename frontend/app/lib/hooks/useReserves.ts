@@ -5,7 +5,7 @@ import {
   ReserveData,
 } from '@/app/lib/dex/calculators'
 import { Token } from '@/app/types'
-import { usePrefetchReserves } from './usePrefetchReserves'
+// import { usePrefetchReserves } from './usePrefetchReserves'
 import { useDynamicReserveCache } from './useDynamicReserveCache'
 
 interface UseReservesProps {
@@ -26,8 +26,8 @@ export const useReserves = ({
   const [shouldFetchFromBackend, setShouldFetchFromBackend] = useState(true)
 
   // Get prefetched reserves and dynamic cache
-  const { prefetchedReserves, getPairKey: getPrefetchedPairKey } =
-    usePrefetchReserves({ chainId })
+  // const { prefetchedReserves, getPairKey: getPrefetchedPairKey } =
+  //   usePrefetchReserves({ chainId })
   const { dynamicReserves, updateCache, getCachedReserves } =
     useDynamicReserveCache({ chainId })
 
