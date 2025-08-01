@@ -3,7 +3,6 @@ import { UniswapV2Service, UniswapV3Service, SushiSwapService } from '../dex'
 import { ReserveResult } from '../types/reserves'
 import { TokenInfo } from '../types/token'
 import { TokenService } from './token-service'
-import { getCache, setCache, generateCacheKey } from '../utils/redis'
 
 export type DexType =
   | 'uniswapV2'
@@ -19,7 +18,6 @@ export class ReservesAggregator {
   private uniswapV3_10000: UniswapV3Service
   private sushiswap: SushiSwapService
   private tokenService: TokenService
-  private CACHE_TTL = 30 // 30 seconds cache
 
   constructor(provider: ethers.Provider) {
     this.uniswapV2 = new UniswapV2Service(provider)
@@ -54,7 +52,7 @@ export class ReservesAggregator {
 
         if (retries === maxRetries) {
           console.error(`Failed to fetch ${name} after ${maxRetries} retries`)
-          return null // Return null instead of throwing to handle gracefully
+          throw error // Let the caller handle the error
         }
 
         console.log(`Retrying ${name} fetch (${retries + 1}/${maxRetries})...`)
@@ -113,99 +111,6 @@ export class ReservesAggregator {
     return x
   }
 
-  private async checkUniV3(
-    tokenA: string,
-    tokenB: string,
-    fee: number,
-    decimals: { token0: number; token1: number }
-  ): Promise<ReserveResult | null> {
-    try {
-      let service: UniswapV3Service
-      switch (fee) {
-        case 500:
-          service = this.uniswapV3_500
-          break
-        case 3000:
-          service = this.uniswapV3_3000
-          break
-        case 10000:
-          service = this.uniswapV3_10000
-          break
-        default:
-          throw new Error(`Invalid fee tier: ${fee}`)
-      }
-
-      const reserves = await this.fetchWithRetry(
-        () => service.getReserves(tokenA, tokenB, fee),
-        `Uniswap V3 (${fee})`
-      )
-      if (!reserves) return null
-
-      return {
-        ...reserves,
-        decimals,
-      }
-    } catch {
-      return null
-    }
-  }
-
-  private async checkUniV2(
-    tokenA: string,
-    tokenB: string,
-    decimals: { token0: number; token1: number }
-  ): Promise<ReserveResult | null> {
-    try {
-      const reserves = await this.fetchWithRetry(
-        () => this.uniswapV2.getReserves(tokenA, tokenB),
-        'Uniswap V2'
-      )
-      if (!reserves) return null
-
-      return {
-        ...reserves,
-        decimals,
-      }
-    } catch {
-      return null
-    }
-  }
-
-  private async checkSushiSwap(
-    tokenA: string,
-    tokenB: string,
-    decimals: { token0: number; token1: number }
-  ): Promise<ReserveResult | null> {
-    try {
-      const reserves = await this.fetchWithRetry(
-        () => this.sushiswap.getReserves(tokenA, tokenB),
-        'SushiSwap'
-      )
-      if (!reserves) return null
-
-      return {
-        ...reserves,
-        decimals,
-      }
-    } catch {
-      return null
-    }
-  }
-
-  private findBestPool(results: ReserveResult[]): ReserveResult {
-    return results.reduce((best, current) => {
-      if (!best) return current
-
-      const bestMean = this.calculateGeometricMean(best.reserves, best.decimals)
-      const currentMean = this.calculateGeometricMean(
-        current.reserves,
-        current.decimals
-      )
-
-      return currentMean > bestMean ? current : best
-    })
-  }
-
   async getReservesFromDex(
     tokenA: string,
     tokenB: string,
@@ -217,55 +122,71 @@ export class ReservesAggregator {
       this.tokenService.getTokenInfo(tokenB),
     ])
 
-    const decimals = {
-      token0: token0Info.decimals,
-      token1: token1Info.decimals,
-    }
+    let reserves: ReserveResult | null = null
 
     switch (dex) {
       case 'uniswapV2':
-        return this.checkUniV2(tokenA, tokenB, decimals)
+        reserves = await this.fetchWithRetry(
+          () => this.uniswapV2.getReserves(tokenA, tokenB),
+          'Uniswap V2'
+        )
+        break
       case 'uniswapV3_500':
-        return this.checkUniV3(tokenA, tokenB, 500, decimals)
+        reserves = await this.fetchWithRetry(
+          () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+          'Uniswap V3 (500)'
+        )
+        break
       case 'uniswapV3_3000':
-        return this.checkUniV3(tokenA, tokenB, 3000, decimals)
+        reserves = await this.fetchWithRetry(
+          () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+          'Uniswap V3 (3000)'
+        )
+        break
       case 'uniswapV3_10000':
-        return this.checkUniV3(tokenA, tokenB, 10000, decimals)
+        reserves = await this.fetchWithRetry(
+          () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+          'Uniswap V3 (10000)'
+        )
+        break
       case 'sushiswap':
-        return this.checkSushiSwap(tokenA, tokenB, decimals)
+        reserves = await this.fetchWithRetry(
+          () => this.sushiswap.getReserves(tokenA, tokenB),
+          'SushiSwap'
+        )
+        break
       default:
         throw new Error(`Unsupported DEX type: ${dex}`)
     }
+
+    if (reserves) {
+      // Add decimals information to the result
+      return {
+        ...reserves,
+        decimals: {
+          token0: token0Info.decimals,
+          token1: token1Info.decimals,
+        },
+      }
+    }
+
+    return null
   }
 
   async getAllReserves(
     tokenA: string,
     tokenB: string
   ): Promise<ReserveResult | null> {
-    // Generate cache key
-    const cacheKey = generateCacheKey('RESERVES', `${tokenA}-${tokenB}`)
-
-    // Try cache first
-    const cachedResult = await getCache<ReserveResult>(cacheKey)
-    if (cachedResult) {
-      console.log(`Cache hit for reserves of ${tokenA}-${tokenB}`)
-      return cachedResult
-    }
-
     return new Promise((resolve, reject) => {
       // Set a timeout to ensure we respond before Lambda times out
       const timeout = setTimeout(() => {
         reject(new Error('Request timeout: Operation took too long'))
-      }, 20000) // 20 seconds to allow for cache operations
+      }, 25000) // 25 seconds to allow Lambda to respond
 
       // Attempt to fetch reserves
       this._fetchAllReserves(tokenA, tokenB)
-        .then(async (result) => {
+        .then((result) => {
           clearTimeout(timeout)
-          // Cache successful results
-          if (result) {
-            await setCache(cacheKey, result, this.CACHE_TTL)
-          }
           resolve(result)
         })
         .catch((error) => {
@@ -279,55 +200,119 @@ export class ReservesAggregator {
     tokenA: string,
     tokenB: string
   ): Promise<ReserveResult | null> {
-    // Get token decimals once
+    // Get token decimals
     const [token0Info, token1Info] = await Promise.all([
       this.tokenService.getTokenInfo(tokenA),
       this.tokenService.getTokenInfo(tokenB),
     ])
 
-    const decimals = {
-      token0: token0Info.decimals,
-      token1: token1Info.decimals,
+    const results: { result: ReserveResult; meanReserves: bigint }[] = []
+
+    // Fetch data sequentially instead of in parallel to avoid rate limits
+    console.log('Fetching Uniswap V3 (500) reserves...')
+    const uniswapV3_500Reserves = await this.fetchWithRetry(
+      () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+      'Uniswap V3 (500)'
+    )
+    if (uniswapV3_500Reserves) {
+      const meanReserves = this.calculateGeometricMean(
+        uniswapV3_500Reserves.reserves,
+        { token0: token0Info.decimals, token1: token1Info.decimals }
+      )
+      results.push({
+        result: uniswapV3_500Reserves,
+        meanReserves,
+      })
     }
 
-    // Create promises for all DEX checks
-    const dexPromises = [
-      this.checkUniV3(tokenA, tokenB, 500, decimals),
-      this.checkUniV3(tokenA, tokenB, 3000, decimals),
-      this.checkUniV3(tokenA, tokenB, 10000, decimals),
-      this.checkUniV2(tokenA, tokenB, decimals),
-      this.checkSushiSwap(tokenA, tokenB, decimals),
-    ]
-
-    try {
-      // Wait for all promises to complete with a timeout
-      const results = await Promise.all(dexPromises)
-      const validResults = results.filter((r): r is ReserveResult => r !== null)
-
-      if (validResults.length === 0) {
-        console.log('No valid reserves found from any DEX')
-        return null
-      }
-
-      // Calculate mean reserves for each result
-      const resultsWithMean = validResults.map((result) => ({
-        result,
-        meanReserves: this.calculateGeometricMean(
-          result.reserves,
-          result.decimals
-        ),
-      }))
-
-      // Find the pool with highest liquidity
-      const deepestPool = resultsWithMean.reduce((prev, current) => {
-        return current.meanReserves > prev.meanReserves ? current : prev
+    console.log('Fetching Uniswap V3 (3000) reserves...')
+    const uniswapV3_3000Reserves = await this.fetchWithRetry(
+      () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+      'Uniswap V3 (3000)'
+    )
+    if (uniswapV3_3000Reserves) {
+      const meanReserves = this.calculateGeometricMean(
+        uniswapV3_3000Reserves.reserves,
+        { token0: token0Info.decimals, token1: token1Info.decimals }
+      )
+      results.push({
+        result: uniswapV3_3000Reserves,
+        meanReserves,
       })
+    }
 
-      console.log('Selected deepest pool with liquidity:', deepestPool.result)
-      return deepestPool.result
-    } catch (error) {
-      console.error('Error fetching reserves:', error)
+    console.log('Fetching Uniswap V3 (10000) reserves...')
+    const uniswapV3_10000Reserves = await this.fetchWithRetry(
+      () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+      'Uniswap V3 (10000)'
+    )
+    if (uniswapV3_10000Reserves) {
+      const meanReserves = this.calculateGeometricMean(
+        uniswapV3_10000Reserves.reserves,
+        { token0: token0Info.decimals, token1: token1Info.decimals }
+      )
+      results.push({
+        result: uniswapV3_10000Reserves,
+        meanReserves,
+      })
+    }
+
+    // Add short delay before making more calls to avoid rate limits
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    console.log('Fetching Uniswap V2 reserves...')
+    const uniswapV2Reserves = await this.fetchWithRetry(
+      () => this.uniswapV2.getReserves(tokenA, tokenB),
+      'Uniswap V2'
+    )
+    if (uniswapV2Reserves) {
+      const meanReserves = this.calculateGeometricMean(
+        uniswapV2Reserves.reserves,
+        { token0: token0Info.decimals, token1: token1Info.decimals }
+      )
+      results.push({
+        result: uniswapV2Reserves,
+        meanReserves,
+      })
+    }
+
+    // Add short delay before making more calls to avoid rate limits
+    await new Promise((resolve) => setTimeout(resolve, 500))
+
+    console.log('Fetching SushiSwap reserves...')
+    const sushiswapReserves = await this.fetchWithRetry(
+      () => this.sushiswap.getReserves(tokenA, tokenB),
+      'SushiSwap'
+    )
+    if (sushiswapReserves) {
+      const meanReserves = this.calculateGeometricMean(
+        sushiswapReserves.reserves,
+        { token0: token0Info.decimals, token1: token1Info.decimals }
+      )
+      console.log('SushiSwap meanReserves:', meanReserves.toString())
+      results.push({
+        result: sushiswapReserves,
+        meanReserves,
+      })
+    }
+
+    if (results.length === 0) {
       return null
+    }
+
+    // Find the result with highest liquidity
+    const deepestPool = results.reduce((prev, current) => {
+      return current.meanReserves > prev.meanReserves ? current : prev
+    })
+
+    console.log('Selected deepest pool with liquidity:', deepestPool.result)
+
+    return {
+      ...deepestPool.result,
+      decimals: {
+        token0: token0Info.decimals,
+        token1: token1Info.decimals,
+      },
     }
   }
 }
