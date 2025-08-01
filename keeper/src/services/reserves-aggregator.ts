@@ -177,23 +177,14 @@ export class ReservesAggregator {
     tokenA: string,
     tokenB: string
   ): Promise<ReserveResult | null> {
-    return new Promise((resolve, reject) => {
-      // Set a timeout to ensure we respond before Lambda times out
-      const timeout = setTimeout(() => {
-        reject(new Error('Request timeout: Operation took too long'))
-      }, 25000) // 25 seconds to allow Lambda to respond
-
-      // Attempt to fetch reserves
-      this._fetchAllReserves(tokenA, tokenB)
-        .then((result) => {
-          clearTimeout(timeout)
-          resolve(result)
-        })
-        .catch((error) => {
-          clearTimeout(timeout)
-          reject(error)
-        })
-    })
+    try {
+      // Directly call _fetchAllReserves without timeout wrapper
+      const result = await this._fetchAllReserves(tokenA, tokenB)
+      return result
+    } catch (error) {
+      console.error('Error fetching reserves:', error)
+      return null
+    }
   }
 
   private async _fetchAllReserves(
@@ -208,95 +199,126 @@ export class ReservesAggregator {
 
     const results: { result: ReserveResult; meanReserves: bigint }[] = []
 
-    // Fetch data sequentially instead of in parallel to avoid rate limits
+    // Fetch data sequentially to avoid rate limits
     console.log('Fetching Uniswap V3 (500) reserves...')
-    const uniswapV3_500Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
-      'Uniswap V3 (500)'
-    )
-    if (uniswapV3_500Reserves) {
-      const meanReserves = this.calculateGeometricMean(
-        uniswapV3_500Reserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
+    try {
+      const uniswapV3_500Reserves = await this.fetchWithRetry(
+        () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+        'Uniswap V3 (500)',
+        3, // Increase retries
+        2000 // Increase delay between retries
       )
-      results.push({
-        result: uniswapV3_500Reserves,
-        meanReserves,
-      })
+      if (uniswapV3_500Reserves) {
+        const meanReserves = this.calculateGeometricMean(
+          uniswapV3_500Reserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        results.push({
+          result: uniswapV3_500Reserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.warn('Failed to fetch Uniswap V3 (500) reserves:', error)
     }
 
     console.log('Fetching Uniswap V3 (3000) reserves...')
-    const uniswapV3_3000Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
-      'Uniswap V3 (3000)'
-    )
-    if (uniswapV3_3000Reserves) {
-      const meanReserves = this.calculateGeometricMean(
-        uniswapV3_3000Reserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
+    try {
+      const uniswapV3_3000Reserves = await this.fetchWithRetry(
+        () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+        'Uniswap V3 (3000)',
+        3,
+        2000
       )
-      results.push({
-        result: uniswapV3_3000Reserves,
-        meanReserves,
-      })
+      if (uniswapV3_3000Reserves) {
+        const meanReserves = this.calculateGeometricMean(
+          uniswapV3_3000Reserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        results.push({
+          result: uniswapV3_3000Reserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.warn('Failed to fetch Uniswap V3 (3000) reserves:', error)
     }
 
     console.log('Fetching Uniswap V3 (10000) reserves...')
-    const uniswapV3_10000Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
-      'Uniswap V3 (10000)'
-    )
-    if (uniswapV3_10000Reserves) {
-      const meanReserves = this.calculateGeometricMean(
-        uniswapV3_10000Reserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
+    try {
+      const uniswapV3_10000Reserves = await this.fetchWithRetry(
+        () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+        'Uniswap V3 (10000)',
+        3,
+        2000
       )
-      results.push({
-        result: uniswapV3_10000Reserves,
-        meanReserves,
-      })
+      if (uniswapV3_10000Reserves) {
+        const meanReserves = this.calculateGeometricMean(
+          uniswapV3_10000Reserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        results.push({
+          result: uniswapV3_10000Reserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.warn('Failed to fetch Uniswap V3 (10000) reserves:', error)
     }
 
-    // Add short delay before making more calls to avoid rate limits
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    // Add delay before making more calls to avoid rate limits
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     console.log('Fetching Uniswap V2 reserves...')
-    const uniswapV2Reserves = await this.fetchWithRetry(
-      () => this.uniswapV2.getReserves(tokenA, tokenB),
-      'Uniswap V2'
-    )
-    if (uniswapV2Reserves) {
-      const meanReserves = this.calculateGeometricMean(
-        uniswapV2Reserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
+    try {
+      const uniswapV2Reserves = await this.fetchWithRetry(
+        () => this.uniswapV2.getReserves(tokenA, tokenB),
+        'Uniswap V2',
+        3,
+        2000
       )
-      results.push({
-        result: uniswapV2Reserves,
-        meanReserves,
-      })
+      if (uniswapV2Reserves) {
+        const meanReserves = this.calculateGeometricMean(
+          uniswapV2Reserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        results.push({
+          result: uniswapV2Reserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.warn('Failed to fetch Uniswap V2 reserves:', error)
     }
 
-    // Add short delay before making more calls to avoid rate limits
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    // Add delay before making more calls to avoid rate limits
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     console.log('Fetching SushiSwap reserves...')
-    const sushiswapReserves = await this.fetchWithRetry(
-      () => this.sushiswap.getReserves(tokenA, tokenB),
-      'SushiSwap'
-    )
-    if (sushiswapReserves) {
-      const meanReserves = this.calculateGeometricMean(
-        sushiswapReserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
+    try {
+      const sushiswapReserves = await this.fetchWithRetry(
+        () => this.sushiswap.getReserves(tokenA, tokenB),
+        'SushiSwap',
+        3,
+        2000
       )
-      console.log('SushiSwap meanReserves:', meanReserves.toString())
-      results.push({
-        result: sushiswapReserves,
-        meanReserves,
-      })
+      if (sushiswapReserves) {
+        const meanReserves = this.calculateGeometricMean(
+          sushiswapReserves.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        console.log('SushiSwap meanReserves:', meanReserves.toString())
+        results.push({
+          result: sushiswapReserves,
+          meanReserves,
+        })
+      }
+    } catch (error) {
+      console.warn('Failed to fetch SushiSwap reserves:', error)
     }
 
     if (results.length === 0) {
+      console.log('No valid reserves found from any DEX')
       return null
     }
 
