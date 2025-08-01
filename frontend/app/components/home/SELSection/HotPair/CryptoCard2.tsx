@@ -78,7 +78,7 @@ export default function CryptoCard2({
             <p className="text-zinc-400 text-lg font-bold">{vol}</p>
             <div className="col-span-1"></div>{' '}
             {/* Empty div to align values under labels */}
-            <p className="text-zinc-400 text-lg font-bold">{win}</p>
+            <p className="text-zinc-400 text-lg font-bold">{win}%</p>
             <div className="col-span-1"></div>{' '}
             {/* Empty div to align values under labels */}
             <p className="text-[#40FAAC] text-lg font-bold">${price}</p>
