@@ -7,18 +7,13 @@ provider:
   runtime: nodejs18.x
   stage: ${opt:stage, 'dev'}
   region: us-east-1
-  timeout: 180 # 3 minutes default timeout
-  memorySize: 1024 # Increased memory for better performance
+  timeout: 30 # Match API Gateway limit
+  memorySize: 1024 # Increase memory for better performance
   httpApi:
     cors: true
   apiGateway:
     minimumCompressionSize: 1024 # Enable compression for responses
     shouldStartNameWithService: true
-    # Configure longer timeout for REST API
-    restApiConfig:
-      endpointType: REGIONAL
-      # Set a longer timeout (5 minutes)
-      timeout: 300000
   environment:
     NODE_ENV: ${self:provider.stage}
     RPC_URL: ${env:RPC_URL, 'fallback-rpc-url'}
@@ -31,28 +26,24 @@ provider:
 functions:
   reserves:
     handler: src/functions/reserves/handler.main
-    timeout: 300 # 5 minutes timeout
-    memorySize: 1024
+    timeout: 25 # Set just under API Gateway limit
+    memorySize: 1024 # Increase memory for better performance
     events:
       - http:
           path: reserves
           method: get
           cors: true
-          integration: lambda
-          timeout: 300000 # 5 minutes in milliseconds
       - http:
           path: reserves
           method: post
           cors: true
-          integration: lambda
-          timeout: 300000
       - http:
           path: reserves
           method: options
           cors: true
   price:
     handler: src/functions/price/handler.main
-    timeout: 30
+    timeout: 30 # Override default timeout for this function
     events:
       - http:
           path: /price
