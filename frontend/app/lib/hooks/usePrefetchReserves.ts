@@ -1,4 +1,4 @@
-import { useQuery, useQueries, NetworkMode } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import {
   DexCalculator,
   DexCalculatorFactory,
@@ -15,6 +15,9 @@ const POPULAR_TOKENS = {
     WETH: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
     WBTC: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
     WSOL: '0x0Df040Bda85394A9B36224069D6c70646dB8cbF8', // Wrapped SOL on Ethereum
+    // RUNE: '0x2030Ea53eccFdE546794Bd34149c71a61773b12b', // THORChain RUNE
+    // RUJI: '0xDd7b7f36814c56488C3849218D9d85C3dD8E50C2', // RUJI Token
+    // VULT: '0x32c1b3c43317cba8185D65227A54AE416dacc338', // Vulture Token
   },
   '42161': {
     // Arbitrum
@@ -24,59 +27,87 @@ const POPULAR_TOKENS = {
     WETH: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
     WBTC: '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
     WSOL: '0x0Df040Bda85394A9B36224069D6c70646dB8cbF8', // Wrapped SOL on Arbitrum
+    // RUNE: '0x2030Ea53eccFdE546794Bd34149c71a61773b12b', // THORChain RUNE on Arbitrum
+    // RUJI: '0xDd7b7f36814c56488C3849218D9d85C3dD8E50C2', // RUJI Token on Arbitrum
+    // VULT: '0x32c1b3c43317cba8185D65227A54AE416dacc338', // Vulture Token on Arbitrum
   },
+  // Add more chains as needed
 }
 
-// Token pairs to prefetch - prioritized by importance
+// Token pairs to prefetch
 const PAIRS_TO_PREFETCH = [
-  // High priority pairs (stablecoins and major pairs)
   ['USDC', 'WETH'],
+  ['WETH', 'USDC'],
   ['USDT', 'WETH'],
+  ['WETH', 'USDT'],
   ['USDT', 'USDC'],
-  // Medium priority pairs
-  ['DAI', 'WETH'],
+  ['USDC', 'USDT'],
   ['USDT', 'DAI'],
-  ['WETH', 'WBTC'],
-] as const
+  ['DAI', 'WETH'],
+  // ['WETH', 'WBTC'],
+  // ['WBTC', 'WSOL'],
+  // ['WSOL', 'RUNE'],
+  // ['RUNE', 'RUJI'],
+  // ['RUJI', 'VULT'],
+]
 
-// Cache configuration aligned with backend Redis cache
+// Cache configuration
 const CACHE_CONFIG = {
-  STALE_TIME: 25000, // 25s (slightly less than backend's 30s)
-  GC_TIME: 60000, // 1 minute
-  REFETCH_INTERVAL: 20000, // 20s to ensure we have fresh data before backend cache expires
-  BATCH_SIZE: 2, // Number of pairs to fetch in parallel
-  REQUEST_TIMEOUT: 15000, // 15 second timeout (less than Lambda's 20s)
+  STALE_TIME: 90000, // 1.5 minutes before data is considered stale
+  GC_TIME: 120000, // 2 minutes before data is removed from cache
+  REFETCH_INTERVAL: 60000, // Refetch every 1 minute
 }
-
-interface ReserveResult {
-  reserveData: ReserveData | null
-  dexCalculator: DexCalculator | null
-  error: string | null
-}
+// const CACHE_CONFIG = {
+//   STALE_TIME: 30000, // 30 seconds before data is considered stale
+//   GC_TIME: 60000, // 1 minute before data is removed from cache
+//   REFETCH_INTERVAL: 25000, // Refetch every 25 seconds (before stale time)
+// }
 
 interface PrefetchedReserves {
-  [key: string]: ReserveResult
+  [key: string]: {
+    reserveData: ReserveData | null
+    dexCalculator: DexCalculator | null
+    error: string | null
+  }
 }
 
 interface UsePrefetchReservesProps {
   chainId?: string
-  enabled?: boolean
 }
 
 export const usePrefetchReserves = ({
   chainId = '1',
-  enabled = true,
 }: UsePrefetchReservesProps = {}) => {
-  // Function to create a pair key
+  // Function to create a pair key - exact match only, no reverse pairs
   const getPairKey = (fromSymbol: string, toSymbol: string) => {
-    return `${fromSymbol}_${toSymbol}`
+    const key = `${fromSymbol}_${toSymbol}`
+    console.log('Prefetch - Creating cache key:', { fromSymbol, toSymbol, key })
+    return key
   }
 
-  // Function to fetch reserves for a token pair with timeout
-  const fetchReserves = async (
-    fromSymbol: string,
-    toSymbol: string
-  ): Promise<ReserveResult> => {
+  // Function to check if a pair exists in prefetch list
+  const isPairInPrefetchList = (fromSymbol: string, toSymbol: string) => {
+    return PAIRS_TO_PREFETCH.some(
+      ([from, to]) => from === fromSymbol && to === toSymbol
+    )
+  }
+
+  // Function to fetch reserves for a token pair
+  const fetchReserves = async (fromSymbol: string, toSymbol: string) => {
+    // Only fetch if pair exists in prefetch list with exact order
+    if (!isPairInPrefetchList(fromSymbol, toSymbol)) {
+      console.log('Prefetch - Pair not in prefetch list:', {
+        fromSymbol,
+        toSymbol,
+      })
+      return {
+        reserveData: null,
+        dexCalculator: null,
+        error: 'Pair not in prefetch list',
+      }
+    }
+
+    console.log('Prefetch - Fetching reserves:', { fromSymbol, toSymbol })
     try {
       const tokens = POPULAR_TOKENS[chainId as keyof typeof POPULAR_TOKENS]
       if (!tokens) {
@@ -90,18 +121,9 @@ export const usePrefetchReserves = ({
         throw new Error('Token not found for chain')
       }
 
-      const controller = new AbortController()
-      const timeoutId = setTimeout(
-        () => controller.abort(),
-        CACHE_CONFIG.REQUEST_TIMEOUT
-      )
-
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`,
-        { signal: controller.signal }
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`
       )
-
-      clearTimeout(timeoutId)
 
       if (!response.ok) {
         throw new Error('Failed to fetch reserves')
@@ -113,6 +135,7 @@ export const usePrefetchReserves = ({
         throw new Error('No liquidity data received')
       }
 
+      // Create reserve data with exact token order as requested
       const reserveDataWithDecimals = {
         dex: data.dex,
         pairAddress: data.pairAddress,
@@ -129,13 +152,22 @@ export const usePrefetchReserves = ({
         chainId
       )
 
+      console.log('Prefetch - Successfully fetched reserves:', {
+        fromSymbol,
+        toSymbol,
+        token0Address: fromAddress,
+        token1Address: toAddress,
+        reserves: data.reserves,
+        decimals: data.decimals,
+      })
+
       return {
         reserveData: reserveDataWithDecimals,
         dexCalculator: calculator,
         error: null,
       }
     } catch (error) {
-      console.error('Error fetching reserves:', {
+      console.error('Prefetch - Error fetching reserves:', {
         fromSymbol,
         toSymbol,
         error,
@@ -148,47 +180,67 @@ export const usePrefetchReserves = ({
     }
   }
 
-  // Use React Query's useQueries for batched parallel fetching
-  const queries = useQueries({
-    queries: PAIRS_TO_PREFETCH.map(([fromSymbol, toSymbol], index) => ({
-      queryKey: ['reserves', chainId, fromSymbol, toSymbol] as const,
-      queryFn: () => fetchReserves(fromSymbol, toSymbol),
-      staleTime: CACHE_CONFIG.STALE_TIME,
-      gcTime: CACHE_CONFIG.GC_TIME,
-      refetchInterval: CACHE_CONFIG.REFETCH_INTERVAL,
-      refetchIntervalInBackground: true,
-      refetchOnWindowFocus: false,
-      retry: 1,
-      retryDelay: 1000,
-      enabled: enabled && index < CACHE_CONFIG.BATCH_SIZE * 3, // Load in 3 batches
-      networkMode: 'always' as NetworkMode, // Continue fetching even if window is hidden
-    })),
-  })
+  // Use React Query to fetch and cache all pairs in parallel
+  const { data: prefetchedReserves = {} } = useQuery({
+    queryKey: ['prefetched-reserves', chainId],
+    queryFn: async () => {
+      const results: PrefetchedReserves = {}
 
-  // Combine all results into a single object
-  const prefetchedReserves = queries.reduce<PrefetchedReserves>(
-    (acc, query, index) => {
-      const [fromSymbol, toSymbol] = PAIRS_TO_PREFETCH[index]
-      const pairKey = getPairKey(fromSymbol, toSymbol)
+      // Fetch all pairs in parallel with a timeout
+      const promises = PAIRS_TO_PREFETCH.map(async ([fromSymbol, toSymbol]) => {
+        // Create pair key using exact order from PAIRS_TO_PREFETCH
+        const pairKey = getPairKey(fromSymbol, toSymbol)
 
-      acc[pairKey] = query.data || {
-        reserveData: null,
-        dexCalculator: null,
-        error: query.error ? String(query.error) : null,
-      }
+        try {
+          const result = await Promise.race<{
+            reserveData: ReserveData | null
+            dexCalculator: DexCalculator | null
+            error: string | null
+          }>([
+            fetchReserves(fromSymbol, toSymbol),
+            new Promise(
+              (_, reject) =>
+                setTimeout(() => reject(new Error('Timeout')), 10000) // 10 second timeout
+            ),
+          ])
+          return { pairKey, result }
+        } catch (error) {
+          console.warn(`Failed to fetch ${fromSymbol}-${toSymbol}:`, error)
+          return {
+            pairKey,
+            result: {
+              reserveData: null,
+              dexCalculator: null,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            },
+          }
+        }
+      })
 
-      return acc
+      // Wait for all fetches to complete
+      const pairResults = await Promise.all(promises)
+
+      // Store results in object - only store pairs in exact order from PAIRS_TO_PREFETCH
+      pairResults.forEach(({ pairKey, result }) => {
+        if (result.error !== 'Pair not in prefetch list') {
+          results[pairKey] = result
+        }
+      })
+
+      return results
     },
-    {}
-  )
+    staleTime: CACHE_CONFIG.STALE_TIME,
+    gcTime: CACHE_CONFIG.GC_TIME,
+    refetchInterval: CACHE_CONFIG.REFETCH_INTERVAL,
+    refetchIntervalInBackground: true,
+    refetchOnWindowFocus: false,
+    retry: 2,
+    retryDelay: 1000,
+    enabled: true,
+  })
 
   return {
     prefetchedReserves,
     getPairKey,
-    isLoading: queries.some((q) => q.isLoading),
-    isError: queries.some((q) => q.isError),
-    errors: queries
-      .map((q, i) => q.error && `${PAIRS_TO_PREFETCH[i].join('/')}:${q.error}`)
-      .filter(Boolean),
   }
 }
