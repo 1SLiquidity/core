@@ -8,7 +8,40 @@ const provider = createProvider()
 const reservesService = new ReservesAggregator(provider)
 
 // Increase cache TTL to reduce RPC calls
-const CACHE_TTL = 10 // 10 seconds
+const CACHE_TTL = 120 // 2 minutes to reduce total requests
+
+// Simple semaphore to limit concurrent requests
+class Semaphore {
+  private permits: number
+  private waitingQueue: Array<() => void> = []
+
+  constructor(permits: number) {
+    this.permits = permits
+  }
+
+  async acquire(): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.permits > 0) {
+        this.permits--
+        resolve()
+      } else {
+        this.waitingQueue.push(resolve)
+      }
+    })
+  }
+
+  release(): void {
+    this.permits++
+    if (this.waitingQueue.length > 0) {
+      const nextResolve = this.waitingQueue.shift()!
+      this.permits--
+      nextResolve()
+    }
+  }
+}
+
+// Allow max 1 concurrent reserves request to prevent RPC overload
+const requestSemaphore = new Semaphore(1)
 
 interface ReserveRequest {
   tokenA: string
@@ -105,6 +138,7 @@ export const main = async (
     // Try to get from cache first
     const cachedData = await getCache(cacheKey)
     if (cachedData) {
+      console.log(`Cache hit for ${tokenA}-${tokenB}`)
       return {
         statusCode: 200,
         headers,
@@ -112,76 +146,87 @@ export const main = async (
       }
     }
 
-    // If not in cache, fetch from API
-    let reservesData
+    // Acquire semaphore to limit concurrent requests
+    console.log(`Acquiring semaphore for ${tokenA}-${tokenB}`)
+    await requestSemaphore.acquire()
+    console.log(`Semaphore acquired for ${tokenA}-${tokenB}`)
+
     try {
-      if (dex) {
-        reservesData = await reservesService.getReservesFromDex(
-          tokenA,
-          tokenB,
-          dex
-        )
-      } else {
-        reservesData = await reservesService.getAllReserves(tokenA, tokenB)
-      }
+      // If not in cache, fetch from API
+      let reservesData
+      try {
+        if (dex) {
+          reservesData = await reservesService.getReservesFromDex(
+            tokenA,
+            tokenB,
+            dex
+          )
+        } else {
+          reservesData = await reservesService.getAllReserves(tokenA, tokenB)
+        }
 
-      if (!reservesData) {
+        if (!reservesData) {
+          return {
+            statusCode: 404,
+            headers,
+            body: JSON.stringify({
+              error: 'No liquidity',
+              message: 'No liquidity found for the token pair',
+            }),
+          }
+        }
+
+        // Cache the successful result
+        await setCache(cacheKey, reservesData, CACHE_TTL)
+
         return {
-          statusCode: 404,
+          statusCode: 200,
+          headers,
+          body: JSON.stringify(reservesData),
+        }
+      } catch (error: any) {
+        console.error('Error fetching reserves:', error)
+
+        // Handle specific error cases
+        if (
+          error.message?.includes('timeout') ||
+          error.message?.includes('Timeout')
+        ) {
+          return {
+            statusCode: 504,
+            headers,
+            body: JSON.stringify({
+              error: 'Timeout',
+              message: 'Request timed out while fetching reserves',
+            }),
+          }
+        }
+
+        if (error.message?.includes('Failed to fetch token information')) {
+          return {
+            statusCode: 400,
+            headers,
+            body: JSON.stringify({
+              error: 'Invalid token',
+              message: 'Failed to fetch token information',
+            }),
+          }
+        }
+
+        // Default error response
+        return {
+          statusCode: 500,
           headers,
           body: JSON.stringify({
-            error: 'No liquidity',
-            message: 'No liquidity found for the token pair',
+            error: 'Server error',
+            message: 'Failed to fetch reserves',
           }),
         }
       }
-
-      // Cache the successful result
-      await setCache(cacheKey, reservesData, CACHE_TTL)
-
-      return {
-        statusCode: 200,
-        headers,
-        body: JSON.stringify(reservesData),
-      }
-    } catch (error: any) {
-      console.error('Error fetching reserves:', error)
-
-      // Handle specific error cases
-      if (
-        error.message?.includes('timeout') ||
-        error.message?.includes('Timeout')
-      ) {
-        return {
-          statusCode: 504,
-          headers,
-          body: JSON.stringify({
-            error: 'Timeout',
-            message: 'Request timed out while fetching reserves',
-          }),
-        }
-      }
-
-      if (error.message?.includes('Failed to fetch token information')) {
-        return {
-          statusCode: 400,
-          headers,
-          body: JSON.stringify({
-            error: 'Invalid token',
-            message: 'Failed to fetch token information',
-          }),
-        }
-      }
-
-      // Default error response
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-          error: 'Server error',
-          message: 'Failed to fetch reserves',
-        }),
-      }
+    } finally {
+      // Always release semaphore
+      console.log(`Releasing semaphore for ${tokenA}-${tokenB}`)
+      requestSemaphore.release()
     }
   } catch (error) {
     console.error('Unhandled error:', error)
