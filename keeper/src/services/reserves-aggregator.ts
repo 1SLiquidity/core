@@ -32,32 +32,73 @@ export class ReservesAggregator {
   private async fetchWithRetry(
     fetchFn: () => Promise<ReserveResult | null>,
     name: string,
-    maxRetries = 2,
-    delay = 1000
+    maxRetries = 1, // Reduced from 2 to 1
+    delay = 2000 // Increased from 1000 to 2000
   ): Promise<ReserveResult | null> {
     let retries = 0
+    const startTime = Date.now()
 
     while (retries <= maxRetries) {
       try {
-        const result = await fetchFn()
+        const attemptStartTime = Date.now()
+        console.log(
+          `${name} - Attempt ${retries + 1}/${maxRetries + 1} starting...`
+        )
+
+        // Longer timeout since we're making fewer calls
+        const result = await Promise.race([
+          fetchFn(),
+          new Promise<ReserveResult | null>((_, reject) =>
+            setTimeout(
+              () => reject(new Error(`${name} call timeout after 20s`)),
+              20000
+            )
+          ),
+        ])
+
+        const attemptEndTime = Date.now()
+        console.log(
+          `${name} - Attempt ${retries + 1} completed in ${
+            attemptEndTime - attemptStartTime
+          }ms`
+        )
+
         if (result === null) {
           console.log(`${name} returned null (no pool found)`)
+        } else {
+          console.log(
+            `${name} successful after ${retries + 1} attempts, total time: ${
+              attemptEndTime - startTime
+            }ms`
+          )
         }
         return result
       } catch (error) {
+        const attemptEndTime = Date.now()
         console.error(
-          `${name} fetch error (attempt ${retries + 1}/${maxRetries + 1}):`,
-          error
+          `${name} fetch error (attempt ${retries + 1}/${
+            maxRetries + 1
+          }) after ${attemptEndTime - startTime}ms:`,
+          error instanceof Error ? error.message : error
         )
 
         if (retries === maxRetries) {
-          console.error(`Failed to fetch ${name} after ${maxRetries} retries`)
-          throw error // Let the caller handle the error
+          const totalTime = Date.now() - startTime
+          console.error(
+            `Failed to fetch ${name} after ${
+              maxRetries + 1
+            } attempts, total time: ${totalTime}ms`
+          )
+          return null // Return null instead of throwing to continue with other DEXes
         }
 
-        console.log(`Retrying ${name} fetch (${retries + 1}/${maxRetries})...`)
+        console.log(
+          `Retrying ${name} fetch (${
+            retries + 1
+          }/${maxRetries}) after ${delay}ms delay...`
+        )
         retries++
-        // Simple delay to avoid rate limits
+        // Shorter delay between retries
         await new Promise((resolve) => setTimeout(resolve, delay))
       }
     }
@@ -181,7 +222,7 @@ export class ReservesAggregator {
       // Set a timeout to ensure we respond before Lambda times out
       const timeout = setTimeout(() => {
         reject(new Error('Request timeout: Operation took too long'))
-      }, 25000) // 25 seconds to allow Lambda to respond
+      }, 80000) // 80 seconds to allow Lambda to respond cleanly (API Gateway limit is 89s)
 
       // Attempt to fetch reserves
       this._fetchAllReserves(tokenA, tokenB)
@@ -200,20 +241,34 @@ export class ReservesAggregator {
     tokenA: string,
     tokenB: string
   ): Promise<ReserveResult | null> {
+    const startTime = Date.now()
+    console.log(
+      `Starting reserves fetch for ${tokenA}-${tokenB} at ${new Date().toISOString()}`
+    )
+
     // Get token decimals
+    const tokenStartTime = Date.now()
     const [token0Info, token1Info] = await Promise.all([
       this.tokenService.getTokenInfo(tokenA),
       this.tokenService.getTokenInfo(tokenB),
     ])
+    const tokenEndTime = Date.now()
+    console.log(`Token info fetch took ${tokenEndTime - tokenStartTime}ms`)
 
     const results: { result: ReserveResult; meanReserves: bigint }[] = []
 
-    // Fetch data sequentially instead of in parallel to avoid rate limits
+    // Fetch from all DEXes to find best liquidity, but with longer delays
     console.log('Fetching Uniswap V3 (500) reserves...')
+    const uniV3_500StartTime = Date.now()
     const uniswapV3_500Reserves = await this.fetchWithRetry(
       () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
       'Uniswap V3 (500)'
     )
+    const uniV3_500EndTime = Date.now()
+    console.log(
+      `Uniswap V3 (500) fetch took ${uniV3_500EndTime - uniV3_500StartTime}ms`
+    )
+
     if (uniswapV3_500Reserves) {
       const meanReserves = this.calculateGeometricMean(
         uniswapV3_500Reserves.reserves,
@@ -225,11 +280,23 @@ export class ReservesAggregator {
       })
     }
 
+    // Longer delay between DEX calls
+    console.log('Adding 2s delay before Uniswap V3 (3000)...')
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
     console.log('Fetching Uniswap V3 (3000) reserves...')
+    const uniV3_3000StartTime = Date.now()
     const uniswapV3_3000Reserves = await this.fetchWithRetry(
       () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
       'Uniswap V3 (3000)'
     )
+    const uniV3_3000EndTime = Date.now()
+    console.log(
+      `Uniswap V3 (3000) fetch took ${
+        uniV3_3000EndTime - uniV3_3000StartTime
+      }ms`
+    )
+
     if (uniswapV3_3000Reserves) {
       const meanReserves = this.calculateGeometricMean(
         uniswapV3_3000Reserves.reserves,
@@ -241,11 +308,22 @@ export class ReservesAggregator {
       })
     }
 
+    console.log('Adding 2s delay before Uniswap V3 (10000)...')
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
     console.log('Fetching Uniswap V3 (10000) reserves...')
+    const uniV3_10000StartTime = Date.now()
     const uniswapV3_10000Reserves = await this.fetchWithRetry(
       () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
       'Uniswap V3 (10000)'
     )
+    const uniV3_10000EndTime = Date.now()
+    console.log(
+      `Uniswap V3 (10000) fetch took ${
+        uniV3_10000EndTime - uniV3_10000StartTime
+      }ms`
+    )
+
     if (uniswapV3_10000Reserves) {
       const meanReserves = this.calculateGeometricMean(
         uniswapV3_10000Reserves.reserves,
@@ -257,14 +335,18 @@ export class ReservesAggregator {
       })
     }
 
-    // Add short delay before making more calls to avoid rate limits
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    console.log('Adding 2s delay before Uniswap V2...')
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     console.log('Fetching Uniswap V2 reserves...')
+    const uniV2StartTime = Date.now()
     const uniswapV2Reserves = await this.fetchWithRetry(
       () => this.uniswapV2.getReserves(tokenA, tokenB),
       'Uniswap V2'
     )
+    const uniV2EndTime = Date.now()
+    console.log(`Uniswap V2 fetch took ${uniV2EndTime - uniV2StartTime}ms`)
+
     if (uniswapV2Reserves) {
       const meanReserves = this.calculateGeometricMean(
         uniswapV2Reserves.reserves,
@@ -276,14 +358,18 @@ export class ReservesAggregator {
       })
     }
 
-    // Add short delay before making more calls to avoid rate limits
-    await new Promise((resolve) => setTimeout(resolve, 500))
+    console.log('Adding 2s delay before SushiSwap...')
+    await new Promise((resolve) => setTimeout(resolve, 2000))
 
     console.log('Fetching SushiSwap reserves...')
+    const sushiStartTime = Date.now()
     const sushiswapReserves = await this.fetchWithRetry(
       () => this.sushiswap.getReserves(tokenA, tokenB),
       'SushiSwap'
     )
+    const sushiEndTime = Date.now()
+    console.log(`SushiSwap fetch took ${sushiEndTime - sushiStartTime}ms`)
+
     if (sushiswapReserves) {
       const meanReserves = this.calculateGeometricMean(
         sushiswapReserves.reserves,
@@ -296,7 +382,11 @@ export class ReservesAggregator {
       })
     }
 
+    const totalTime = Date.now() - startTime
+    console.log(`Total fetch operation took ${totalTime}ms`)
+
     if (results.length === 0) {
+      console.log('No valid reserves found from any DEX')
       return null
     }
 
@@ -306,6 +396,9 @@ export class ReservesAggregator {
     })
 
     console.log('Selected deepest pool with liquidity:', deepestPool.result)
+    console.log(
+      `Complete reserves fetch for ${tokenA}-${tokenB} took ${totalTime}ms`
+    )
 
     return {
       ...deepestPool.result,

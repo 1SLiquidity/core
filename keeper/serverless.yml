@@ -7,7 +7,7 @@ provider:
   runtime: nodejs18.x
   stage: ${opt:stage, 'dev'}
   region: us-east-1
-  timeout: 30 # Match API Gateway limit
+  timeout: 90 # Match API Gateway limit
   memorySize: 1024 # Increase memory for better performance
   httpApi:
     cors: true
@@ -26,7 +26,7 @@ provider:
 functions:
   reserves:
     handler: src/functions/reserves/handler.main
-    timeout: 25 # Set just under API Gateway limit
+    timeout: 90 # Just under API Gateway limit
     memorySize: 1024 # Increase memory for better performance
     events:
       - http:

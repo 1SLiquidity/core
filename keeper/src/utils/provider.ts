@@ -19,13 +19,14 @@ export function createProvider(): ethers.JsonRpcProvider {
     throw new Error('RPC_URL environment variable is not set')
   }
 
-  // Provider options to optimize for rate limiting
+  // Provider options to optimize for rate limiting and timeouts
   const providerOptions = {
-    polling: true,
+    polling: false, // Disable polling to reduce requests
     staticNetwork: true,
-    batchStallTime: 100, // ms to wait for more requests before sending a batch
-    batchMaxSize: 3, // maximum batch size (lower to avoid rate limits)
-    cacheTimeout: 2000, // cache timeout for requests
+    batchStallTime: 50, // ms to wait for more requests before sending a batch
+    batchMaxSize: 1, // Send individual requests to avoid batch timeouts
+    cacheTimeout: 1000, // Shorter cache timeout
+    requestTimeout: 12000, // 12 second timeout for individual requests
   }
 
   const provider = new ethers.JsonRpcProvider(
