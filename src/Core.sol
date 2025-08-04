@@ -64,6 +64,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     uint256 public lastGasCost;
     uint256[] public TWAP_GAS_COST;
 
+    // new gas records
+    uint256 public gasOpen;
+    uint256 public gasClosed;
+
     // trades
     uint256 public lastTradeId;
     mapping(bytes32 => uint256[]) public pairIdTradeIds;
@@ -90,6 +94,14 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
     function initiateGasRecord() public {
         startGas = gasleft();
+    }
+
+    function testGasRecording() public returns (uint256){
+        gasOpen = gasleft();
+        uint256 pseudoResult = 2 ^ 9991;
+        gasClosed = gasleft();
+
+        return gasOpen - gasClosed;
     }
 
     function closeGasRecord() public {
@@ -231,13 +243,15 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                         console.log("Core: executeTrades: lastSweetSpot == 0");
                         IERC20(trade.tokenOut).transfer(trade.owner, trade.realisedAmountOut);
                         delete trades[tradeIds[i]];
+                        console.log("[executeTrades] : trade completed");
                     }
                 } catch Error(string memory reason) {
                     console.log("[executeTrades] Error:");
                     console.log(reason);
                     trade.attempts++;
                 } catch (bytes memory lowLevelData) {
-                    console.log("[executeTrades] Low-level error");
+                    console.log("[executeTrades] trade failed");
+                    console.log(string(lowLevelData));
                     trade.attempts++;
                 }
             }
@@ -270,10 +284,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             _cancelTrade(trade.tradeId);
         }
         // security measure @audit may need review
-        if (trade.realisedAmountOut > trade.targetAmountOut) {
-            console.log("[_executeStream] ToxicTrade: realisedAmountOut > targetAmountOut");
-            revert ToxicTrade(trade.tradeId);
-        }
+        // if (trade.realisedAmountOut > trade.targetAmountOut) {
+        //     console.log("[_executeStream] ToxicTrade: realisedAmountOut > targetAmountOut");
+        //     revert ToxicTrade(trade.tradeId);
+        // }
 
         (uint256 sweetSpot, address bestDex, address router) = 
             streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, latestGasAverage);
@@ -281,17 +295,34 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         console.log(sweetSpot);
         console.log("execute stream: last sweet spot = ");
         console.log(trade.lastSweetSpot);
+        console.log("evaluating conditions");
 
         if (trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3 || trade.lastSweetSpot == 4) {
+        console.log("low sweet spot condition being looked at");
+            
             sweetSpot = trade.lastSweetSpot;
+
         }
+        console.log("low sweet spot condition evaluated");
+
         if (sweetSpot > 500) {
+        console.log("high sweet spot condition being looked at");
+
             sweetSpot = 500; // this is an arbitrary value @audit needs revision
         }
-        require(sweetSpot > 0, "Invalid sweet spot");
+        console.log("high sweet spot condition evaluated");
 
-        uint256 streamVolume = trade.amountIn / sweetSpot;
-        uint256 targetAmountOut = (trade.targetAmountOut - trade.realisedAmountOut) / sweetSpot; // big change exists here
+        require(sweetSpot > 0, "Invalid sweet spot");
+        uint256 targetAmountOut;
+        uint256 streamVolume;
+        if (trade.targetAmountOut > trade.realisedAmountOut) {
+        targetAmountOut = (trade.targetAmountOut - trade.realisedAmountOut) / sweetSpot; // big change exists here
+        streamVolume = trade.amountRemaining / sweetSpot;
+        } else {
+        targetAmountOut = trade.realisedAmountOut - trade.targetAmountOut;
+        sweetSpot = 1;
+        streamVolume = trade.amountRemaining;
+        }
         console.log("[_executeStream] streamVolume:");
         console.log(streamVolume);
         console.log("targetAmountOut:");
