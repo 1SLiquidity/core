@@ -257,130 +257,69 @@ export class ReservesAggregator {
 
     const results: { result: ReserveResult; meanReserves: bigint }[] = []
 
-    // Fetch from all DEXes to find best liquidity, but with longer delays
-    console.log('Fetching Uniswap V3 (500) reserves...')
-    const uniV3_500StartTime = Date.now()
-    const uniswapV3_500Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
-      'Uniswap V3 (500)'
-    )
-    const uniV3_500EndTime = Date.now()
-    console.log(
-      `Uniswap V3 (500) fetch took ${uniV3_500EndTime - uniV3_500StartTime}ms`
-    )
+    // Fetch from all DEXes in parallel instead of sequential
+    console.log('Fetching all DEX reserves in parallel...')
+    const dexFetchStartTime = Date.now()
 
-    if (uniswapV3_500Reserves) {
-      const meanReserves = this.calculateGeometricMean(
-        uniswapV3_500Reserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
-      )
-      results.push({
-        result: uniswapV3_500Reserves,
-        meanReserves,
-      })
+    const [
+      uniswapV3_500Reserves,
+      uniswapV3_3000Reserves,
+      uniswapV3_10000Reserves,
+      uniswapV2Reserves,
+      sushiswapReserves,
+    ] = await Promise.allSettled([
+      this.fetchWithRetry(
+        () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+        'Uniswap V3 (500)'
+      ),
+      this.fetchWithRetry(
+        () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+        'Uniswap V3 (3000)'
+      ),
+      this.fetchWithRetry(
+        () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+        'Uniswap V3 (10000)'
+      ),
+      this.fetchWithRetry(
+        () => this.uniswapV2.getReserves(tokenA, tokenB),
+        'Uniswap V2'
+      ),
+      this.fetchWithRetry(
+        () => this.sushiswap.getReserves(tokenA, tokenB),
+        'SushiSwap'
+      ),
+    ])
+
+    const dexFetchEndTime = Date.now()
+    console.log(`All DEX fetches took ${dexFetchEndTime - dexFetchStartTime}ms`)
+
+    // Process results
+    const processResults = (
+      result: PromiseSettledResult<ReserveResult | null>,
+      dexName: string
+    ) => {
+      if (result.status === 'fulfilled' && result.value) {
+        const meanReserves = this.calculateGeometricMean(
+          result.value.reserves,
+          { token0: token0Info.decimals, token1: token1Info.decimals }
+        )
+        console.log(
+          `${dexName} success - Mean reserves: ${meanReserves.toString()}`
+        )
+        results.push({
+          result: result.value,
+          meanReserves,
+        })
+      } else {
+        console.log(`${dexName} failed or returned null`)
+      }
     }
 
-    // Longer delay between DEX calls
-    console.log('Adding 2s delay before Uniswap V3 (3000)...')
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    console.log('Fetching Uniswap V3 (3000) reserves...')
-    const uniV3_3000StartTime = Date.now()
-    const uniswapV3_3000Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
-      'Uniswap V3 (3000)'
-    )
-    const uniV3_3000EndTime = Date.now()
-    console.log(
-      `Uniswap V3 (3000) fetch took ${
-        uniV3_3000EndTime - uniV3_3000StartTime
-      }ms`
-    )
-
-    if (uniswapV3_3000Reserves) {
-      const meanReserves = this.calculateGeometricMean(
-        uniswapV3_3000Reserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
-      )
-      results.push({
-        result: uniswapV3_3000Reserves,
-        meanReserves,
-      })
-    }
-
-    console.log('Adding 2s delay before Uniswap V3 (10000)...')
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    console.log('Fetching Uniswap V3 (10000) reserves...')
-    const uniV3_10000StartTime = Date.now()
-    const uniswapV3_10000Reserves = await this.fetchWithRetry(
-      () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
-      'Uniswap V3 (10000)'
-    )
-    const uniV3_10000EndTime = Date.now()
-    console.log(
-      `Uniswap V3 (10000) fetch took ${
-        uniV3_10000EndTime - uniV3_10000StartTime
-      }ms`
-    )
-
-    if (uniswapV3_10000Reserves) {
-      const meanReserves = this.calculateGeometricMean(
-        uniswapV3_10000Reserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
-      )
-      results.push({
-        result: uniswapV3_10000Reserves,
-        meanReserves,
-      })
-    }
-
-    console.log('Adding 2s delay before Uniswap V2...')
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    console.log('Fetching Uniswap V2 reserves...')
-    const uniV2StartTime = Date.now()
-    const uniswapV2Reserves = await this.fetchWithRetry(
-      () => this.uniswapV2.getReserves(tokenA, tokenB),
-      'Uniswap V2'
-    )
-    const uniV2EndTime = Date.now()
-    console.log(`Uniswap V2 fetch took ${uniV2EndTime - uniV2StartTime}ms`)
-
-    if (uniswapV2Reserves) {
-      const meanReserves = this.calculateGeometricMean(
-        uniswapV2Reserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
-      )
-      results.push({
-        result: uniswapV2Reserves,
-        meanReserves,
-      })
-    }
-
-    console.log('Adding 2s delay before SushiSwap...')
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-
-    console.log('Fetching SushiSwap reserves...')
-    const sushiStartTime = Date.now()
-    const sushiswapReserves = await this.fetchWithRetry(
-      () => this.sushiswap.getReserves(tokenA, tokenB),
-      'SushiSwap'
-    )
-    const sushiEndTime = Date.now()
-    console.log(`SushiSwap fetch took ${sushiEndTime - sushiStartTime}ms`)
-
-    if (sushiswapReserves) {
-      const meanReserves = this.calculateGeometricMean(
-        sushiswapReserves.reserves,
-        { token0: token0Info.decimals, token1: token1Info.decimals }
-      )
-      console.log('SushiSwap meanReserves:', meanReserves.toString())
-      results.push({
-        result: sushiswapReserves,
-        meanReserves,
-      })
-    }
+    processResults(uniswapV3_500Reserves, 'Uniswap V3 (500)')
+    processResults(uniswapV3_3000Reserves, 'Uniswap V3 (3000)')
+    processResults(uniswapV3_10000Reserves, 'Uniswap V3 (10000)')
+    processResults(uniswapV2Reserves, 'Uniswap V2')
+    processResults(sushiswapReserves, 'SushiSwap')
 
     const totalTime = Date.now() - startTime
     console.log(`Total fetch operation took ${totalTime}ms`)

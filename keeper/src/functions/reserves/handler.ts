@@ -7,41 +7,10 @@ import { createProvider } from '../../utils/provider'
 const provider = createProvider()
 const reservesService = new ReservesAggregator(provider)
 
-// Increase cache TTL to reduce RPC calls
-const CACHE_TTL = 120 // 2 minutes to reduce total requests
-
-// Simple semaphore to limit concurrent requests
-class Semaphore {
-  private permits: number
-  private waitingQueue: Array<() => void> = []
-
-  constructor(permits: number) {
-    this.permits = permits
-  }
-
-  async acquire(): Promise<void> {
-    return new Promise((resolve) => {
-      if (this.permits > 0) {
-        this.permits--
-        resolve()
-      } else {
-        this.waitingQueue.push(resolve)
-      }
-    })
-  }
-
-  release(): void {
-    this.permits++
-    if (this.waitingQueue.length > 0) {
-      const nextResolve = this.waitingQueue.shift()!
-      this.permits--
-      nextResolve()
-    }
-  }
-}
-
-// Allow max 1 concurrent reserves request to prevent RPC overload
-const requestSemaphore = new Semaphore(1)
+// Enhanced cache strategy for maximum speed
+const CACHE_TTL = 300 // 5 minutes fresh cache
+const STALE_CACHE_TTL = 900 // 15 minutes stale cache (still usable)
+const BACKGROUND_REFRESH_THRESHOLD = 240 // 4 minutes - start background refresh
 
 interface ReserveRequest {
   tokenA: string
@@ -59,6 +28,80 @@ function parseRequestBody(event: APIGatewayProxyEvent): ReserveRequest | null {
     return JSON.parse(event.body)
   } catch (error) {
     return null
+  }
+}
+
+// Enhanced cache data structure with timestamp
+interface CacheData {
+  data: any
+  timestamp: number
+}
+
+// Get cache with stale-while-revalidate logic
+async function getStaleWhileRevalidate(cacheKey: string): Promise<{
+  data: any
+  isStale: boolean
+  shouldRefresh: boolean
+} | null> {
+  const cached = (await getCache(cacheKey)) as any
+  if (!cached) return null
+
+  // Handle both new format {data, timestamp} and old format (direct data)
+  const cacheData = cached.data || cached
+  const timestamp = cached.timestamp || Date.now() - CACHE_TTL * 1000 // Assume old data is stale
+
+  const age = Date.now() - timestamp
+  const isStale = age > CACHE_TTL * 1000
+  const shouldRefresh = age > BACKGROUND_REFRESH_THRESHOLD * 1000
+  const tooOld = age > STALE_CACHE_TTL * 1000
+
+  // Return null if cache is too old (force fresh fetch)
+  if (tooOld) return null
+
+  return {
+    data: cacheData,
+    isStale,
+    shouldRefresh,
+  }
+}
+
+// Background refresh function (non-blocking)
+async function refreshInBackground(
+  tokenA: string,
+  tokenB: string,
+  dex?: DexType
+) {
+  try {
+    console.log(`🔄 Background refresh started for ${tokenA}-${tokenB}`)
+    let reservesData
+
+    if (dex) {
+      reservesData = await reservesService.getReservesFromDex(
+        tokenA,
+        tokenB,
+        dex
+      )
+    } else {
+      reservesData = await reservesService.getAllReserves(tokenA, tokenB)
+    }
+
+    if (reservesData) {
+      const cacheKey = generateCacheKey(
+        'RESERVES',
+        `${tokenA}-${tokenB}${dex ? `-${dex}` : ''}`
+      )
+      const cacheData: CacheData = {
+        data: reservesData,
+        timestamp: Date.now(),
+      }
+      await setCache(cacheKey, cacheData, CACHE_TTL)
+      console.log(`✅ Background refresh completed for ${tokenA}-${tokenB}`)
+    }
+  } catch (error) {
+    console.error(
+      `❌ Background refresh failed for ${tokenA}-${tokenB}:`,
+      error
+    )
   }
 }
 
@@ -135,21 +178,49 @@ export const main = async (
       `${tokenA}-${tokenB}${dex ? `-${dex}` : ''}`
     )
 
-    // Try to get from cache first
-    const cachedData = await getCache(cacheKey)
-    if (cachedData) {
-      console.log(`Cache hit for ${tokenA}-${tokenB}`)
+    // Check cache with stale-while-revalidate strategy
+    const cacheResult = await getStaleWhileRevalidate(cacheKey)
+
+    if (cacheResult) {
+      const { data, isStale, shouldRefresh } = cacheResult
+
+      // If data is fresh, return immediately
+      if (!isStale) {
+        console.log(`✅ Fresh cache hit for ${tokenA}-${tokenB}`)
+        return {
+          statusCode: 200,
+          headers: {
+            ...headers,
+            'X-Cache-Status': 'FRESH',
+          },
+          body: JSON.stringify(data),
+        }
+      }
+
+      // If data is stale but usable, return it and refresh in background
+      console.log(
+        `🟡 Stale cache hit for ${tokenA}-${tokenB}, ${
+          shouldRefresh ? 'refreshing in background' : 'still valid'
+        }`
+      )
+
+      // Start background refresh if needed (non-blocking)
+      if (shouldRefresh) {
+        refreshInBackground(tokenA, tokenB, dex).catch(console.error)
+      }
+
       return {
         statusCode: 200,
-        headers,
-        body: JSON.stringify(cachedData),
+        headers: {
+          ...headers,
+          'X-Cache-Status': 'STALE',
+        },
+        body: JSON.stringify(data),
       }
     }
 
-    // Acquire semaphore to limit concurrent requests
-    console.log(`Acquiring semaphore for ${tokenA}-${tokenB}`)
-    await requestSemaphore.acquire()
-    console.log(`Semaphore acquired for ${tokenA}-${tokenB}`)
+    // No cache or cache too old - need fresh data
+    console.log(`🔍 No cache for ${tokenA}-${tokenB}, fetching fresh data`)
 
     try {
       // If not in cache, fetch from API
@@ -176,16 +247,41 @@ export const main = async (
           }
         }
 
-        // Cache the successful result
-        await setCache(cacheKey, reservesData, CACHE_TTL)
+        // Cache the successful result with timestamp
+        const cacheData: CacheData = {
+          data: reservesData,
+          timestamp: Date.now(),
+        }
+        await setCache(cacheKey, cacheData, CACHE_TTL)
 
         return {
           statusCode: 200,
-          headers,
+          headers: {
+            ...headers,
+            'X-Cache-Status': 'FRESH',
+          },
           body: JSON.stringify(reservesData),
         }
       } catch (error: any) {
         console.error('Error fetching reserves:', error)
+
+        // Try to return any stale cache data as fallback (always show results when possible)
+        const fallbackCache = (await getCache(cacheKey)) as any
+        if (fallbackCache) {
+          const fallbackData = fallbackCache.data || fallbackCache
+          console.log(
+            `🔄 Returning stale cache as fallback for ${tokenA}-${tokenB}`
+          )
+          return {
+            statusCode: 200,
+            headers: {
+              ...headers,
+              'X-Cache-Status': 'ERROR_FALLBACK',
+              'X-Error': 'Fresh data temporarily unavailable',
+            },
+            body: JSON.stringify(fallbackData),
+          }
+        }
 
         // Handle specific error cases
         if (
@@ -223,10 +319,16 @@ export const main = async (
           }),
         }
       }
-    } finally {
-      // Always release semaphore
-      console.log(`Releasing semaphore for ${tokenA}-${tokenB}`)
-      requestSemaphore.release()
+    } catch (error) {
+      console.error('Unhandled error:', error)
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: 'Server error',
+          message: 'An unexpected error occurred',
+        }),
+      }
     }
   } catch (error) {
     console.error('Unhandled error:', error)
