@@ -1,18 +1,19 @@
-import { createProvider } from '../utils/provider';
-import { ReservesAggregator } from '../services/reserves-aggregator';
-import { TokenService } from '../services/token-service';
-import * as dotenv from 'dotenv';
-import * as XLSX from 'xlsx';
-import * as fs from 'fs';
-import * as path from 'path';
+import { createProvider } from '../utils/provider'
+import { ReservesAggregator } from '../services/reserves-aggregator'
+import { TokenService } from '../services/token-service'
+import DatabaseService from '../services/database-service'
+import * as dotenv from 'dotenv'
+import * as XLSX from 'xlsx'
+import * as fs from 'fs'
+import * as path from 'path'
 
 // Load environment variables
-dotenv.config();
+dotenv.config()
 
 // Create provider
-const provider = createProvider();
-const reservesAggregator = new ReservesAggregator(provider);
-const tokenService = TokenService.getInstance(provider);
+const provider = createProvider()
+const reservesAggregator = new ReservesAggregator(provider)
+const tokenService = TokenService.getInstance(provider)
 
 // Base tokens to test against (Ethereum addresses)
 const BASE_TOKENS = {
@@ -20,7 +21,7 @@ const BASE_TOKENS = {
   USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // Ethereum USDC
   USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7', // Ethereum USDT
   WBTC: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', // Ethereum WBTC
-};
+}
 
 // Known token decimals mapping - addresses should be lowercase
 const KNOWN_TOKEN_DECIMALS: Record<string, number> = {
@@ -37,13 +38,13 @@ const KNOWN_TOKEN_DECIMALS: Record<string, number> = {
   '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9': 18, // AAVE
   '0x0d8775f648430679a709e98d2b0cb6250d2887ef': 18, // BAT
   '0x4fabb145d64652a948d72533023f6e7a623c7c53': 18, // BUSD
-};
+}
 
 // Function to check if a token is an ERC20 token
 const NATIVE_TOKEN_ADDRESSES = [
   '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', // ETH (virtual)
   '0x0000000000000000000000000000000000000000', // ETH (native)
-];
+]
 
 // Improved function to check if a token is an ERC20 token on a specific platform
 const isERC20Token = (
@@ -53,13 +54,13 @@ const isERC20Token = (
 ): boolean => {
   // No address or no platforms object means it's not a valid ERC20 token
   if (!tokenAddress || !platforms) {
-    return false;
+    return false
   }
 
   // Check if the token has a valid address on the target platform
-  const platformAddress = platforms[targetPlatform];
+  const platformAddress = platforms[targetPlatform]
   if (!platformAddress) {
-    return false;
+    return false
   }
 
   // Special handling for BNB which is not an ERC20 token on Ethereum
@@ -69,16 +70,16 @@ const isERC20Token = (
       platformAddress.toLowerCase() === 'bnb' ||
       platformAddress.toLowerCase().includes('binance'))
   ) {
-    console.log(`BNB is not an ERC20 token on Ethereum: ${platformAddress}`);
-    return false;
+    console.log(`BNB is not an ERC20 token on Ethereum: ${platformAddress}`)
+    return false
   }
 
   // Native tokens (ETH) are not ERC20
   if (NATIVE_TOKEN_ADDRESSES.includes(platformAddress.toLowerCase())) {
     console.log(
       `Token address ${platformAddress} is a native token, not an ERC20`
-    );
-    return false;
+    )
+    return false
   }
 
   // Valid ERC20 tokens have a proper address format
@@ -86,33 +87,33 @@ const isERC20Token = (
     platformAddress !== '' &&
     platformAddress !== '0x' &&
     platformAddress.startsWith('0x') &&
-    platformAddress.length === 42;
+    platformAddress.length === 42
 
   if (!isValid) {
     console.log(
       `Token address ${platformAddress} is not a valid ERC20 address format`
-    );
+    )
   }
 
-  return isValid;
-};
+  return isValid
+}
 
 // Function to safely get a token address from platforms object
 const getTokenAddressForPlatform = (
   platforms: { [key: string]: string } | undefined,
   targetPlatform: string
 ): string => {
-  if (!platforms || !platforms[targetPlatform]) return '';
+  if (!platforms || !platforms[targetPlatform]) return ''
 
-  const address = platforms[targetPlatform].toLowerCase();
+  const address = platforms[targetPlatform].toLowerCase()
 
   // Special handling for BNB which is not an ERC20 token on Ethereum
   if (
     targetPlatform === 'ethereum' &&
     (address === 'bnb' || address.includes('binance'))
   ) {
-    console.log(`Excluded BNB token on Ethereum: ${address}`);
-    return '';
+    console.log(`Excluded BNB token on Ethereum: ${address}`)
+    return ''
   }
 
   // Exclude native tokens and special cases
@@ -125,74 +126,78 @@ const getTokenAddressForPlatform = (
     address === '0x' ||
     address.length !== 42
   ) {
-    console.log(`Excluded token with invalid or native address: ${address}`);
-    return '';
+    console.log(`Excluded token with invalid or native address: ${address}`)
+    return ''
   }
 
-  return address;
-};
+  return address
+}
 
 interface TokenInfo {
-  id: string;
-  symbol: string;
-  name: string;
-  market_cap_rank: number;
-  market_cap: number;
-  current_price: number;
+  id: string
+  symbol: string
+  name: string
+  market_cap_rank: number
+  market_cap: number
+  current_price: number
   platforms: {
-    [key: string]: string;
-  };
+    [key: string]: string
+  }
 }
 
 interface LiquidityResult {
-  tokenAddress: string;
-  tokenSymbol: string;
-  tokenName: string;
-  marketCap: number;
-  baseToken: string;
-  baseTokenSymbol: string;
-  dex: string;
+  tokenAddress: string
+  tokenSymbol: string
+  tokenName: string
+  marketCap: number
+  baseToken: string
+  baseTokenSymbol: string
+  dex: string
   reserves: {
-    token0: string;
-    token1: string;
-  };
+    token0: string
+    token1: string
+  }
   decimals: {
-    token0: number;
-    token1: number;
-  };
-  timestamp: number;
+    token0: number
+    token1: number
+  }
+  timestamp: number
 }
 
 interface TokenLiquiditySummary {
-  tokenAddress: string;
-  tokenSymbol: string;
-  tokenName: string;
-  marketCap: number;
-  liquidityPairs: LiquidityResult[];
+  tokenAddress: string
+  tokenSymbol: string
+  tokenName: string
+  marketCap: number
+  liquidityPairs: LiquidityResult[]
 }
 
-async function fetchTopTokensByMarketCap(limit: number = 100): Promise<TokenInfo[]> {
-  console.log(`Fetching top ${limit} ERC20 tokens by market cap from CoinGecko...`);
-  
-  const tokens: TokenInfo[] = [];
-  const targetPlatform = 'ethereum'; // Focus on Ethereum only
-  
+async function fetchTopTokensByMarketCap(
+  limit: number = 100
+): Promise<TokenInfo[]> {
+  console.log(
+    `Fetching top ${limit} ERC20 tokens by market cap from CoinGecko...`
+  )
+
+  const tokens: TokenInfo[] = []
+  const targetPlatform = 'ethereum' // Focus on Ethereum only
+
   try {
     // Fetch tokens by market cap from CoinGecko API
-    console.log('Fetching tokens by market cap...');
+    console.log('Fetching tokens by market cap...')
     const response = await fetch(
       `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${limit}&page=1&sparkline=false&locale=en&precision=full`
-    );
+    )
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch tokens: ${response.status}`);
+      throw new Error(`Failed to fetch tokens: ${response.status}`)
     }
 
-    const allTokens = await response.json() as TokenInfo[];
-    console.log(`Successfully fetched ${allTokens.length} tokens`);
+    const allTokens = (await response.json()) as TokenInfo[]
+    console.log(`Successfully fetched ${allTokens.length} tokens`)
 
     // Fetch token platforms (addresses) for the tokens
-    let platformsData = [];
+    let platformsData = []
     try {
       const platformsResponse = await fetch(
         'https://api.coingecko.com/api/v3/coins/list?include_platform=true',
@@ -200,159 +205,184 @@ async function fetchTopTokensByMarketCap(limit: number = 100): Promise<TokenInfo
           signal: AbortSignal.timeout(5000), // 5 second timeout
           headers: { Accept: 'application/json' },
         }
-      );
+      )
 
       if (!platformsResponse.ok) {
         throw new Error(
           `Failed to fetch token platforms: ${platformsResponse.status}`
-        );
+        )
       }
 
-      platformsData = await platformsResponse.json() as any[];
+      platformsData = (await platformsResponse.json()) as any[]
       console.log(
         `Successfully fetched platform data for ${platformsData.length} tokens`
-      );
+      )
     } catch (error) {
-      console.error('Error fetching token platforms:', error);
-      throw error;
+      console.error('Error fetching token platforms:', error)
+      throw error
     }
 
     // Merge platforms data with token data
     const enrichedTokens = allTokens.map((token) => {
-      const platformInfo = platformsData.find((p: any) => p.id === token.id);
+      const platformInfo = platformsData.find((p: any) => p.id === token.id)
       return {
         ...token,
         platforms: platformInfo?.platforms || {},
-      };
-    });
+      }
+    })
 
     // Filter for ERC20 tokens specifically with addresses on Ethereum
     const erc20Tokens = enrichedTokens.filter((token) => {
       const tokenAddress = getTokenAddressForPlatform(
         token.platforms,
         targetPlatform
-      );
+      )
       // Use improved function to check if it's an ERC20 token on Ethereum
       return (
         tokenAddress &&
         isERC20Token(tokenAddress, token.platforms, targetPlatform)
-      );
-    });
+      )
+    })
 
     console.log(
-      `Filtered ${enrichedTokens.length - erc20Tokens.length} non-ERC20 tokens out of ${enrichedTokens.length} total tokens`
-    );
+      `Filtered ${
+        enrichedTokens.length - erc20Tokens.length
+      } non-ERC20 tokens out of ${enrichedTokens.length} total tokens`
+    )
 
     console.log(
       `Found ${erc20Tokens.length} ERC20 tokens available on ${targetPlatform}`
-    );
+    )
 
-    return erc20Tokens.slice(0, limit);
+    return erc20Tokens.slice(0, limit)
   } catch (error) {
-    console.error('Error fetching token list:', error);
-    throw error;
+    console.error('Error fetching token list:', error)
+    throw error
   }
 }
 
-async function getTokenAddressForChain(token: TokenInfo, chain: string = 'ethereum'): Promise<string | null> {
+async function getTokenAddressForChain(
+  token: TokenInfo,
+  chain: string = 'ethereum'
+): Promise<string | null> {
   // Get token address from platforms
-  const tokenAddress = getTokenAddressForPlatform(token.platforms, chain);
-  
+  const tokenAddress = getTokenAddressForPlatform(token.platforms, chain)
+
   if (!tokenAddress) {
-    console.log(`No ${chain} address found for ${token.symbol}`);
-    return null;
+    console.log(`No ${chain} address found for ${token.symbol}`)
+    return null
   }
-  
+
   // Check if it's a valid ERC20 token
   if (!isERC20Token(tokenAddress, token.platforms, chain)) {
-    console.log(`${token.symbol} is not a valid ERC20 token on ${chain}`);
-    return null;
+    console.log(`${token.symbol} is not a valid ERC20 token on ${chain}`)
+    return null
   }
-  
-  return tokenAddress.toLowerCase();
+
+  return tokenAddress.toLowerCase()
 }
 
-async function analyzeTokenLiquidity(token: TokenInfo): Promise<TokenLiquiditySummary | null> {
-  const tokenAddress = await getTokenAddressForChain(token, 'ethereum');
+async function analyzeTokenLiquidity(
+  token: TokenInfo
+): Promise<TokenLiquiditySummary | null> {
+  const tokenAddress = await getTokenAddressForChain(token, 'ethereum')
   if (!tokenAddress) {
-    console.log(`No Ethereum address found for ${token.symbol}, skipping...`);
-    return null;
+    console.log(`No Ethereum address found for ${token.symbol}, skipping...`)
+    return null
   }
-  
-  console.log(`\nAnalyzing liquidity for ${token.symbol} (${tokenAddress})...`);
-  
-  const liquidityPairs: LiquidityResult[] = [];
-  
+
+  console.log(`\nAnalyzing liquidity for ${token.symbol} (${tokenAddress})...`)
+
+  const liquidityPairs: LiquidityResult[] = []
+
   // Test against each base token
   for (const [baseSymbol, baseAddress] of Object.entries(BASE_TOKENS)) {
-    console.log(`  Testing against ${baseSymbol}...`);
-    
+    console.log(`  Testing against ${baseSymbol}...`)
+
     try {
       // Get reserves from all DEXes for this token pair
-      const allReserves = await getAllReservesForPair(tokenAddress, baseAddress, token.symbol, baseSymbol);
-      
+      const allReserves = await getAllReservesForPair(
+        tokenAddress,
+        baseAddress,
+        token.symbol,
+        baseSymbol
+      )
+
       if (allReserves.length > 0) {
-        liquidityPairs.push(...allReserves);
-        console.log(`    Found ${allReserves.length} DEX pools for ${token.symbol}/${baseSymbol}`);
+        liquidityPairs.push(...allReserves)
+        console.log(
+          `    Found ${allReserves.length} DEX pools for ${token.symbol}/${baseSymbol}`
+        )
       } else {
-        console.log(`    No liquidity found for ${token.symbol}/${baseSymbol}`);
+        console.log(`    No liquidity found for ${token.symbol}/${baseSymbol}`)
       }
     } catch (error) {
-      console.warn(`    Error getting reserves for ${token.symbol}/${baseSymbol}:`, error);
+      console.warn(
+        `    Error getting reserves for ${token.symbol}/${baseSymbol}:`,
+        error
+      )
     }
-    
+
     // Add delay between requests
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500))
   }
-  
+
   if (liquidityPairs.length === 0) {
-    console.log(`  No liquidity found for ${token.symbol}`);
-    return null;
+    console.log(`  No liquidity found for ${token.symbol}`)
+    return null
   }
-  
+
   return {
     tokenAddress,
     tokenSymbol: token.symbol,
     tokenName: token.name,
     marketCap: token.market_cap,
     liquidityPairs,
-  };
+  }
 }
 
 async function getAllReservesForPair(
-  tokenA: string, 
-  tokenB: string, 
-  tokenSymbol: string, 
+  tokenA: string,
+  tokenB: string,
+  tokenSymbol: string,
   baseSymbol: string
 ): Promise<LiquidityResult[]> {
-  const results: LiquidityResult[] = [];
-  
+  const results: LiquidityResult[] = []
+
   // Get token decimals
   const [token0Info, token1Info] = await Promise.all([
     tokenService.getTokenInfo(tokenA),
-    tokenService.getTokenInfo(tokenB)
-  ]);
-  
+    tokenService.getTokenInfo(tokenB),
+  ])
+
   // Test each DEX individually
   const dexes = [
     { name: 'uniswap-v3-500', fee: 500 },
     { name: 'uniswap-v3-3000', fee: 3000 },
     { name: 'uniswap-v3-10000', fee: 10000 },
     { name: 'uniswapV2', fee: null },
-    { name: 'sushiswap', fee: null }
-  ];
-  
+    { name: 'sushiswap', fee: null },
+  ]
+
   for (const dex of dexes) {
     try {
-      let reserves;
+      let reserves
       if (dex.fee) {
         // Uniswap V3 with specific fee
-        reserves = await reservesAggregator.getReservesFromDex(tokenA, tokenB, `uniswapV3_${dex.fee}` as any);
+        reserves = await reservesAggregator.getReservesFromDex(
+          tokenA,
+          tokenB,
+          `uniswapV3_${dex.fee}` as any
+        )
       } else {
         // Uniswap V2 or SushiSwap
-        reserves = await reservesAggregator.getReservesFromDex(tokenA, tokenB, dex.name as any);
+        reserves = await reservesAggregator.getReservesFromDex(
+          tokenA,
+          tokenB,
+          dex.name as any
+        )
       }
-      
+
       if (reserves) {
         const liquidityResult: LiquidityResult = {
           tokenAddress: tokenA,
@@ -365,71 +395,84 @@ async function getAllReservesForPair(
           reserves: reserves.reserves,
           decimals: reserves.decimals,
           timestamp: reserves.timestamp,
-        };
-        
-        results.push(liquidityResult);
-        console.log(`      Found ${dex.name} liquidity`);
+        }
+
+        results.push(liquidityResult)
+        console.log(`      Found ${dex.name} liquidity`)
       }
     } catch (error) {
-      console.warn(`      Error getting reserves from ${dex.name}:`, error);
+      console.warn(`      Error getting reserves from ${dex.name}:`, error)
     }
-    
+
     // Small delay between DEX calls
-    await new Promise(resolve => setTimeout(resolve, 200));
+    await new Promise((resolve) => setTimeout(resolve, 200))
   }
-  
-  return results;
+
+  return results
 }
 
-async function saveTokenToJson(tokenResult: TokenLiquiditySummary, timestamp: string): Promise<void> {
-  const jsonFilepath = path.join(__dirname, `liquidity-analysis-${timestamp}.json`);
-  
+async function saveTokenToJson(
+  tokenResult: TokenLiquiditySummary,
+  timestamp: string
+): Promise<void> {
+  const jsonFilepath = path.join(
+    __dirname,
+    `liquidity-analysis-${timestamp}.json`
+  )
+
   // Read existing data if file exists
-  let existingData: TokenLiquiditySummary[] = [];
+  let existingData: TokenLiquiditySummary[] = []
   if (fs.existsSync(jsonFilepath)) {
     try {
-      const fileContent = fs.readFileSync(jsonFilepath, 'utf8');
-      existingData = JSON.parse(fileContent);
+      const fileContent = fs.readFileSync(jsonFilepath, 'utf8')
+      existingData = JSON.parse(fileContent)
     } catch (error) {
-      console.warn('Error reading existing JSON file, starting fresh:', error);
+      console.warn('Error reading existing JSON file, starting fresh:', error)
     }
   }
-  
+
   // Add new token result (or update if it already exists)
-  const existingIndex = existingData.findIndex(item => item.tokenAddress === tokenResult.tokenAddress);
+  const existingIndex = existingData.findIndex(
+    (item) => item.tokenAddress === tokenResult.tokenAddress
+  )
   if (existingIndex >= 0) {
-    existingData[existingIndex] = tokenResult;
+    existingData[existingIndex] = tokenResult
   } else {
-    existingData.push(tokenResult);
+    existingData.push(tokenResult)
   }
-  
+
   // Save updated data
-  fs.writeFileSync(jsonFilepath, JSON.stringify(existingData, null, 2));
-  console.log(`  💾 Saved ${tokenResult.tokenSymbol} data to JSON`);
+  fs.writeFileSync(jsonFilepath, JSON.stringify(existingData, null, 2))
+  console.log(`  💾 Saved ${tokenResult.tokenSymbol} data to JSON`)
 }
 
-async function generateExcelReport(results: TokenLiquiditySummary[], timestamp: string): Promise<void> {
-  console.log('\nGenerating Excel report...');
-  
+async function generateExcelReport(
+  results: TokenLiquiditySummary[],
+  timestamp: string
+): Promise<void> {
+  console.log('\nGenerating Excel report...')
+
   // Create workbook
-  const workbook = XLSX.utils.book_new();
-  
+  const workbook = XLSX.utils.book_new()
+
   // Add detailed liquidity pairs sheet
-  const detailedData = results.flatMap(result =>
-    result.liquidityPairs.map(pair => {
+  const detailedData = results.flatMap((result) =>
+    result.liquidityPairs.map((pair) => {
       // Calculate reserves in normal decimal units
-      const token0ReserveRaw = BigInt(pair.reserves.token0);
-      const token1ReserveRaw = BigInt(pair.reserves.token1);
-      
-      const token0ReserveNormal = Number(token0ReserveRaw) / Math.pow(10, pair.decimals.token0);
-      const token1ReserveNormal = Number(token1ReserveRaw) / Math.pow(10, pair.decimals.token1);
-      
+      const token0ReserveRaw = BigInt(pair.reserves.token0)
+      const token1ReserveRaw = BigInt(pair.reserves.token1)
+
+      const token0ReserveNormal =
+        Number(token0ReserveRaw) / Math.pow(10, pair.decimals.token0)
+      const token1ReserveNormal =
+        Number(token1ReserveRaw) / Math.pow(10, pair.decimals.token1)
+
       return {
         'Token Symbol': pair.tokenSymbol,
         'Token Name': pair.tokenName,
         'Token Address': pair.tokenAddress,
         'Base Token': pair.baseTokenSymbol,
-        'DEX': pair.dex,
+        DEX: pair.dex,
         'Reserve Token0 (Raw)': pair.reserves.token0,
         'Reserve Token1 (Raw)': pair.reserves.token1,
         'Reserve Token0 (Normal)': token0ReserveNormal,
@@ -437,176 +480,349 @@ async function generateExcelReport(results: TokenLiquiditySummary[], timestamp: 
         'Token0 Decimals': pair.decimals.token0,
         'Token1 Decimals': pair.decimals.token1,
         'Market Cap': result.marketCap,
-        'Timestamp': new Date(pair.timestamp).toISOString(),
-      };
+        Timestamp: new Date(pair.timestamp).toISOString(),
+      }
     })
-  );
-  
-  const detailedSheet = XLSX.utils.json_to_sheet(detailedData);
-  XLSX.utils.book_append_sheet(workbook, detailedSheet, 'All DEX Reserves');
-  
+  )
+
+  const detailedSheet = XLSX.utils.json_to_sheet(detailedData)
+  XLSX.utils.book_append_sheet(workbook, detailedSheet, 'All DEX Reserves')
+
   // Save to file using provided timestamp
-  const filename = `liquidity-analysis-${timestamp}.xlsx`;
-  const filepath = path.join(__dirname, filename);
-  
-  XLSX.writeFile(workbook, filepath);
-  console.log(`Excel report saved to: ${filepath}`);
+  const filename = `liquidity-analysis-${timestamp}.xlsx`
+  const filepath = path.join(__dirname, filename)
+
+  XLSX.writeFile(workbook, filepath)
+  console.log(`Excel report saved to: ${filepath}`)
+}
+
+// Database saving function - transforms row-based data to column-based format
+async function saveToDatabase(
+  results: TokenLiquiditySummary[],
+  timestamp: string
+): Promise<void> {
+  console.log('\nSaving liquidity data to database...')
+
+  const dbService = DatabaseService.getInstance()
+
+  try {
+    await dbService.connect()
+
+    // Transform data from row-based (one row per DEX) to column-based (one row per token pair)
+    const transformedData = transformToColumnFormat(results, timestamp)
+
+    console.log(
+      `📊 Transformed ${results.length} token summaries into ${transformedData.length} database records`
+    )
+
+    // Save data in batches to avoid overwhelming the database
+    const batchSize = 50
+    let saved = 0
+
+    for (let i = 0; i < transformedData.length; i += batchSize) {
+      const batch = transformedData.slice(i, i + batchSize)
+
+      console.log(
+        `💾 Saving batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(
+          transformedData.length / batchSize
+        )} (${batch.length} records)`
+      )
+
+      await dbService.saveBatchLiquidityData(batch)
+      saved += batch.length
+
+      // Small delay between batches
+      if (i + batchSize < transformedData.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+    }
+
+    console.log(`✅ Successfully saved ${saved} liquidity records to database`)
+  } catch (error) {
+    console.error('❌ Error saving to database:', error)
+    throw error
+  } finally {
+    await dbService.disconnect()
+  }
+}
+
+// Transform the liquidity data from row-based format to column-based format for database
+function transformToColumnFormat(
+  results: TokenLiquiditySummary[],
+  timestamp: string
+): any[] {
+  const transformedRecords: any[] = []
+
+  // Group by token pair (tokenA + tokenB combination)
+  const tokenPairMap = new Map<string, any>()
+
+  results.forEach((tokenSummary) => {
+    tokenSummary.liquidityPairs.forEach((pair) => {
+      // Create a unique key for each token pair
+      const pairKey = `${pair.tokenAddress}-${pair.baseToken}`
+
+      if (!tokenPairMap.has(pairKey)) {
+        // Initialize the record for this token pair
+        tokenPairMap.set(pairKey, {
+          timestamp: new Date(pair.timestamp),
+          tokenAAddress: pair.tokenAddress,
+          tokenASymbol: pair.tokenSymbol,
+          tokenAName: pair.tokenName,
+          tokenADecimals: pair.decimals.token0, // Assuming token0 is tokenA
+          tokenBAddress: pair.baseToken,
+          tokenBSymbol: pair.baseTokenSymbol,
+          tokenBDecimals: pair.decimals.token1, // Assuming token1 is tokenB
+          marketCap: BigInt(tokenSummary.marketCap),
+          // Initialize all DEX reserves as null
+          reservesAUniswapV2: null,
+          reservesBUniswapV2: null,
+          reservesASushiswap: null,
+          reservesBSushiswap: null,
+          reservesAUniswapV3_500: null,
+          reservesBUniswapV3_500: null,
+          reservesAUniswapV3_3000: null,
+          reservesBUniswapV3_3000: null,
+          reservesAUniswapV3_10000: null,
+          reservesBUniswapV3_10000: null,
+        })
+      }
+
+      const record = tokenPairMap.get(pairKey)!
+
+      // Map DEX names to column names and set the reserves
+      switch (pair.dex) {
+        case 'uniswapV2':
+          record.reservesAUniswapV2 = pair.reserves.token0
+          record.reservesBUniswapV2 = pair.reserves.token1
+          break
+        case 'sushiswap':
+          record.reservesASushiswap = pair.reserves.token0
+          record.reservesBSushiswap = pair.reserves.token1
+          break
+        case 'uniswap-v3-500':
+          record.reservesAUniswapV3_500 = pair.reserves.token0
+          record.reservesBUniswapV3_500 = pair.reserves.token1
+          break
+        case 'uniswap-v3-3000':
+          record.reservesAUniswapV3_3000 = pair.reserves.token0
+          record.reservesBUniswapV3_3000 = pair.reserves.token1
+          break
+        case 'uniswap-v3-10000':
+          record.reservesAUniswapV3_10000 = pair.reserves.token0
+          record.reservesBUniswapV3_10000 = pair.reserves.token1
+          break
+        default:
+          console.warn(`⚠️  Unknown DEX: ${pair.dex}`)
+      }
+    })
+  })
+
+  // Convert map to array
+  transformedRecords.push(...Array.from(tokenPairMap.values()))
+
+  console.log(
+    `📋 Grouped ${results.reduce(
+      (sum, r) => sum + r.liquidityPairs.length,
+      0
+    )} individual DEX pairs into ${
+      transformedRecords.length
+    } token pair records`
+  )
+
+  return transformedRecords
 }
 
 async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
   try {
-    let existingData: TokenLiquiditySummary[] = [];
-    let timestamp: string;
-    let isResume = false;
-    
+    let existingData: TokenLiquiditySummary[] = []
+    let timestamp: string
+    let isResume = false
+
     if (jsonFilePath) {
       // Resume mode
-      console.log(`Resuming liquidity analysis from: ${jsonFilePath}`);
-      
+      console.log(`Resuming liquidity analysis from: ${jsonFilePath}`)
+
       // Check if file exists
       if (!fs.existsSync(jsonFilePath)) {
-        console.error(`File not found: ${jsonFilePath}`);
-        return;
+        console.error(`File not found: ${jsonFilePath}`)
+        return
       }
-      
+
       // Load existing data
-      const fileContent = fs.readFileSync(jsonFilePath, 'utf8');
-      existingData = JSON.parse(fileContent);
-      
-      console.log(`Loaded ${existingData.length} existing tokens from JSON file`);
-      
+      const fileContent = fs.readFileSync(jsonFilePath, 'utf8')
+      existingData = JSON.parse(fileContent)
+
+      console.log(
+        `Loaded ${existingData.length} existing tokens from JSON file`
+      )
+
       // Extract timestamp from filename
-      const filename = path.basename(jsonFilePath);
-      const timestampMatch = filename.match(/liquidity-analysis-(.+)\.json/);
+      const filename = path.basename(jsonFilePath)
+      const timestampMatch = filename.match(/liquidity-analysis-(.+)\.json/)
       if (!timestampMatch) {
-        console.error('Could not extract timestamp from filename');
-        return;
+        console.error('Could not extract timestamp from filename')
+        return
       }
-      timestamp = timestampMatch[1];
-      isResume = true;
-      
-      console.log(`Resuming with timestamp: ${timestamp}`);
+      timestamp = timestampMatch[1]
+      isResume = true
+
+      console.log(`Resuming with timestamp: ${timestamp}`)
     } else {
       // Start from scratch mode
-      console.log('Starting liquidity analysis for top ERC20 tokens on Ethereum...');
-      
+      console.log(
+        'Starting liquidity analysis for top ERC20 tokens on Ethereum...'
+      )
+
       // Create timestamp for this run
-      timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      console.log(`Using timestamp: ${timestamp}`);
+      timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+      console.log(`Using timestamp: ${timestamp}`)
     }
-    
+
     // Get list of already processed token addresses (if resuming)
-    const processedAddresses = new Set(existingData.map(item => item.tokenAddress.toLowerCase()));
+    const processedAddresses = new Set(
+      existingData.map((item) => item.tokenAddress.toLowerCase())
+    )
     if (isResume) {
-      console.log(`Already processed ${processedAddresses.size} tokens`);
+      console.log(`Already processed ${processedAddresses.size} tokens`)
     }
-    
+
     // Fetch top tokens
-    const topTokens = await fetchTopTokensByMarketCap(250);
-    console.log(`\nFetched ${topTokens.length} top ERC20 tokens`);
-    
+    const topTokens = await fetchTopTokensByMarketCap(250)
+    console.log(`\nFetched ${topTokens.length} top ERC20 tokens`)
+
     if (topTokens.length === 0) {
-      console.log('No ERC20 tokens found, exiting...');
-      return;
+      console.log('No ERC20 tokens found, exiting...')
+      return
     }
-    
+
     // Filter tokens based on mode
-    let tokensToProcess: TokenInfo[];
+    let tokensToProcess: TokenInfo[]
     if (isResume) {
       // Filter out already processed tokens
-      tokensToProcess = topTokens.filter(token => {
-        const tokenAddress = getTokenAddressForPlatform(token.platforms, 'ethereum');
-        return tokenAddress && !processedAddresses.has(tokenAddress.toLowerCase());
-      });
-      console.log(`Found ${tokensToProcess.length} tokens remaining to process`);
-      
+      tokensToProcess = topTokens.filter((token) => {
+        const tokenAddress = getTokenAddressForPlatform(
+          token.platforms,
+          'ethereum'
+        )
+        return (
+          tokenAddress && !processedAddresses.has(tokenAddress.toLowerCase())
+        )
+      })
+      console.log(`Found ${tokensToProcess.length} tokens remaining to process`)
+
       if (tokensToProcess.length === 0) {
-        console.log('All tokens have been processed!');
+        console.log('All tokens have been processed!')
         // Generate final Excel report
-        await generateExcelReport(existingData, timestamp);
-        return;
+        await generateExcelReport(existingData, timestamp)
+        return
       }
     } else {
       // Start from scratch - process all tokens
-      tokensToProcess = topTokens;
-      console.log(`Processing all ${tokensToProcess.length} tokens from scratch`);
+      tokensToProcess = topTokens
+      console.log(
+        `Processing all ${tokensToProcess.length} tokens from scratch`
+      )
     }
-    
+
+    const actualTokensToProcess = tokensToProcess.length
     // Process tokens
-    for (let i = 0; i < tokensToProcess.length; i++) {
-      const token = tokensToProcess[i];
-      console.log(`\n[${i + 1}/${tokensToProcess.length}] Processing ${token.symbol} (Market Cap: $${token.market_cap.toLocaleString()})...`);
-      
-      const result = await analyzeTokenLiquidity(token);
+    for (let i = 0; i < actualTokensToProcess; i++) {
+      const token = tokensToProcess[i]
+      console.log(
+        `\n[${i + 1}/${actualTokensToProcess}] Processing ${
+          token.symbol
+        } (Market Cap: $${token.market_cap.toLocaleString()})...`
+      )
+
+      const result = await analyzeTokenLiquidity(token)
       if (result) {
-        existingData.push(result);
-        console.log(`  ✓ Found liquidity data for ${token.symbol}`);
-        
+        existingData.push(result)
+        console.log(`  ✓ Found liquidity data for ${token.symbol}`)
+
         // Save token data to JSON immediately after completion
-        await saveTokenToJson(result, timestamp);
+        await saveTokenToJson(result, timestamp)
       } else {
-        console.log(`  ✗ No liquidity data found for ${token.symbol}`);
+        console.log(`  ✗ No liquidity data found for ${token.symbol}`)
       }
-      
+
       // Add delay between tokens to avoid rate limits
-      if (i < tokensToProcess.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      if (i < actualTokensToProcess - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000))
       }
     }
-    
-    console.log(`\nAnalysis complete! Total tokens processed: ${existingData.length}`);
-    
+
+    console.log(
+      `\nAnalysis complete! Total tokens processed: ${existingData.length}`
+    )
+
     // Generate Excel report from all data
-    await generateExcelReport(existingData, timestamp);
-    
+    await generateExcelReport(existingData, timestamp)
+
+    // Save data to database
+    if (process.env.DATABASE_URL) {
+      try {
+        await saveToDatabase(existingData, timestamp)
+      } catch (error) {
+        console.error(
+          '⚠️  Failed to save to database, but analysis completed:',
+          error
+        )
+        // Don't throw error to avoid failing the entire analysis
+      }
+    } else {
+      console.log('💡 DATABASE_URL not configured, skipping database save')
+    }
+
     // Print summary
-    console.log('\n=== SUMMARY ===');
-    console.log(`Total tokens analyzed: ${existingData.length}`);
-    
-    const totalPairs = existingData.reduce((sum, token) => sum + token.liquidityPairs.length, 0);
-    console.log(`Total DEX pairs found: ${totalPairs}`);
-    
+    console.log('\n=== SUMMARY ===')
+    console.log(`Total tokens analyzed: ${existingData.length}`)
+
+    const totalPairs = existingData.reduce(
+      (sum, token) => sum + token.liquidityPairs.length,
+      0
+    )
+    console.log(`Total DEX pairs found: ${totalPairs}`)
+
     // Count by DEX
-    const dexCounts: Record<string, number> = {};
-    existingData.forEach(token => {
-      token.liquidityPairs.forEach(pair => {
-        dexCounts[pair.dex] = (dexCounts[pair.dex] || 0) + 1;
-      });
-    });
-    
-    console.log('\nPairs by DEX:');
+    const dexCounts: Record<string, number> = {}
+    existingData.forEach((token) => {
+      token.liquidityPairs.forEach((pair) => {
+        dexCounts[pair.dex] = (dexCounts[pair.dex] || 0) + 1
+      })
+    })
+
+    console.log('\nPairs by DEX:')
     Object.entries(dexCounts).forEach(([dex, count]) => {
-      console.log(`  ${dex}: ${count} pairs`);
-    });
-    
+      console.log(`  ${dex}: ${count} pairs`)
+    })
   } catch (error) {
-    console.error('Error running liquidity analysis:', error);
+    console.error('Error running liquidity analysis:', error)
   }
 }
 
 // Main function
 async function main() {
-  const args = process.argv.slice(2);
-  
+  const args = process.argv.slice(2)
+
   if (args.length > 0) {
     // Resume mode - JSON file provided
-    const jsonFilePath = args[0];
-    
+    const jsonFilePath = args[0]
+
     // If relative path, make it absolute
-    const fullPath = path.isAbsolute(jsonFilePath) 
-      ? jsonFilePath 
-      : path.join(__dirname, jsonFilePath);
-    
-    await runLiquidityAnalysis(fullPath);
+    const fullPath = path.isAbsolute(jsonFilePath)
+      ? jsonFilePath
+      : path.join(__dirname, jsonFilePath)
+
+    await runLiquidityAnalysis(fullPath)
   } else {
     // Start from scratch mode
-    await runLiquidityAnalysis();
+    await runLiquidityAnalysis()
   }
 }
 
 // Run the analysis
 if (require.main === module) {
-  main().catch(console.error);
+  main().catch(console.error)
 }
 
-export { runLiquidityAnalysis }; 
+export { runLiquidityAnalysis }

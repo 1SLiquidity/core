@@ -7,15 +7,28 @@
     "dev": "serverless offline",
     "test": "jest",
     "liquidity-analysis": "ts-node src/tests/run-liquidity-analysis.ts",
+    "cron:start": "ts-node src/cron-runner.ts start",
+    "cron:status": "ts-node src/cron-runner.ts status",
+    "cron:run": "ts-node src/cron-runner.ts run",
+    "cron:help": "ts-node src/cron-runner.ts",
+    "db:migrate": "npx prisma migrate dev",
+    "db:generate": "npx prisma generate",
+    "db:studio": "npx prisma studio",
+    "db:push": "npx prisma db push",
+    "db:test": "ts-node -e \"import DatabaseService from './src/services/database-service'; DatabaseService.getInstance().testConnection().then(() => console.log('✅ Database connection successful')).catch(console.error)\"",
     "deploy:dev": "serverless deploy --stage dev",
     "deploy:prod": "serverless deploy --stage prod"
   },
   "dependencies": {
+    "@prisma/client": "^6.13.0",
+    "@types/node-cron": "^3.0.11",
     "@types/xlsx": "^0.0.36",
     "axios": "^1.6.2",
     "dotenv": "^16.5.0",
     "ethers": "^6.7.0",
     "ioredis": "^5.6.1",
+    "node-cron": "^4.2.1",
+    "prisma": "^6.13.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
