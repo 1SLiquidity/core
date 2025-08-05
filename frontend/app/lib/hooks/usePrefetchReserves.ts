@@ -1,4 +1,5 @@
 import { useQuery, useQueries, NetworkMode } from '@tanstack/react-query'
+import { useState, useEffect } from 'react'
 import {
   DexCalculator,
   DexCalculatorFactory,
@@ -29,23 +30,27 @@ const POPULAR_TOKENS = {
 
 // Token pairs to prefetch - prioritized by importance
 const PAIRS_TO_PREFETCH = [
-  // High priority pairs (stablecoins and major pairs)
+  // High priority pairs (stablecoins and major pairs) - load immediately
   ['USDC', 'WETH'],
   ['USDT', 'WETH'],
+  // Medium priority pairs - load after 30s delay
   ['USDT', 'USDC'],
-  // Medium priority pairs
   ['DAI', 'WETH'],
+  // Lower priority pairs - load after 60s delay
   ['USDT', 'DAI'],
   ['WETH', 'WBTC'],
 ] as const
 
-// Cache configuration aligned with backend Redis cache
+// Cache configuration with staggered loading
 const CACHE_CONFIG = {
-  STALE_TIME: 25000, // 25s (slightly less than backend's 30s)
-  GC_TIME: 60000, // 1 minute
-  REFETCH_INTERVAL: 20000, // 20s to ensure we have fresh data before backend cache expires
-  BATCH_SIZE: 2, // Number of pairs to fetch in parallel
-  REQUEST_TIMEOUT: 15000, // 15 second timeout (less than Lambda's 20s)
+  STALE_TIME: 110000, // 110s (slightly less than backend's 120s)
+  GC_TIME: 300000, // 5 minutes
+  REFETCH_INTERVAL: 180000, // 3 minutes to reduce request frequency
+  REQUEST_TIMEOUT: 25000, // 25 second timeout
+  // Staggered loading delays
+  IMMEDIATE_BATCH_SIZE: 2, // Load first 2 pairs immediately
+  MEDIUM_DELAY: 60000, // 60s delay for next batch
+  LOW_DELAY: 120000, // 2 minutes delay for final batch
 }
 
 interface ReserveResult {
@@ -67,10 +72,43 @@ export const usePrefetchReserves = ({
   chainId = '1',
   enabled = true,
 }: UsePrefetchReservesProps = {}) => {
+  // State to track which queries should be enabled based on time delays
+  const [enabledQueriesCount, setEnabledQueriesCount] = useState(
+    enabled ? CACHE_CONFIG.IMMEDIATE_BATCH_SIZE : 0
+  )
+
   // Function to create a pair key
   const getPairKey = (fromSymbol: string, toSymbol: string) => {
     return `${fromSymbol}_${toSymbol}`
   }
+
+  // Set up staggered loading with timeouts
+  useEffect(() => {
+    if (!enabled) {
+      setEnabledQueriesCount(0)
+      return
+    }
+
+    // Start with immediate batch
+    setEnabledQueriesCount(CACHE_CONFIG.IMMEDIATE_BATCH_SIZE)
+
+    // Enable medium priority batch after delay
+    const mediumTimer = setTimeout(() => {
+      setEnabledQueriesCount(4) // Enable first 4 queries
+      console.log('Enabling medium priority pairs for prefetch')
+    }, CACHE_CONFIG.MEDIUM_DELAY)
+
+    // Enable low priority batch after longer delay
+    const lowTimer = setTimeout(() => {
+      setEnabledQueriesCount(PAIRS_TO_PREFETCH.length) // Enable all queries
+      console.log('Enabling low priority pairs for prefetch')
+    }, CACHE_CONFIG.LOW_DELAY)
+
+    return () => {
+      clearTimeout(mediumTimer)
+      clearTimeout(lowTimer)
+    }
+  }, [enabled, chainId])
 
   // Function to fetch reserves for a token pair with timeout
   const fetchReserves = async (
@@ -95,6 +133,8 @@ export const usePrefetchReserves = ({
         () => controller.abort(),
         CACHE_CONFIG.REQUEST_TIMEOUT
       )
+
+      console.log(`Prefetching reserves for ${fromSymbol}-${toSymbol}`)
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`,
@@ -129,13 +169,15 @@ export const usePrefetchReserves = ({
         chainId
       )
 
+      console.log(`Successfully prefetched ${fromSymbol}-${toSymbol}`)
+
       return {
         reserveData: reserveDataWithDecimals,
         dexCalculator: calculator,
         error: null,
       }
     } catch (error) {
-      console.error('Error fetching reserves:', {
+      console.error('Error prefetching reserves:', {
         fromSymbol,
         toSymbol,
         error,
@@ -148,7 +190,7 @@ export const usePrefetchReserves = ({
     }
   }
 
-  // Use React Query's useQueries for batched parallel fetching
+  // Use React Query's useQueries with staggered enabling
   const queries = useQueries({
     queries: PAIRS_TO_PREFETCH.map(([fromSymbol, toSymbol], index) => ({
       queryKey: ['reserves', chainId, fromSymbol, toSymbol] as const,
@@ -158,9 +200,9 @@ export const usePrefetchReserves = ({
       refetchInterval: CACHE_CONFIG.REFETCH_INTERVAL,
       refetchIntervalInBackground: true,
       refetchOnWindowFocus: false,
-      retry: 1,
-      retryDelay: 1000,
-      enabled: enabled && index < CACHE_CONFIG.BATCH_SIZE * 3, // Load in 3 batches
+      retry: 0, // No retries - fail fast to reduce RPC pressure
+      retryDelay: 5000,
+      enabled: enabled && index < enabledQueriesCount, // Staggered enabling based on time
       networkMode: 'always' as NetworkMode, // Continue fetching even if window is hidden
     })),
   })
@@ -190,5 +232,8 @@ export const usePrefetchReserves = ({
     errors: queries
       .map((q, i) => q.error && `${PAIRS_TO_PREFETCH[i].join('/')}:${q.error}`)
       .filter(Boolean),
+    // Additional info for debugging
+    enabledQueriesCount,
+    totalPairs: PAIRS_TO_PREFETCH.length,
   }
 }
