@@ -138,6 +138,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             uint256 botGasAllowance
         ) = abi.decode(tradeData, (address, address, uint256, uint256, bool, uint256));
         // @audit may be better to abstract sweetSpot algo to here and pass the value along, since small (<0.001% pool depth) trades shouldn't be split at all and would save hefty logic
+        // @audit edge cases wrt pool depths (specifically extremely small volume to volume reserves) create anomalies in the algo output
         // @audit similarly for the sake of OPTIMISTIC and DETERMINISTIC placement patterns, we should abstract the calculation of sweetSpot nad the definition of appropriate DEX into seperated, off contract functions
         IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
 
