@@ -182,8 +182,21 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         );
 
         Utils.Trade storage trade = trades[tradeId];
-        lastTradeId++; // @ audit check placement and duplicates
         _executeStream(trade);
+    }
+
+    function _removeTradeIdFromArray(bytes32 pairId, uint256 tradeId) internal {
+        uint256[] storage tradeIds = pairIdTradeIds[pairId];
+        for (uint256 i = 0; i < tradeIds.length; i++) {
+            if (tradeIds[i] == tradeId) {
+                // Remove the trade ID by moving the last element to this position and popping
+                if (i < tradeIds.length - 1) {
+                    tradeIds[i] = tradeIds[tradeIds.length - 1];
+                }
+                tradeIds.pop();
+                break;
+            }
+        }
     }
 
     function _cancelTrade(uint256 tradeId) public returns (bool) {
@@ -194,7 +207,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             revert("Trade does not exist");
         }
         if (trade.owner == msg.sender || msg.sender == address(this) || trade.attempts >= 3) {
+            bytes32 pairId = keccak256(abi.encode(trade.tokenIn, trade.tokenOut));
             delete trades[tradeId];
+            _removeTradeIdFromArray(pairId, tradeId);
             IERC20(trade.tokenOut).transfer(msg.sender, trade.realisedAmountOut);
             IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
             
@@ -243,6 +258,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                         console.log("Core: executeTrades: lastSweetSpot == 0");
                         IERC20(trade.tokenOut).transfer(trade.owner, trade.realisedAmountOut);
                         delete trades[tradeIds[i]];
+                        _removeTradeIdFromArray(pairId, tradeIds[i]);
                         console.log("[executeTrades] : trade completed");
                     }
                 } catch Error(string memory reason) {

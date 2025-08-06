@@ -17,7 +17,7 @@ contract MultiSettle is Protocol {
         
         // Fund EOA2 and BOT_EOA with WETH for testing
         vm.startPrank(WETH_WHALE);
-        IERC20(WETH).transfer(EOA2, formatTokenAmount(WETH, 20));
+        IERC20(WETH).transfer(EOA2, formatTokenAmount(WETH, 35));
         IERC20(WETH).transfer(BOT_EOA, formatTokenAmount(WETH, 5));
         vm.stopPrank();
         
@@ -26,8 +26,8 @@ contract MultiSettle is Protocol {
 
     function run() virtual override external {
         console.log("MultiSettle: run() start");
-        testSettleSingleTrade();
-        // testSettleBothTrades(); // Commented out as the function is commented
+        // testSettleSingleTrade();
+        testSettleBothTrades(); // Commented out as the function is commented
         console.log("MultiSettle: run() end");
     }
 
@@ -59,10 +59,8 @@ contract MultiSettle is Protocol {
         // }
         
         // Verify 1 WETH trade is fully settled (deleted from storage)
-        Utils.Trade memory returnedtrade = core.getTrade(trade1Id);
-        uint256 returnedId = returnedtrade.tradeId;
-        console.log("TESTING ENVIRONMENT: Returned Id is");
-        console.log(returnedId);
+        vm.expectRevert();
+        core.getTrade(trade1Id);
         console.log("SUCCESS: 1 WETH trade fully settled and deleted from storage");
         
         // Verify 10 WETH trade is still active
@@ -111,56 +109,56 @@ contract MultiSettle is Protocol {
     //     console.log("MultiSettle: testSettleSmallTrade() end");
     // }
 
-    // function testSettleBothTrades() public {
-    //     console.log("MultiSettle: testSettleBothTrades() start");
+    function testSettleBothTrades() public {
+        console.log("MultiSettle: testSettleBothTrades() start");
         
-    //     // Place 1 WETH trade from test contract
-    //     uint256 trade1Id = placeTradeFromEOA(address(this), 1);
-    //     console.log("Placed 1 WETH trade with ID: %s", trade1Id);
+        // Place 1 WETH trade from test contract
+        uint256 trade1Id = placeTradeFromEOA(address(this), 1);
+        console.log("Placed 1 WETH trade with ID: %s", trade1Id);
         
-    //     // Place 10 WETH trade from EOA2
-    //     uint256 trade2Id = placeTradeFromEOA(EOA2, 10);
-    //     console.log("Placed 10 WETH trade with ID: %s", trade2Id);
+        // Place 10 WETH trade from EOA2
+        uint256 trade2Id = placeTradeFromEOA(EOA2, 33);
+        console.log("Placed 10 WETH trade with ID: %s", trade2Id);
         
-    //     // Execute trades until both are settled
-    //     bytes32 pairId = keccak256(abi.encode(WETH, USDC));
-    //     uint256 executionCount = 0;
-    //     uint256 maxExecutions = 50; // Safety limit
+        // Execute trades until both are settled
+        bytes32 pairId = keccak256(abi.encode(WETH, USDC));
+        uint256 executionCount = 0;
+        uint256 maxExecutions = 50; // Safety limit
         
-    //     while (executionCount < maxExecutions) {
-    //         executionCount++;
-    //         console.log("Bot executing trades - iteration %s", executionCount);
+        while (executionCount < maxExecutions) {
+            executionCount++;
+            console.log("Bot executing trades - iteration %s", executionCount);
             
-    //         vm.startPrank(BOT_EOA);
-    //         core.executeTrades(pairId);
-    //         vm.stopPrank();
+            vm.startPrank(BOT_EOA);
+            core.executeTrades(pairId);
+            vm.stopPrank();
             
-    //         // Check if both trades are settled
-    //         bool trade1Settled = false;
-    //         bool trade2Settled = false;
+            // Check if both trades are settled
+            bool trade1Settled = false;
+            bool trade2Settled = false;
             
-    //         try core.getTrade(trade1Id) returns (Utils.Trade memory t1) {
-    //             if (t1.owner == address(0)) trade1Settled = true;
-    //         } catch {
-    //             trade1Settled = true;
-    //         }
+            try core.getTrade(trade1Id) returns (Utils.Trade memory t1) {
+                if (t1.owner == address(0)) trade1Settled = true;
+            } catch {
+                trade1Settled = true;
+            }
             
-    //         try core.getTrade(trade2Id) returns (Utils.Trade memory t2) {
-    //             if (t2.owner == address(0)) trade2Settled = true;
-    //         } catch {
-    //             trade2Settled = true;
-    //         }
+            try core.getTrade(trade2Id) returns (Utils.Trade memory t2) {
+                if (t2.owner == address(0)) trade2Settled = true;
+            } catch {
+                trade2Settled = true;
+            }
             
-    //         if (trade1Settled && trade2Settled) {
-    //             console.log("SUCCESS: Both trades fully settled after %s executions", executionCount);
-    //             break;
-    //         }
-    //     }
+            if (trade1Settled && trade2Settled) {
+                console.log("SUCCESS: Both trades fully settled after %s executions", executionCount);
+                break;
+            }
+        }
         
-    //     assertTrue(executionCount < maxExecutions, "Max executions reached without settling both trades");
+        assertTrue(executionCount < maxExecutions, "Max executions reached without settling both trades");
         
-    //     console.log("MultiSettle: testSettleBothTrades() end");
-    // }
+        console.log("MultiSettle: testSettleBothTrades() end");
+    }
 
     function placeTradeFromEOA(address eoa, uint256 wethAmount) internal returns (uint256 tradeId) {
         uint256 amountIn = formatTokenAmount(WETH, wethAmount);
