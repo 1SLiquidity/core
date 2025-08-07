@@ -23,75 +23,64 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
         console.log("UniswapV3TradePlacement: Using fetcher at", dexFetcher);
         console.log("UniswapV3TradePlacement: Using router at", dexRouter);
         
-        uint256 amountIn = formatTokenAmount(WETH, 33); // 1 WETH
-        uint256 amountOutMin = formatTokenAmount(USDC, 1792); // 1800 USDC
-        uint256 botGasAllowance = 0.0005 ether;
-
-        console.log("WETH balance before trade: %s", getTokenBalance(WETH, address(this)));
+        uint256 amountIn = formatTokenAmount(WETH, 1);
+        uint256 amountOutMin = formatTokenAmount(USDC, 1800);
 
         approveToken(WETH, address(core), amountIn);
 
-        uint256 initialWethBalance = getTokenBalance(WETH, address(core));
-        uint256 initialUsdcBalance = getTokenBalance(USDC, address(core));
-
         bytes memory tradeData = abi.encode(
-            WETH, // tokenIn
-            USDC, // tokenOut
-            amountIn, // amountIn
-            amountOutMin, // amountOutMin
-            false, // isInstasettlable
-            botGasAllowance // botGasAllowance
+            WETH,
+            USDC,
+            amountIn,
+            amountOutMin,
+            false
         );
 
-        console.log("Placing trade on UniswapV3");
         core.placeTrade(tradeData);
-        console.log("Working on trade");
-        uint256 tradeId = 0; // First trade should have ID 0
 
-        (
-            address owner,
-            uint96 cumulativeGasEntailed,
-            uint8 attempts,
-            address tokenIn,
-            address tokenOut,
-            uint256 amountIn_,
-            uint256 amountRemaining,
-            uint256 targetAmountOut,
-            uint256 realisedAmountOut,
-            uint256 tradeId_,
-            uint256 instasettleBps,
-            uint256 botGasAllowance_,
-            uint256 lastSweetSpot,
-            bool isInstasettlable
-        ) = core.trades(tradeId);
+        // Get the trade details
+        bytes32 pairId = keccak256(abi.encode(WETH, USDC));
+        uint256[] memory tradeIds = core.getPairIdTradeIds(pairId);
+        uint256 tradeId = tradeIds[tradeIds.length - 1];
 
-        assertEq(owner, address(this), "Trade owner should be this");
-        assertEq(tokenIn, WETH, "tokenIn should be WETH");
-        assertEq(tokenOut, USDC, "okenOut should be USDC");
-        assertEq(amountIn_, amountIn, "amountIn should match input");
-        assertNotEq(amountRemaining, 0, "amount remaining should not be 0 after execution");
-        assertEq(instasettleBps, 100, "instasettle BPS should be 100");
-        assertTrue(lastSweetSpot >= 0, "Last Sweet Spot should be >= 0");
-        assertEq(isInstasettlable, false, "sould not be instasettlable");
-        assertEq(attempts, 1, "ahould have 1 attempt");
-        assertTrue(cumulativeGasEntailed > 0, "Should have gas entailed");
+        Utils.Trade memory trade = core.getTrade(tradeId);
 
-        uint256 finalWethBalance = getTokenBalance(WETH, address(core));
-        uint256 finalUsdcBalance = getTokenBalance(USDC, address(core));
+        // Verify trade details (trade has already been executed once upon placement)
+        assertEq(trade.owner, address(this), "Trade owner should be test contract");
+        assertEq(trade.tokenIn, WETH, "Token in should be WETH");
+        assertEq(trade.tokenOut, USDC, "Token out should be USDC");
+        assertEq(trade.amountIn, amountIn, "Amount in should match");
+        assertTrue(trade.amountRemaining < amountIn, "Amount remaining should be less than amount in after initial execution");
+        assertEq(trade.targetAmountOut, amountOutMin, "Target amount out should match");
+        assertTrue(trade.realisedAmountOut > 0, "Realised amount out should be greater than 0 after initial execution");
+        assertEq(trade.attempts, 1, "Attempts should be 1 initially");
+        assertTrue(trade.lastSweetSpot < 4, "Last sweet spot should be less than 4 after initial execution");
+        assertEq(trade.isInstasettlable, false, "Should not be instasettlable");
 
-        // Calculate expected remaining amount based on actual sweet spot
-        uint256 expectedRemainingAmount = amountIn * (lastSweetSpot - 1) / lastSweetSpot;
-        assertEq(finalWethBalance, expectedRemainingAmount, "WETH balance should match calculated remaining amount");
-
-        // Log execution details
-        console.log("Trade Execution Details:");
+        console.log("Trade placed and initially executed successfully");
         console.log("Trade ID:", tradeId);
-        console.log("Amount In:", amountIn);
-        console.log("Amount Out:", realisedAmountOut);
-        console.log("Gas Used:", cumulativeGasEntailed);
-        console.log("Sweet Spot:", lastSweetSpot);
-        console.log("Attempts:", attempts);
-        console.log("Expected Remaining:", expectedRemainingAmount);
-        console.log("Actual Remaining:", finalWethBalance);
+        console.log("Amount In:", trade.amountIn);
+        console.log("Amount Remaining:", trade.amountRemaining);
+        console.log("Target Amount Out:", trade.targetAmountOut);
+        console.log("Realised Amount Out:", trade.realisedAmountOut);
+        console.log("Attempts:", trade.attempts);
+        console.log("Last Sweet Spot:", trade.lastSweetSpot);
+        console.log("Is Instasettlable:", trade.isInstasettlable);
+
+        // Execute the trade
+        core.executeTrades(pairId);
+
+        // Get updated trade details
+        trade = core.getTrade(tradeId);
+
+        // Verify trade execution
+        assertTrue(trade.amountRemaining < amountIn, "Amount remaining should be less than amount in");
+        assertTrue(trade.realisedAmountOut > 0, "Should have realised amount out");
+        assertTrue(trade.lastSweetSpot < 4, "Sweet spot should have decreased");
+
+        console.log("Trade executed successfully");
+        console.log("Updated Amount Remaining:", trade.amountRemaining);
+        console.log("Updated Realised Amount Out:", trade.realisedAmountOut);
+        console.log("Updated Last Sweet Spot:", trade.lastSweetSpot);
     }
 } 

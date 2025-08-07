@@ -96,12 +96,11 @@ contract Protocol is Test {
         console.log("DEX routers configured");
 
         console.log("Deploying Core...");
-        // Deploy Core with all dependencies
+        // Deploy Core
         core = new Core(
             address(streamDaemon),
             address(executor),
-            address(registry),
-            100000  // Initial gas estimate
+            address(registry)
         );
         console.log("Core deployed");
 

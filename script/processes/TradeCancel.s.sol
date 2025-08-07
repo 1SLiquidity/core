@@ -28,15 +28,12 @@ contract TradeCancel is TradePlacement {
 
         // Create the trade data
         bytes memory tradeData = abi.encode(
-            WETH, // tokenIn
-            USDC, // tokenOut
-            amountIn, // amountIn
-            amountOutMin, // amountOutMin
-            false, // isInstasettlable
-            0.0005 ether // botGasAllowance
+            WETH,
+            USDC,
+            amountIn,
+            amountOutMin,
+            false // isInstasettlable
         );
-
-        // Place trade
         core.placeTrade(tradeData);
 
         // Get trade ID
@@ -53,22 +50,9 @@ contract TradeCancel is TradePlacement {
         console.log("USDC:", initialUsdcBalance);
 
         // Get trade details before cancellation
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            uint256 amountRemaining,
-            ,
-            uint256 realisedAmountOut,
-            ,
-            ,
-            ,
-            ,
-            
-        ) = core.trades(tradeId);
+        Utils.Trade memory trade = core.getTrade(tradeId);
+        uint256 amountRemaining = trade.amountRemaining;
+        uint256 realisedAmountOut = trade.realisedAmountOut;
 
         // Cancel trade
         bool success = core._cancelTrade(tradeId);
@@ -87,8 +71,8 @@ contract TradeCancel is TradePlacement {
         assertEq(finalUsdcBalance, initialUsdcBalance + realisedAmountOut, "USDC not returned correctly");
 
         // Verify trade is deleted
-        (address owner,,,,,,,,,,,,,) = core.trades(tradeId);
-        assertEq(owner, address(0), "Trade not deleted");
+        vm.expectRevert();
+        core.getTrade(tradeId);
     }
 
     function test_RevertWhen_CancellingNonExistentTrade() public {
@@ -105,12 +89,11 @@ contract TradeCancel is TradePlacement {
 
         // Create the trade data
         bytes memory tradeData = abi.encode(
-            WETH, // tokenIn
-            USDC, // tokenOut
-            amountIn, // amountIn
-            amountOutMin, // amountOutMin
-            false, // isInstasettlable
-            0.0005 ether // botGasAllowance
+            WETH,
+            USDC,
+            amountIn,
+            amountOutMin,
+            false // isInstasettlable
         );
 
         // Place trade

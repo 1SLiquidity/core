@@ -156,15 +156,6 @@ contract Instasettle is TradePlacement {
         // Place a non-instasettlable trade
         uint256 tradeId = placeTradeWETHUSDC(false);
 
-        // Modify trade to be non-instasettlable
-        Utils.Trade memory trade = core.getTrade(tradeId);
-        trade.isInstasettlable = false;
-        vm.store(
-            address(core),
-            keccak256(abi.encode(tradeId, uint256(2))), // slot for trades mapping
-            bytes32(abi.encode(trade))
-        );
-
         // Try to instasettle - should revert
         vm.startPrank(address(this));
         vm.expectRevert("Trade not instasettlable");
@@ -187,7 +178,6 @@ contract Instasettle is TradePlacement {
         // Setup initial balances
         uint256 amountIn = formatTokenAmount(WETH, 1); // 1 WETH
         uint256 amountOutMin = formatTokenAmount(USDC, 1800); // Expected USDC output with 0.1% slippage
-        uint256 botGasAllowance = 0.0005 ether;
 
         // Log WETH balance before approval
         uint256 wethBalance = getTokenBalance(WETH, tradeOwner);
@@ -196,17 +186,15 @@ contract Instasettle is TradePlacement {
         // Approve Core to spend WETH
         approveToken(WETH, address(core), amountIn);
 
-        // Create the trade data
-        bytes memory tradeData = abi.encode(
-            WETH, // tokenIn
-            USDC, // tokenOut
-            amountIn, // amountIn
-            amountOutMin, // amountOutMin
-            isInstasettlable, // isInstasettlable
-            botGasAllowance // botGasAllowance
-        );
-
         // Place trade
+        console.log("Placing trade...");
+        bytes memory tradeData = abi.encode(
+            WETH,
+            USDC,
+            amountIn,
+            amountOutMin,
+            isInstasettlable // Use the parameter instead of hardcoding true
+        );
         core.placeTrade(tradeData);
 
         // Verify trade was placed

@@ -30,8 +30,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 realisedAmountOut,
         bool isInstasettlable,
         uint256 instasettleBps,
-        uint256 botGasAllowance,
-        uint96 cumulativeGasEntailed,
         uint256 lastSweetSpot
     );
 
@@ -39,7 +37,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 indexed tradeId,
         uint256 amountIn,
         uint256 realisedAmountOut,
-        uint256 cumulativeGasEntailed,
         uint256 lastSweetSpot
     );
 
@@ -57,17 +54,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 totalFees
     );
 
-    // gas / TWAP
-    uint256 private startGas;
-    uint256 public lastGasUsed;
-    uint256 public lastGasPrice;
-    uint256 public lastGasCost;
-    uint256[] public TWAP_GAS_COST;
-
-    // new gas records
-    uint256 public gasOpen;
-    uint256 public gasClosed;
-
     // trades
     uint256 public lastTradeId;
     mapping(bytes32 => uint256[]) public pairIdTradeIds;
@@ -80,53 +66,14 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     constructor(
         address _streamDaemon,
         address _executor,
-        address _registry,
-        uint256 _lastGasUsed
+        address _registry
     ) Ownable(msg.sender) {
         streamDaemon = StreamDaemon(_streamDaemon);
         executor = Executor(_executor);
         registry = IRegistry(_registry);
-        TWAP_GAS_COST.push(_lastGasUsed);
-        lastGasUsed = _lastGasUsed;
     }
 
     // function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
-
-    function initiateGasRecord() public {
-        startGas = gasleft();
-    }
-
-    function testGasRecording() public returns (uint256){
-        gasOpen = gasleft();
-        uint256 pseudoResult = 2 ^ 9991;
-        gasClosed = gasleft();
-
-        return gasOpen - gasClosed;
-    }
-
-    function closeGasRecord() public {
-        uint256 gasUsed = startGas - gasleft();
-        lastGasUsed = gasUsed;
-        lastGasPrice = tx.gasprice;
-        lastGasCost = lastGasUsed * tx.gasprice;
-        TWAP_GAS_COST.push(lastGasCost);
-    } 
-
-    function readTWAPGasCost(uint256 delta) public view returns (uint256) {
-        console.log("Reading TWAP gas cost");
-        console.log("TWAP length: %s", TWAP_GAS_COST.length);
-        if (TWAP_GAS_COST.length == 0) {
-            delta = 1;
-        } else if (TWAP_GAS_COST.length < delta) {
-            delta = TWAP_GAS_COST.length;
-        }
-        uint256 totalGasCost = 0;
-        for (uint256 i = 0; i < delta; i++) {
-            totalGasCost += TWAP_GAS_COST[i];
-        }
-        totalGasCost = totalGasCost > 0 ? totalGasCost / delta : lastGasCost;
-        return totalGasCost > lastGasUsed ? totalGasCost / TWAP_GAS_COST.length : 100000;
-    }
 
     function placeTrade(bytes calldata tradeData) public payable {
         (
@@ -134,9 +81,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             address tokenOut,
             uint256 amountIn,
             uint256 amountOutMin,
-            bool isInstasettlable,
-            uint256 botGasAllowance
-        ) = abi.decode(tradeData, (address, address, uint256, uint256, bool, uint256));
+            bool isInstasettlable
+        ) = abi.decode(tradeData, (address, address, uint256, uint256, bool));
         // @audit may be better to abstract sweetSpot algo to here and pass the value along, since small (<0.001% pool depth) trades shouldn't be split at all and would save hefty logic
         // @audit edge cases wrt pool depths (specifically extremely small volume to volume reserves) create anomalies in the algo output
         // @audit similarly for the sake of OPTIMISTIC and DETERMINISTIC placement patterns, we should abstract the calculation of sweetSpot nad the definition of appropriate DEX into seperated, off contract functions
@@ -148,7 +94,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // @audit needs attention for small trades - these hsouldn't be entered in the orderbook / storage
         trades[tradeId] = Utils.Trade({
             owner: msg.sender,
-            cumulativeGasEntailed: 0,
             attempts: 1,
             tokenIn: tokenIn,
             tokenOut: tokenOut,
@@ -157,7 +102,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             targetAmountOut: amountOutMin,
             realisedAmountOut: 0,
             tradeId: tradeId,
-            botGasAllowance: botGasAllowance,
             instasettleBps: 100,
             lastSweetSpot: 0, // @audit check that we need to speficially evaluate this here
             isInstasettlable: isInstasettlable
@@ -177,8 +121,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             0, // realisedAmountOut starts at 0
             isInstasettlable,
             100, // instasettleBps default
-            botGasAllowance,
-            0, // cumulativeGasEntailed starts at 0
             4 // lastSweetSpot default
         );
 
@@ -231,22 +173,19 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256[] storage tradeIds = pairIdTradeIds[pairId];
 
         for (uint256 i = 0; i < tradeIds.length; i++) {
-            initiateGasRecord();
             Utils.Trade storage trade = trades[tradeIds[i]];
 
             console.log("[executeTrades] TradeId:");
             console.log(trade.tradeId);
             console.log("attempts:");
             console.log(trade.attempts);
-            console.log("botGasAllowance:");
-            console.log(trade.botGasAllowance);
             console.log("amountRemaining:");
             console.log(trade.amountRemaining);
             console.log("lastSweetSpot:");
             console.log(trade.lastSweetSpot);
 
-            if (trade.attempts >= 3 || trade.botGasAllowance == 0) {
-                console.log("Core: executeTrades: trade attempts > 3 || botGasAllowance == 0");
+            if (trade.attempts >= 3) {
+                console.log("Core: executeTrades: trade attempts > 3");
                 // we delete the trade from storage
                 _cancelTrade(trade.tradeId);
             } else {
@@ -272,34 +211,15 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                     trade.attempts++;
                 }
             }
-            closeGasRecord();
         }
-        // lastGasPrice = tx.gasprice; // @audit commented out as dedicated functions exist
-        // lastGasCost = lastGasUsed * tx.gasprice;
-        // TWAP_GAS_COST.push(lastGasCost); //@audit location and function of gas caching needs attention 
     }
 
     function _executeStream(Utils.Trade memory trade) public returns (Utils.Trade memory updatedTrade) {
         console.log("Executing stream for trade");
         console.log(trade.tradeId);
-        uint256 latestGasAverage = readTWAPGasCost(10); // converting this after to uint96 @audit check consistency
-        console.log("Latest gas average:");
-        console.log(latestGasAverage);
         
         Utils.Trade storage storageTrade = trades[trade.tradeId];
         
-        uint256 gasCostInWei = latestGasAverage;
-        
-        console.log("[_executeStream] Pre-check: cumulativeGasEntailed:");
-        console.log(trade.cumulativeGasEntailed);
-        console.log("gasCostInWei:");
-        console.log(gasCostInWei);
-        console.log("botGasAllowance:");
-        console.log(trade.botGasAllowance);
-        if (trade.cumulativeGasEntailed + gasCostInWei > trade.botGasAllowance) {
-            console.log("[_executeStream] Cancelling trade due to gas allowance");
-            _cancelTrade(trade.tradeId);
-        }
         // security measure @audit may need review
         // if (trade.realisedAmountOut > trade.targetAmountOut) {
         //     console.log("[_executeStream] ToxicTrade: realisedAmountOut > targetAmountOut");
@@ -307,7 +227,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // }
 
         (uint256 sweetSpot, address bestDex, address router) = 
-            streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, latestGasAverage);
+            streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, 0);
         console.log("[_executeStream] algo calculated sweetSpot:");
         console.log(sweetSpot);
         console.log("execute stream: last sweet spot = ");
@@ -380,7 +300,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         storageTrade.amountRemaining = trade.amountRemaining - streamVolume;
         storageTrade.realisedAmountOut += amountOut;
         storageTrade.lastSweetSpot = sweetSpot;
-        storageTrade.cumulativeGasEntailed += uint96(gasCostInWei);
 
         console.log("[_executeStream] Post-update: amountRemaining:");
         console.log(storageTrade.amountRemaining);
@@ -394,7 +313,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             trade.tradeId,
             streamVolume,
             amountOut,
-            storageTrade.cumulativeGasEntailed,
             sweetSpot
         );
 
@@ -412,10 +330,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         if (trade.lastSweetSpot == 1) {
             console.log("Instasettle: lastSweetSpot == 1");
             delete trades[tradeId];
-            bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, trade.realisedAmountOut);
-            require(statusIn, "Instasettle: Failed to transfer tokens to trade owner");
-            bool statusOut = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
-            require(statusOut, "Instasettle: Failed to transfer tokens to settler");
+            bool statusIn1 = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, trade.realisedAmountOut);
+            require(statusIn1, "Instasettle: Failed to transfer tokens to trade owner");
+            bool statusOut1 = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
+            require(statusOut1, "Instasettle: Failed to transfer tokens to settler");
             emit TradeSettled(
                 trade.tradeId,
                 msg.sender,

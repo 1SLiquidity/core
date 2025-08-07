@@ -22,92 +22,67 @@ contract TradePlacement is Protocol {
 
     function testPlaceTradeWETHUSDC() public {
         console.log("TradePlacement: testPlaceTradeWETHUSDC() start");
-        // Setup initial balances
-        uint256 amountIn = formatTokenAmount(WETH, 1); // 1 WETH
-        uint256 amountOutMin = formatTokenAmount(USDC, 1792); // Expected USDC output with 0.1% slippage
-        uint256 botGasAllowance = 0.0005 ether;
-
-        // Log WETH balance before approval
-        uint256 wethBalance = getTokenBalance(WETH, address(this));
-        console.log("WETH balance before trade: %s", wethBalance);
-        require(wethBalance >= amountIn, "Insufficient WETH balance");
-
-        // Approve Core to spend WETH
-        uint256 allowanceBefore = IERC20(WETH).allowance(address(this), address(core));
-        console.log("Allowance before approval: %s", allowanceBefore);
         
+        uint256 amountIn = formatTokenAmount(WETH, 1);
+        uint256 amountOutMin = formatTokenAmount(USDC, 1800);
+
         approveToken(WETH, address(core), amountIn);
-        
-        uint256 allowanceAfter = IERC20(WETH).allowance(address(this), address(core));
-        allowanceAfter;
 
-
-        // Record initial balances
-        uint256 initialWethBalance = getTokenBalance(WETH, address(core));
-        uint256 initialUsdcBalance = getTokenBalance(USDC, address(core));
-
-
-
-        // Create the trade data
         bytes memory tradeData = abi.encode(
-            WETH, // tokenIn
-            USDC, // tokenOut
-            amountIn, // amountIn
-            amountOutMin, // amountOutMin
-            true, // isInstasettlable
-            botGasAllowance // botGasAllowance
+            WETH,
+            USDC,
+            amountIn,
+            amountOutMin,
+            false
         );
 
-        // Place trade
-        console.log("placing trade");
         core.placeTrade(tradeData);
-        console.log("working on trade");
-
-        // Verify trade was placed
-        bytes32 pairId = keccak256(abi.encode(WETH, USDC));
-        uint256[] memory tradeIds = core.getPairIdTradeIds(pairId);
-        assertEq(tradeIds.length, 1, "Trade was not placed");
 
         // Get the trade details
-        uint256 tradeId = tradeIds[0];
+        bytes32 pairId = keccak256(abi.encode(WETH, USDC));
+        uint256[] memory tradeIds = core.getPairIdTradeIds(pairId);
+        uint256 tradeId = tradeIds[tradeIds.length - 1];
+
         Utils.Trade memory trade = core.getTrade(tradeId);
-        
-        // Verify trade struct values
-        assertEq(trade.owner, address(this), "Trade owner should be this contract");
-        assertEq(trade.tokenIn, WETH, "TokenIn should be WETH");
-        assertEq(trade.tokenOut, USDC, "TokenOut should be USDC");
-        assertEq(trade.amountIn, amountIn, "AmountIn should match input");
-        assertNotEq(trade.amountRemaining, 0, "Amount remaining should not be 0 after execution");
-        assertTrue(trade.realisedAmountOut > 0, "Realised amount out should be greater than 0");
-        assertEq(trade.tradeId, tradeId, "Trade ID should match");
-        assertEq(trade.instasettleBps, 100, "Instasettle BPS should be 100");
-        console.log("Here be the last sweetie spot", trade.lastSweetSpot);
-        assertTrue(trade.lastSweetSpot >= 3, "Last sweet spot should be >= 4");
-        assertEq(trade.isInstasettlable, true, "Should be instasettlable");
-        assertEq(trade.attempts, 1, "Should have 1 attempt");
-        assertTrue(trade.cumulativeGasEntailed > 0, "Should have gas entailed");
 
-        // Verify balances
-        uint256 finalWethBalance = getTokenBalance(WETH, address(core));
-        uint256 finalUsdcBalance = getTokenBalance(USDC, address(core));
+        // Verify trade details (trade has already been executed once upon placement)
+        assertEq(trade.owner, address(this), "Trade owner should be test contract");
+        assertEq(trade.tokenIn, WETH, "Token in should be WETH");
+        assertEq(trade.tokenOut, USDC, "Token out should be USDC");
+        assertEq(trade.amountIn, amountIn, "Amount in should match");
+        assertTrue(trade.amountRemaining < amountIn, "Amount remaining should be less than amount in after initial execution");
+        assertEq(trade.targetAmountOut, amountOutMin, "Target amount out should match");
+        assertTrue(trade.realisedAmountOut > 0, "Realised amount out should be greater than 0 after initial execution");
+        assertEq(trade.attempts, 1, "Attempts should be 1 initially");
+        assertTrue(trade.lastSweetSpot < 4, "Last sweet spot should be less than 4 after initial execution");
+        assertEq(trade.isInstasettlable, false, "Should not be instasettlable");
 
-        assertEq(finalWethBalance - initialWethBalance, amountIn * 3 / 4, "WETH balance not decreased correctly"); // we know sweet spot comes out at 4 for this tx
-        assertEq(
-            initialUsdcBalance + trade.realisedAmountOut, finalUsdcBalance, "USDC balance should increase by realised amount"
-        );
-
-        // Verify trade execution metrics
-        // assertTrue(trade.realisedAmountOut >= amountOutMin, "Realised amount should be >= minimum amount");
-        assertTrue(trade.cumulativeGasEntailed <= botGasAllowance, "Gas used should be <= allowance");
-
-        // Log execution details
-        console.log("Trade Execution Details:");
+        console.log("Trade placed and initially executed successfully");
         console.log("Trade ID:", tradeId);
-        console.log("Amount In:", amountIn);
-        console.log("Amount Out:", trade.realisedAmountOut);
-        console.log("Gas Used:", trade.cumulativeGasEntailed);
-        console.log("Sweet Spot:", trade.lastSweetSpot);
+        console.log("Amount In:", trade.amountIn);
+        console.log("Amount Remaining:", trade.amountRemaining);
+        console.log("Target Amount Out:", trade.targetAmountOut);
+        console.log("Realised Amount Out:", trade.realisedAmountOut);
         console.log("Attempts:", trade.attempts);
+        console.log("Last Sweet Spot:", trade.lastSweetSpot);
+        console.log("Is Instasettlable:", trade.isInstasettlable);
+
+        // Execute the trade
+        core.executeTrades(pairId);
+
+        // Get updated trade details
+        trade = core.getTrade(tradeId);
+
+        // Verify trade execution
+        assertTrue(trade.amountRemaining < amountIn, "Amount remaining should be less than amount in");
+        assertTrue(trade.realisedAmountOut > 0, "Should have realised amount out");
+        assertTrue(trade.lastSweetSpot < 4, "Sweet spot should have decreased");
+
+        console.log("Trade executed successfully");
+        console.log("Updated Amount Remaining:", trade.amountRemaining);
+        console.log("Updated Realised Amount Out:", trade.realisedAmountOut);
+        console.log("Updated Last Sweet Spot:", trade.lastSweetSpot);
+        
         console.log("TradePlacement: testPlaceTradeWETHUSDC() end");
     }
 

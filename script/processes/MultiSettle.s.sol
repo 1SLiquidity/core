@@ -163,7 +163,6 @@ contract MultiSettle is Protocol {
     function placeTradeFromEOA(address eoa, uint256 wethAmount) internal returns (uint256 tradeId) {
         uint256 amountIn = formatTokenAmount(WETH, wethAmount);
         uint256 amountOutMin = formatTokenAmount(USDC, wethAmount * 1800); // 1800 USDC per WETH
-        uint256 botGasAllowance = 0.01 ether; // Increased from 0.0005 ether to allow more executions
 
         vm.startPrank(eoa);
         
@@ -176,8 +175,7 @@ contract MultiSettle is Protocol {
             USDC, // tokenOut
             amountIn, // amountIn
             amountOutMin, // amountOutMin
-            false, // isInstasettlable
-            botGasAllowance // botGasAllowance
+            false // isInstasettlable
         );
 
         // Place trade
