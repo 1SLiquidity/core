@@ -8,10 +8,13 @@ import "./Executor.sol";
 import "./Utils.sol";
 import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "forge-std/console.sol";
 
 contract Core is Ownable /*, UUPSUpgradeable */ {
+    using SafeERC20 for IERC20;
+
     // @audit must be able to recieve and transfer tokens
     StreamDaemon public streamDaemon;
     Executor public executor;
@@ -125,7 +128,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         ) = abi.decode(tradeData, (address, address, uint256, uint256, bool, uint256));
         // @audit may be better to abstract sweetSpot algo to here and pass the value along, since small (<0.001% pool
         // depth) trades shouldn't be split at all and would save hefty logic
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
 
         uint256 tradeId = lastTradeId++;
         bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut)); //@audit optimise this
@@ -182,8 +185,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         }
         if (trade.owner == msg.sender || msg.sender == address(this)) {
             delete trades[tradeId];
-            IERC20(trade.tokenOut).transfer(msg.sender, trade.realisedAmountOut);
-            IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
+            IERC20(trade.tokenOut).safeTransfer(msg.sender, trade.realisedAmountOut);
+            IERC20(trade.tokenIn).safeTransfer(msg.sender, trade.amountRemaining);
 
             emit TradeCancelled(tradeId, trade.amountRemaining, trade.realisedAmountOut);
 
@@ -206,7 +209,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             } else {
                 try this._executeStream(trade) returns (Utils.Trade memory updatedTrade) {
                     if (updatedTrade.lastSweetSpot == 0) {
-                        IERC20(trade.tokenOut).transfer(trade.owner, trade.realisedAmountOut);
+                        IERC20(trade.tokenOut).safeTransfer(trade.owner, trade.realisedAmountOut);
                         delete trades[tradeIds[i]];
                     }
                 } catch {
@@ -252,16 +255,11 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 targetAmountOut = trade.targetAmountOut / sweetSpot;
 
         IRegistry.TradeData memory tradeData = registry.prepareTradeData(
-            bestDex, 
-            trade.tokenIn,
-            trade.tokenOut,
-            streamVolume,
-            targetAmountOut,
-            address(this)
+            bestDex, trade.tokenIn, trade.tokenOut, streamVolume, targetAmountOut, address(this)
         );
         console.log("Core: Trade data prepared");
 
-        IERC20(trade.tokenIn).approve(tradeData.router, streamVolume);
+        IERC20(trade.tokenIn).forceApprove(tradeData.router, streamVolume);
         console.log("Core: Router approved");
 
         (bool success, bytes memory returnData) =
@@ -286,8 +284,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         return storageTrade;
     }
 
-        function instasettle(uint256 tradeId) external 
-    // returns (bool) 
+    function instasettle(uint256 tradeId) external 
+    // returns (bool)
     {
         console.log("Instasettle: %s", tradeId);
         Utils.Trade memory trade = trades[tradeId];
@@ -300,10 +298,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // If lastSweetSpot == 1, just settle the amountRemaining
         if (trade.lastSweetSpot == 1) {
             delete trades[tradeId];
-            bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, trade.realisedAmountOut);
-            require(statusIn, "Instasettle: Failed to transfer tokens to trade owner");
-            bool statusOut = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
-            require(statusOut, "Instasettle: Failed to transfer tokens to settler");
+            IERC20(trade.tokenOut).safeTransferFrom(msg.sender, trade.owner, trade.realisedAmountOut);
+            IERC20(trade.tokenIn).safeTransfer(msg.sender, trade.amountRemaining);
             emit TradeSettled(
                 trade.tradeId,
                 msg.sender,
@@ -327,9 +323,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         //then we initialise the interface
         IERC20 tokenOut = IERC20(trade.tokenOut);
         //then, we transfer money from the purchaser to the owner
-        (bool statusIn) = tokenOut.transferFrom(msg.sender, trade.owner, instasettleAmount);
+        tokenOut.safeTransferFrom(msg.sender, trade.owner, instasettleAmount);
         //then, we transfer the remaining amount of tokenIn to the purchaser
-        (bool statusOut) = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining); // @audit we pass
+        IERC20(trade.tokenIn).safeTransfer(msg.sender, trade.amountRemaining); // @audit we pass
             // msg.sender here for testing without a Router, but we should have auth for Router access set up and the
             // caller's address passed as a parameter from Router on this function call
 
@@ -384,7 +380,9 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     //     //then, we transfer money from the purchaser to the owner
     //     (bool statusIn) = tokenOut.transferFrom(msg.sender, trade.owner, instasettleAmount);
     //     //then, we transfer the remaining amount of tokenIn to the purchaser
-    //     (bool statusOut) = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining); // @audit we pass msg.sender here for testing without a Router, but we should have auth for Router access set up and the caller's address passed as a parameter from Router on this function call
+    //     (bool statusOut) = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining); // @audit we pass
+    // msg.sender here for testing without a Router, but we should have auth for Router access set up and the caller's
+    // address passed as a parameter from Router on this function call
 
     //     emit TradeSettled(
     //         trade.tradeId,

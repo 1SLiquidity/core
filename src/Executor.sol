@@ -40,7 +40,7 @@ contract Executor {
 
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        IERC20(tokenIn).forceApprove(router, amountIn);
         console.log("Executor: Router approved for amount", amountIn);
 
         address[] memory path = new address[](2);
@@ -94,7 +94,7 @@ contract Executor {
 
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        IERC20(tokenIn).forceApprove(router, amountIn);
         console.log("Executor: Router approved for amount", amountIn);
 
         IUniswapV3Router.ExactInputSingleParams memory swapParams = IUniswapV3Router.ExactInputSingleParams({
@@ -149,7 +149,7 @@ contract Executor {
 
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        IERC20(tokenIn).forceApprove(router, amountIn);
         console.log("Executor: Router approved for amount", amountIn);
 
         IBalancerVault.SingleSwap memory singleSwap = IBalancerVault.SingleSwap({
@@ -209,7 +209,7 @@ contract Executor {
 
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(pool).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        IERC20(pool).forceApprove(router, amountIn);
         console.log("Executor: Router approved for amount", amountIn);
 
         console.log("Executor: Executing swap on Curve");
