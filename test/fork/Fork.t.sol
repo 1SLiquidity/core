@@ -24,8 +24,4 @@ abstract contract Fork_Test is Deploys {
     function getTokenBalance(address token, address account) public view returns (uint256) {
         return IERC20(token).balanceOf(account);
     }
-
-    function approveToken(address token, address spender, uint256 amount) public {
-        IERC20(token).approve(spender, amount);
-    }
 }
