@@ -7,8 +7,8 @@ import "forge-std/console.sol";
 
 /**
  * @title Config
- * @dev Configuration contract that loads USDC pair addresses from JSON file
- * This contract provides access to token addresses that form pairs with USDC
+ * @dev Configuration contract that loads token pair addresses from JSON files
+ * This contract provides access to token addresses that form pairs with USDC, USDT, WETH, and WBTC
  */
 contract Config is Script {
     using stdJson for string;
@@ -18,25 +18,36 @@ contract Config is Script {
         address addr; // Changed from tokenAddress to match JSON field "address"
     }
 
-    // Storage for loaded addresses
+    // Storage for loaded addresses for each base token
     address[] internal _usdcPairAddresses;
+    address[] internal _usdtPairAddresses;
+    address[] internal _wethPairAddresses;
+    address[] internal _wbtcPairAddresses;
+
+    // Global mappings for token names and addresses
     mapping(address => string) internal _tokenNames;
     mapping(string => address) internal _nameToAddress;
-    bool internal _isLoaded = false;
+
+    // Loading status for each token
+    bool internal _usdcLoaded = false;
+    bool internal _usdtLoaded = false;
+    bool internal _wethLoaded = false;
+    bool internal _wbtcLoaded = false;
+
+    // ===== LOADING FUNCTIONS =====
 
     /**
      * @dev Load USDC pair addresses from JSON file
-     * This function reads the config/usdc_pairs_clean.json file and extracts all addresses
      */
     function loadUSDCPairAddresses() public {
-        if (_isLoaded) {
+        if (_usdcLoaded) {
             return; // Already loaded
         }
 
-        try this.readUSDCPairsFromJSON() returns (TokenPair[] memory pairs) {
+        try this.readTokenPairsFromJSON("config/usdc_pairs_clean.json") returns (TokenPair[] memory pairs) {
             console.log("Successfully loaded", pairs.length, "USDC pair addresses from JSON");
 
-            // Clear existing data
+            // Clear existing USDC data
             delete _usdcPairAddresses;
 
             // Store the loaded data
@@ -49,7 +60,7 @@ contract Config is Script {
                 _nameToAddress[tokenName] = tokenAddress;
             }
 
-            _isLoaded = true;
+            _usdcLoaded = true;
             console.log("USDC pair addresses loaded successfully");
         } catch Error(string memory reason) {
             console.log("Failed to load USDC addresses from JSON:", reason);
@@ -61,12 +72,127 @@ contract Config is Script {
     }
 
     /**
-     * @dev External function to read USDC pairs from JSON
+     * @dev Load USDT pair addresses from JSON file
+     */
+    function loadUSDTPairAddresses() public {
+        if (_usdtLoaded) {
+            return; // Already loaded
+        }
+
+        try this.readTokenPairsFromJSON("config/usdt_pairs_clean.json") returns (TokenPair[] memory pairs) {
+            console.log("Successfully loaded", pairs.length, "USDT pair addresses from JSON");
+
+            // Clear existing USDT data
+            delete _usdtPairAddresses;
+
+            // Store the loaded data
+            for (uint256 i = 0; i < pairs.length; i++) {
+                address tokenAddress = pairs[i].addr;
+                string memory tokenName = pairs[i].name;
+
+                _usdtPairAddresses.push(tokenAddress);
+                _tokenNames[tokenAddress] = tokenName;
+                _nameToAddress[tokenName] = tokenAddress;
+            }
+
+            _usdtLoaded = true;
+            console.log("USDT pair addresses loaded successfully");
+        } catch Error(string memory reason) {
+            console.log("Failed to load USDT addresses from JSON:", reason);
+            revert("Failed to load USDT pair addresses from JSON");
+        } catch {
+            console.log("Failed to load USDT addresses from JSON: Unknown error");
+            revert("Failed to load USDT pair addresses from JSON");
+        }
+    }
+
+    /**
+     * @dev Load WETH pair addresses from JSON file
+     */
+    function loadWETHPairAddresses() public {
+        if (_wethLoaded) {
+            return; // Already loaded
+        }
+
+        try this.readTokenPairsFromJSON("config/weth_pairs_clean.json") returns (TokenPair[] memory pairs) {
+            console.log("Successfully loaded", pairs.length, "WETH pair addresses from JSON");
+
+            // Clear existing WETH data
+            delete _wethPairAddresses;
+
+            // Store the loaded data
+            for (uint256 i = 0; i < pairs.length; i++) {
+                address tokenAddress = pairs[i].addr;
+                string memory tokenName = pairs[i].name;
+
+                _wethPairAddresses.push(tokenAddress);
+                _tokenNames[tokenAddress] = tokenName;
+                _nameToAddress[tokenName] = tokenAddress;
+            }
+
+            _wethLoaded = true;
+            console.log("WETH pair addresses loaded successfully");
+        } catch Error(string memory reason) {
+            console.log("Failed to load WETH addresses from JSON:", reason);
+            revert("Failed to load WETH pair addresses from JSON");
+        } catch {
+            console.log("Failed to load WETH addresses from JSON: Unknown error");
+            revert("Failed to load WETH pair addresses from JSON");
+        }
+    }
+
+    /**
+     * @dev Load WBTC pair addresses from JSON file
+     */
+    function loadWBTCPairAddresses() public {
+        if (_wbtcLoaded) {
+            return; // Already loaded
+        }
+
+        try this.readTokenPairsFromJSON("config/wbtc_pairs_clean.json") returns (TokenPair[] memory pairs) {
+            console.log("Successfully loaded", pairs.length, "WBTC pair addresses from JSON");
+
+            // Clear existing WBTC data
+            delete _wbtcPairAddresses;
+
+            // Store the loaded data
+            for (uint256 i = 0; i < pairs.length; i++) {
+                address tokenAddress = pairs[i].addr;
+                string memory tokenName = pairs[i].name;
+
+                _wbtcPairAddresses.push(tokenAddress);
+                _tokenNames[tokenAddress] = tokenName;
+                _nameToAddress[tokenName] = tokenAddress;
+            }
+
+            _wbtcLoaded = true;
+            console.log("WBTC pair addresses loaded successfully");
+        } catch Error(string memory reason) {
+            console.log("Failed to load WBTC addresses from JSON:", reason);
+            revert("Failed to load WBTC pair addresses from JSON");
+        } catch {
+            console.log("Failed to load WBTC addresses from JSON: Unknown error");
+            revert("Failed to load WBTC pair addresses from JSON");
+        }
+    }
+
+    /**
+     * @dev Load all token pair addresses
+     */
+    function loadAllTokenPairAddresses() public {
+        loadUSDCPairAddresses();
+        loadUSDTPairAddresses();
+        loadWETHPairAddresses();
+        loadWBTCPairAddresses();
+    }
+
+    /**
+     * @dev External function to read token pairs from any JSON file
      * This needs to be external to be callable with try/catch
      */
-    function readUSDCPairsFromJSON() external view returns (TokenPair[] memory) {
+    function readTokenPairsFromJSON(string memory filePath) external view returns (TokenPair[] memory) {
         // Read the JSON file
-        string memory jsonFile = vm.readFile("config/usdc_pairs_clean.json");
+        string memory jsonFile = vm.readFile(filePath);
 
         // Get the total count first
         uint256 totalCount = jsonFile.readUint(".totalCount");
@@ -84,171 +210,117 @@ contract Config is Script {
         return pairs;
     }
 
-    // ===== GETTER FUNCTIONS =====
+    // ===== GETTER FUNCTIONS FOR USDC =====
 
-    /**
-     * @dev Get all USDC pair addresses
-     * @return Array of all token addresses that form pairs with USDC
-     */
     function getUSDCPairAddresses() external view returns (address[] memory) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
+        require(_usdcLoaded, "USDC addresses not loaded. Call loadUSDCPairAddresses() first");
         return _usdcPairAddresses;
     }
 
-    /**
-     * @dev Get the number of USDC pair addresses
-     * @return Number of token addresses loaded
-     */
     function getUSDCPairAddressesCount() external view returns (uint256) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
+        require(_usdcLoaded, "USDC addresses not loaded. Call loadUSDCPairAddresses() first");
         return _usdcPairAddresses.length;
     }
 
+    function isUSDCPairAddress(address tokenAddress) external view returns (bool) {
+        require(_usdcLoaded, "USDC addresses not loaded. Call loadUSDCPairAddresses() first");
+        return _isInArray(_usdcPairAddresses, tokenAddress);
+    }
+
+    // ===== GETTER FUNCTIONS FOR USDT =====
+
+    function getUSDTPairAddresses() external view returns (address[] memory) {
+        require(_usdtLoaded, "USDT addresses not loaded. Call loadUSDTPairAddresses() first");
+        return _usdtPairAddresses;
+    }
+
+    function getUSDTPairAddressesCount() external view returns (uint256) {
+        require(_usdtLoaded, "USDT addresses not loaded. Call loadUSDTPairAddresses() first");
+        return _usdtPairAddresses.length;
+    }
+
+    function isUSDTPairAddress(address tokenAddress) external view returns (bool) {
+        require(_usdtLoaded, "USDT addresses not loaded. Call loadUSDTPairAddresses() first");
+        return _isInArray(_usdtPairAddresses, tokenAddress);
+    }
+
+    // ===== GETTER FUNCTIONS FOR WETH =====
+
+    function getWETHPairAddresses() external view returns (address[] memory) {
+        require(_wethLoaded, "WETH addresses not loaded. Call loadWETHPairAddresses() first");
+        return _wethPairAddresses;
+    }
+
+    function getWETHPairAddressesCount() external view returns (uint256) {
+        require(_wethLoaded, "WETH addresses not loaded. Call loadWETHPairAddresses() first");
+        return _wethPairAddresses.length;
+    }
+
+    function isWETHPairAddress(address tokenAddress) external view returns (bool) {
+        require(_wethLoaded, "WETH addresses not loaded. Call loadWETHPairAddresses() first");
+        return _isInArray(_wethPairAddresses, tokenAddress);
+    }
+
+    // ===== GETTER FUNCTIONS FOR WBTC =====
+
+    function getWBTCPairAddresses() external view returns (address[] memory) {
+        require(_wbtcLoaded, "WBTC addresses not loaded. Call loadWBTCPairAddresses() first");
+        return _wbtcPairAddresses;
+    }
+
+    function getWBTCPairAddressesCount() external view returns (uint256) {
+        require(_wbtcLoaded, "WBTC addresses not loaded. Call loadWBTCPairAddresses() first");
+        return _wbtcPairAddresses.length;
+    }
+
+    function isWBTCPairAddress(address tokenAddress) external view returns (bool) {
+        require(_wbtcLoaded, "WBTC addresses not loaded. Call loadWBTCPairAddresses() first");
+        return _isInArray(_wbtcPairAddresses, tokenAddress);
+    }
+
+    // ===== GLOBAL UTILITY FUNCTIONS =====
+
     /**
-     * @dev Get USDC pair address at specific index
-     * @param index Index of the address to retrieve
-     * @return Token address at the specified index
+     * @dev Get token name by address (works across all loaded tokens)
      */
-    function getUSDCPairAddressAt(uint256 index) external view returns (address) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
-        require(index < _usdcPairAddresses.length, "Index out of bounds");
-        return _usdcPairAddresses[index];
+    function getTokenName(address tokenAddress) external view returns (string memory) {
+        return _tokenNames[tokenAddress];
     }
 
     /**
-     * @dev Check if an address is a USDC pair token
-     * @param tokenAddress Address to check
-     * @return True if the address is in the USDC pairs list
+     * @dev Get token address by name (works across all loaded tokens)
      */
-    function isUSDCPairAddress(address tokenAddress) external view returns (bool) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
+    function getTokenAddress(string calldata tokenName) external view returns (address) {
+        return _nameToAddress[tokenName];
+    }
 
-        for (uint256 i = 0; i < _usdcPairAddresses.length; i++) {
-            if (_usdcPairAddresses[i] == tokenAddress) {
+    /**
+     * @dev Check loading status
+     */
+    function getLoadingStatus() external view returns (bool usdc, bool usdt, bool weth, bool wbtc) {
+        return (_usdcLoaded, _usdtLoaded, _wethLoaded, _wbtcLoaded);
+    }
+
+    // ===== INTERNAL HELPER FUNCTIONS =====
+
+    /**
+     * @dev Check if an address exists in an array
+     */
+    function _isInArray(address[] memory array, address target) internal pure returns (bool) {
+        for (uint256 i = 0; i < array.length; i++) {
+            if (array[i] == target) {
                 return true;
             }
         }
         return false;
     }
 
-    /**
-     * @dev Find the index of a USDC pair address
-     * @param tokenAddress Address to find
-     * @return found True if address was found
-     * @return index Index of the address (0 if not found)
-     */
-    function findUSDCPairAddressIndex(address tokenAddress) external view returns (bool found, uint256 index) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
-
-        for (uint256 i = 0; i < _usdcPairAddresses.length; i++) {
-            if (_usdcPairAddresses[i] == tokenAddress) {
-                return (true, i);
-            }
-        }
-        return (false, 0);
-    }
+    // ===== LEGACY COMPATIBILITY FUNCTIONS =====
 
     /**
-     * @dev Get token name by address
-     * @param tokenAddress Address of the token
-     * @return Token name
-     */
-    function getTokenName(address tokenAddress) external view returns (string memory) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
-        return _tokenNames[tokenAddress];
-    }
-
-    /**
-     * @dev Get token address by name
-     * @param tokenName Name of the token
-     * @return Token address
-     */
-    function getTokenAddress(string calldata tokenName) external view returns (address) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
-        return _nameToAddress[tokenName];
-    }
-
-    /**
-     * @dev Check if addresses are loaded
-     * @return True if addresses have been loaded from JSON
+     * @dev Legacy function for backward compatibility
      */
     function isLoaded() external view returns (bool) {
-        return _isLoaded;
-    }
-
-    // ===== UTILITY FUNCTIONS =====
-
-    /**
-     * @dev Get addresses by token names
-     * @param tokenNames Array of token names to look up
-     * @return addresses Array of corresponding addresses
-     */
-    function getAddressesByNames(string[] calldata tokenNames) external view returns (address[] memory addresses) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
-
-        addresses = new address[](tokenNames.length);
-        for (uint256 i = 0; i < tokenNames.length; i++) {
-            addresses[i] = _nameToAddress[tokenNames[i]];
-        }
-        return addresses;
-    }
-
-    /**
-     * @dev Get a subset of addresses by indices
-     * @param indices Array of indices to retrieve
-     * @return addresses Array of addresses at specified indices
-     */
-    function getAddressesByIndices(uint256[] calldata indices) external view returns (address[] memory addresses) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
-
-        addresses = new address[](indices.length);
-        for (uint256 i = 0; i < indices.length; i++) {
-            require(indices[i] < _usdcPairAddresses.length, "Index out of bounds");
-            addresses[i] = _usdcPairAddresses[indices[i]];
-        }
-        return addresses;
-    }
-
-    /**
-     * @dev Get first N addresses
-     * @param count Number of addresses to retrieve
-     * @return addresses Array of first N addresses
-     */
-    function getFirstNAddresses(uint256 count) external view returns (address[] memory addresses) {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
-        require(count <= _usdcPairAddresses.length, "Count exceeds available addresses");
-
-        addresses = new address[](count);
-        for (uint256 i = 0; i < count; i++) {
-            addresses[i] = _usdcPairAddresses[i];
-        }
-        return addresses;
-    }
-
-    // ===== INFO FUNCTIONS =====
-
-    /**
-     * @dev Get summary information about loaded addresses
-     * @return totalCount Total number of addresses loaded
-     * @return isDataLoaded Whether data has been loaded
-     */
-    function getSummary() external view returns (uint256 totalCount, bool isDataLoaded) {
-        return (_usdcPairAddresses.length, _isLoaded);
-    }
-
-    /**
-     * @dev Print all loaded addresses for debugging
-     */
-    function printAllAddresses() external view {
-        require(_isLoaded, "Addresses not loaded. Call loadUSDCPairAddresses() first");
-
-        console.log("=== USDC PAIR ADDRESSES ===");
-        console.log("Total addresses:", _usdcPairAddresses.length);
-
-        for (uint256 i = 0; i < _usdcPairAddresses.length; i++) {
-            console.log("Index", i);
-            console.log("  Name:", _tokenNames[_usdcPairAddresses[i]]);
-            console.log("  Address:", _usdcPairAddresses[i]);
-        }
+        return _usdcLoaded;
     }
 }

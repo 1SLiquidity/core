@@ -1,7 +1,7 @@
 {
-  "description": "Toutes les paires de liquidité contenant le token USDC avec réserves non-nulles (incluant tous les tokens de base)",
-  "totalCount": 74,
-  "extractedAt": "2025-08-06T09:24:51.096Z",
+  "description": "Toutes les paires de liquidité contenant le token USDT avec réserves non-nulles (incluant tous les tokens de base)",
+  "totalCount": 53,
+  "extractedAt": "2025-08-06T09:24:51.086Z",
   "filterCriteria": "Réserves token0 > 0 ET token1 > 0",
   "pairs": [
     {
@@ -13,10 +13,6 @@
       "address": "0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9"
     },
     {
-      "name": "amp",
-      "address": "0xff20817765cb7f73d4bde2e66e067e58d11095c2"
-    },
-    {
       "name": "ape",
       "address": "0x4d224452801aced8b2f0aebe155379bb5d594381"
     },
@@ -25,8 +21,8 @@
       "address": "0xb50721bcf8d664c30412cfbc6cf7a15145234ad1"
     },
     {
-      "name": "axl",
-      "address": "0x467719ad09025fcc6cf6f8311755809d45a5e5f3"
+      "name": "axs",
+      "address": "0xbb0e17ef65f82ab018d8edd776e8dd940327b28b"
     },
     {
       "name": "bnb",
@@ -35,14 +31,6 @@
     {
       "name": "bonk",
       "address": "0x1151cb3d861920e07a38e03eead12c32178567f6"
-    },
-    {
-      "name": "cbbtc",
-      "address": "0xcbb7c0000ab88b473b1f5afd9ef808440eed33bf"
-    },
-    {
-      "name": "cbeth",
-      "address": "0xbe9895146f7af43049ca1c1ae358b0541ea49704"
     },
     {
       "name": "chz",
@@ -61,16 +49,8 @@
       "address": "0xd533a949740bb3306d119cc777fa900ba034cd52"
     },
     {
-      "name": "cvx",
-      "address": "0x4e3fbd56cd56c3e72c1403e103b45db9da5b9d2b"
-    },
-    {
       "name": "dai",
       "address": "0x6b175474e89094c44da98b954eedeac495271d0f"
-    },
-    {
-      "name": "dexe",
-      "address": "0xde4ee8057785a7e8e800db58f9784845a5c2cbd6"
     },
     {
       "name": "eigen",
@@ -89,40 +69,28 @@
       "address": "0xfe0c30065b384f05761f15d0cc899d4f9f9cc0eb"
     },
     {
-      "name": "fdusd",
-      "address": "0xc5f0f7b66764f6ec8c8dff7ba683102295e16409"
-    },
-    {
       "name": "fet",
       "address": "0xaea46a60368a7bd060eec7df8cba43b7ef41ad85"
+    },
+    {
+      "name": "floki",
+      "address": "0xcf0c122c6b73ff809c693db761e7baebe62b6a2e"
     },
     {
       "name": "frax",
       "address": "0x3432b6a60d23ca0dfca7761b7ab56459d9c964d0"
     },
     {
-      "name": "gala",
-      "address": "0xd1d2eb1b1e90b638588728b4130137d262c87cae"
-    },
-    {
-      "name": "gho",
-      "address": "0x40d16fc0246ad3160ccc09b8d0d3a2cd28ae6c2f"
-    },
-    {
-      "name": "gno",
-      "address": "0x6810e776880c02933d47db1b9fc05908e5386b96"
-    },
-    {
       "name": "grt",
       "address": "0xc944e90c64b2c07662a292be6244bdf05cda44a7"
     },
     {
-      "name": "imx",
-      "address": "0xf57e7e7c23978c3caec3c3548e3d615c346e79ff"
+      "name": "gt",
+      "address": "0xe66747a101bff2dba3697199dcce5b743b454759"
     },
     {
-      "name": "ldo",
-      "address": "0x5a98fcbea516cf06857215779fd812ca3bef1b32"
+      "name": "jasmy",
+      "address": "0x7420b4b9a0110cdc71fb720908340c03f9bc03ec"
     },
     {
       "name": "link",
@@ -137,16 +105,8 @@
       "address": "0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0"
     },
     {
-      "name": "mnt",
-      "address": "0x3c3a81e81dc49a522a592e7622a7e711c06bf354"
-    },
-    {
-      "name": "mog",
-      "address": "0xaaee1a9723aadb7afa2810263653a34ba2c21c7a"
-    },
-    {
-      "name": "near",
-      "address": "0x85f17cf997934a597031b2e18a9ab6ebd4b9f6a4"
+      "name": "move",
+      "address": "0x3073f7aaa4db83f95e9fff17424f71d4751a3073"
     },
     {
       "name": "nexo",
@@ -157,24 +117,16 @@
       "address": "0x64aa3364f17a4d01c6f1751fd97c2bd3d7e7f1d5"
     },
     {
+      "name": "okb",
+      "address": "0x75231f58b43240c9718dd58b4967c5114342a86c"
+    },
+    {
       "name": "ondo",
       "address": "0xfaba6f8e4a5e8ab82f62fe7c39859fa577269be3"
     },
     {
-      "name": "oseth",
-      "address": "0xf1c9acdc66974dfb6decb12aa385b9cd01190e38"
-    },
-    {
-      "name": "ousg",
-      "address": "0x1b19c19393e2d034d8ff31ff34c81252fcbbee92"
-    },
-    {
       "name": "paxg",
       "address": "0x45804880de22913dafe09f4980848ece6ecbaf78"
-    },
-    {
-      "name": "pendle",
-      "address": "0x808507121b80c02388fad14726482e061b8da827"
     },
     {
       "name": "pepe",
@@ -197,10 +149,6 @@
       "address": "0x6de037ef9ad2725eb40118bb1702ebb27e4aeb24"
     },
     {
-      "name": "rsr",
-      "address": "0x320623b8e4ff03373931769a31fc52a4e78b5d70"
-    },
-    {
       "name": "sand",
       "address": "0x3845badade8e6dff049820680d1f14bd3903a5d0"
     },
@@ -209,36 +157,12 @@
       "address": "0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce"
     },
     {
-      "name": "spx",
-      "address": "0xe0f63a424a4439cbe457d80e4f4b51ad25b2c56c"
-    },
-    {
-      "name": "steth",
-      "address": "0xae7ab96520de3a18e5e111b5eaab095312d7fe84"
-    },
-    {
-      "name": "strk",
-      "address": "0xca14007eff0db1f8135f4c25b34de49ab0d42766"
-    },
-    {
       "name": "super",
       "address": "0xe53ec727dbdeb9e2d5456c3be40cff031ab40a55"
     },
     {
       "name": "susde",
       "address": "0x9d39a5de30e57443bff2a8307a4256c8797a3497"
-    },
-    {
-      "name": "susds",
-      "address": "0xa3931d71877c0e7a3148cb7eb4463524fec27fbd"
-    },
-    {
-      "name": "syrup",
-      "address": "0x643c4e15d7d62ad0abec4a9bd4b001aa3ef52d66"
-    },
-    {
-      "name": "tel",
-      "address": "0x467bccd9d29f223bce8043b84e8c8b282827790f"
     },
     {
       "name": "tkx",
@@ -269,10 +193,6 @@
       "address": "0x4c9edd5852cd905f086c759e8383e09bff1e68b3"
     },
     {
-      "name": "usds",
-      "address": "0xdc035d45d973e3ec169d2276ddab16f1e407384f"
-    },
-    {
       "name": "usdt",
       "address": "0xdac17f958d2ee523a2206206994597c13d831ec7"
     },
@@ -295,10 +215,6 @@
     {
       "name": "xaut",
       "address": "0x68749665ff8d2d112fa859aa293f07a622782f38"
-    },
-    {
-      "name": "xcn",
-      "address": "0xa2cd3d43c775978a96bdbf12d733d5a1ed94fb18"
     }
   ]
 }
