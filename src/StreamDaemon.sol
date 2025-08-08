@@ -118,8 +118,6 @@ contract StreamDaemon is Ownable {
         }
     }
 
-    // -1 floor / ceiling
-    // -2 gas estimation
     function _sweetSpotAlgo(
         address tokenIn,
         address tokenOut,
