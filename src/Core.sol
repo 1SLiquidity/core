@@ -54,6 +54,44 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 totalFees
     );
 
+    // =========================
+    // Fees state
+    // =========================
+    uint16 public constant MAX_BPS = 10000;
+    uint16 public constant MAX_FEE_CAP_BPS = 100; // 1%
+    uint16 public streamProtocolFeeBps = 10; // 10 bps
+    uint16 public streamBotFeeBps = 10;      // 10 bps
+    uint16 public instasettleProtocolFeeBps = 10; // 10 bps
+
+    // Protocol fee balances by token
+    mapping(address => uint256) public protocolFees;
+
+    // Fees events
+    event StreamFeesTaken(
+        uint256 indexed tradeId,
+        address indexed bot,
+        address indexed token,
+        uint256 protocolFee,
+        uint256 botFee
+    );
+    event InstasettleFeeTaken(
+        uint256 indexed tradeId,
+        address indexed settler,
+        address indexed token,
+        uint256 protocolFee
+    );
+    event FeesClaimed(
+        address indexed recipient,
+        address indexed token,
+        uint256 amount,
+        bool isProtocol
+    );
+    event FeeRatesUpdated(
+        uint16 streamProtocolFeeBps,
+        uint16 streamBotFeeBps,
+        uint16 instasettleProtocolFeeBps
+    );
+
     // trades
     uint256 public lastTradeId;
     mapping(bytes32 => uint256[]) public pairIdTradeIds;
@@ -74,6 +112,64 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     // function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+    // =========================
+    // Fees admin
+    // =========================
+    function setStreamProtocolFeeBps(uint16 bps) external onlyOwner {
+        require(bps <= MAX_FEE_CAP_BPS, "fee cap");
+        streamProtocolFeeBps = bps;
+        emit FeeRatesUpdated(streamProtocolFeeBps, streamBotFeeBps, instasettleProtocolFeeBps);
+    }
+
+    function setStreamBotFeeBps(uint16 bps) external onlyOwner {
+        require(bps <= MAX_FEE_CAP_BPS, "fee cap");
+        streamBotFeeBps = bps;
+        emit FeeRatesUpdated(streamProtocolFeeBps, streamBotFeeBps, instasettleProtocolFeeBps);
+    }
+
+    function setInstasettleProtocolFeeBps(uint16 bps) external onlyOwner {
+        require(bps <= MAX_FEE_CAP_BPS, "fee cap");
+        instasettleProtocolFeeBps = bps;
+        emit FeeRatesUpdated(streamProtocolFeeBps, streamBotFeeBps, instasettleProtocolFeeBps);
+    }
+
+    function claimProtocolFees(address token) external onlyOwner {
+        uint256 amount = protocolFees[token];
+        require(amount > 0, "no fees");
+        protocolFees[token] = 0;
+        IERC20(token).transfer(owner(), amount);
+        emit FeesClaimed(owner(), token, amount, true);
+    }
+
+    // =========================
+    // Fees helpers
+    // =========================
+    function _computeFee(uint256 amount, uint16 bps) internal pure returns (uint256) {
+        return (amount * bps) / MAX_BPS;
+    }
+
+    function _applyStreamFees(
+        uint256 tradeId,
+        address tokenOut,
+        uint256 deltaOut,
+        bool isInitial,
+        address bot
+    ) internal returns (uint256 protocolFee, uint256 botFee) {
+        if (deltaOut == 0) {
+            return (0, 0);
+        }
+        protocolFee = _computeFee(deltaOut, streamProtocolFeeBps);
+        botFee = _computeFee(deltaOut, streamBotFeeBps);
+        if (isInitial) {
+            protocolFee += botFee;
+            botFee = 0;
+        }
+        // Guard: bot fee cannot exceed 100 bps of delta
+        require(botFee * MAX_BPS <= deltaOut * 100, "bot fee guard");
+        protocolFees[tokenOut] += protocolFee;
+        emit StreamFeesTaken(tradeId, bot, tokenOut, protocolFee, botFee);
+    }
 
     function placeTrade(bytes calldata tradeData) public payable {
         (
@@ -125,7 +221,13 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         );
 
         Utils.Trade storage trade = trades[tradeId];
+        uint256 realisedBefore = trade.realisedAmountOut;
         _executeStream(trade);
+        uint256 delta = trade.realisedAmountOut - realisedBefore; // initial delta = realised
+        if (delta > 0) {
+            (uint256 protocolFee, uint256 botFee) = _applyStreamFees(tradeId, tokenOut, delta, true, address(0));
+            trades[tradeId].realisedAmountOut = trade.realisedAmountOut - (protocolFee + botFee);
+        }
     }
 
     function _removeTradeIdFromArray(bytes32 pairId, uint256 tradeId) internal {
@@ -171,6 +273,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     function executeTrades(bytes32 pairId) public {
 
         uint256[] storage tradeIds = pairIdTradeIds[pairId];
+        uint256 botFeesAccrued = 0;
+        address tokenOutForRun = address(0);
 
         for (uint256 i = 0; i < tradeIds.length; i++) {
             Utils.Trade storage trade = trades[tradeIds[i]];
@@ -189,11 +293,19 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                 // we delete the trade from storage
                 _cancelTrade(trade.tradeId);
             } else {
+                uint256 realisedBefore = trade.realisedAmountOut;
                 try this._executeStream(trade) returns (Utils.Trade memory updatedTrade) {
                     console.log("[executeTrades] After _executeStream: amountRemaining:");
                     console.log(updatedTrade.amountRemaining);
                     console.log("lastSweetSpot:");
                     console.log(updatedTrade.lastSweetSpot);
+                    uint256 delta = updatedTrade.realisedAmountOut - realisedBefore;
+                    if (delta > 0) {
+                        if (tokenOutForRun == address(0)) tokenOutForRun = updatedTrade.tokenOut;
+                        (uint256 protocolFee, uint256 botFee) = _applyStreamFees(trade.tradeId, updatedTrade.tokenOut, delta, false, msg.sender);
+                        trades[trade.tradeId].realisedAmountOut = updatedTrade.realisedAmountOut - (protocolFee + botFee);
+                        botFeesAccrued += botFee;
+                    }
                     if (updatedTrade.lastSweetSpot == 0) {
                         console.log("Core: executeTrades: lastSweetSpot == 0");
                         IERC20(trade.tokenOut).transfer(trade.owner, trade.realisedAmountOut);
@@ -211,6 +323,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                     trade.attempts++;
                 }
             }
+        }
+
+        if (botFeesAccrued > 0) {
+            require(tokenOutForRun != address(0), "fee token unset");
+            IERC20(tokenOutForRun).transfer(msg.sender, botFeesAccrued);
+            emit FeesClaimed(msg.sender, tokenOutForRun, botFeesAccrued, false);
         }
     }
 
@@ -354,6 +472,15 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 settlerPayment = ((trade.targetAmountOut - trade.realisedAmountOut) * (10000 - trade.instasettleBps)) / 10000;
         console.log("Instasettle: settlerPayment: %s", settlerPayment);
 
+        // Take protocol fee from settler on instasettle
+        uint256 protocolFee = _computeFee(settlerPayment, instasettleProtocolFeeBps);
+        if (protocolFee > 0) {
+            bool feePull = IERC20(trade.tokenOut).transferFrom(msg.sender, address(this), protocolFee);
+            require(feePull, "Instasettle: fee pull failed");
+            protocolFees[trade.tokenOut] += protocolFee;
+            emit InstasettleFeeTaken(trade.tradeId, msg.sender, trade.tokenOut, protocolFee);
+        }
+
         delete trades[tradeId];
         bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, settlerPayment);
         require(statusIn, "Instasettle: Failed to transfer tokens to trade owner");
@@ -366,7 +493,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             msg.sender,
             trade.amountRemaining,
             settlerPayment,
-            remainingAmountOut - settlerPayment // totalFees is the difference
+            remainingAmountOut - settlerPayment // totalFees is the difference (logical fee notion)
         );
         console.log("Instasettle: TradeSettle Event Emitted");
     }
