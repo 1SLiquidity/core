@@ -73,6 +73,9 @@ contract Instasettle is TradePlacement {
         
         // Calculate how much the settler should pay (match contract logic)
         uint256 settlerPayment = ((trade.targetAmountOut - trade.realisedAmountOut) * (10000 - trade.instasettleBps)) / 10000;
+        // Protocol fee taken on instasettle (paid by settler)
+        uint256 protocolFeeExpected = (settlerPayment * core.instasettleProtocolFeeBps()) / 10000;
+        uint256 protocolFeesBefore = core.protocolFees(USDC);
         
         console.log("remainingAmountOut:", remainingAmountOut);
         console.log("instasettleAmount:", instasettleAmount);
@@ -90,6 +93,7 @@ contract Instasettle is TradePlacement {
         uint256 settlerWethAfter = IERC20(WETH).balanceOf(settler);
         uint256 ownerUsdcAfter = IERC20(USDC).balanceOf(tradeOwner);
         uint256 coreWethAfter = IERC20(WETH).balanceOf(address(core));
+        uint256 protocolFeesAfter = core.protocolFees(USDC);
         
         console.log("Final balances:");
         console.log("Settler USDC after:", settlerUsdcAfter);
@@ -100,11 +104,7 @@ contract Instasettle is TradePlacement {
         console.log("Verifying token transfers...");
         // Normal instasettle case
         console.log("Checking settler USDC transfer...");
-        assertEq(
-            settlerUsdcBefore - settlerUsdcAfter,
-            settlerPayment,
-            "Settler should pay settler payment amount"
-        );
+        assertEq(settlerUsdcBefore - settlerUsdcAfter, settlerPayment + protocolFeeExpected, "Settler should pay settler payment + protocol fee");
         console.log("Checking settler WETH transfer...");
         assertEq(
             settlerWethAfter - settlerWethBefore,
@@ -125,6 +125,9 @@ contract Instasettle is TradePlacement {
             trade.amountRemaining,
             "Core's WETH balance should be reduced by the amount transferred to settler"
         );
+
+        // Verify protocol fees accounting for instasettle
+        assertEq(protocolFeesAfter - protocolFeesBefore, protocolFeeExpected, "Protocol fees should increase by expected instasettle fee");
 
         // Trade should be deleted
         console.log("Verifying trade deletion...");
