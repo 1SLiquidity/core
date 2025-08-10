@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ChevronRight, Info, ChevronLeft, Zap, Check } from 'lucide-react'
+import { ChevronRight, Info, ChevronLeft, Zap, Check, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Tooltip,
@@ -31,24 +31,32 @@ export default function TradingSettings() {
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLDivElement>(null)
 
-  // Close dropdown when clicking outside
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        buttonRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
+    const timer = setTimeout(() => {
+      setIsOpen(true)
+    }, 400) // 0.4 seconds
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
+    return () => clearTimeout(timer) // cleanup on unmount
   }, [])
+
+  // Close dropdown when clicking outside
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (
+  //       dropdownRef.current &&
+  //       buttonRef.current &&
+  //       !dropdownRef.current.contains(event.target as Node) &&
+  //       !buttonRef.current.contains(event.target as Node)
+  //     ) {
+  //       setIsOpen(false)
+  //     }
+  //   }
+
+  //   document.addEventListener('mousedown', handleClickOutside)
+  //   return () => {
+  //     document.removeEventListener('mousedown', handleClickOutside)
+  //   }
+  // }, [])
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen)
@@ -64,8 +72,20 @@ export default function TradingSettings() {
         onMouseLeave={() => setIsHovered(false)}
         className="group cursor-pointer"
       >
-        <div className="flex items-center gap-2 w-fit h-8 px-3 bg-white hover:bg-tabsGradient bg-opacity-[12%] rounded-[12px]">
-          <span className="text-sm text-zinc-400 group-hover:text-white">
+        <div
+          className={cn(
+            'flex items-center gap-2 w-fit h-8 px-3 bg-white bg-opacity-[12%] rounded-[12px]',
+            isOpen || isHovered
+              ? 'bg-tabsGradient'
+              : 'bg-white bg-opacity-[12%]'
+          )}
+        >
+          <span
+            className={cn(
+              'text-sm',
+              isOpen || isHovered ? 'text-white' : 'text-zinc-400'
+            )}
+          >
             ADVANCED
           </span>
           <div
@@ -73,7 +93,12 @@ export default function TradingSettings() {
               isOpen || isHovered ? 'rotate-90' : 'rotate-0'
             }`}
           >
-            <SettingsIcon className="w-fit h-fit block text-[#666666] group-hover:text-[#40F798] transition-colors duration-300" />
+            <SettingsIcon
+              className={cn(
+                'w-fit h-fit block',
+                isOpen || isHovered ? 'text-[#40F798]' : 'text-[#666666]'
+              )}
+            />
           </div>
         </div>
       </div>
@@ -94,6 +119,12 @@ export default function TradingSettings() {
                 : 'origin-top right-0 top-full mt-2'
             )}
           >
+            <div
+              onClick={() => setIsOpen(false)}
+              className="absolute top-1.5 right-2 flex items-center justify-center text-gray-400 group-hover:text-white hover:bg-[#827a7a33] group cursor-pointer group p-[0.15rem] rounded-md transition-all duration-300"
+            >
+              <X className="h-4 w-4 text-[#3F4542] group-hover:text-white transition-all duration-300" />
+            </div>
             <Card className="w-[350px] bg-zinc-900 border-zinc-800 text-white rounded-xl border-2">
               {showTradeOptions ? (
                 <CardContent className="p-6 space-y-5">

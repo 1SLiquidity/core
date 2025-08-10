@@ -28,6 +28,8 @@ import { FireIcon } from './fire-icon'
 import { InfoIcon } from '@/app/lib/icons'
 import CryptoCard from './CryptoCard'
 import CryptoCard2 from './CryptoCard2'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { useModal } from '@/app/lib/context/modalContext'
 
 const hotPairs = [
   {
@@ -75,8 +77,9 @@ const hotPairs = [
     isActive: false,
   },
 ]
+
 export default function HotPairBox() {
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [showTradeOptions, setShowTradeOptions] = useState(false)
   const [defaultSelected, setDefaultSelected] = useState(true)
@@ -86,9 +89,25 @@ export default function HotPairBox() {
   const [v2PoolsEnabled, setV2PoolsEnabled] = useState(true)
 
   const { isMobile, isXl, isDesktop } = useScreenSize()
+  const { tokens } = useTokenList()
+  const {
+    selectedTokenFrom,
+    selectedTokenTo,
+    setSelectedTokenFrom,
+    setSelectedTokenTo,
+  } = useModal()
+  const [hotPairsState, setHotPairsState] = useState(hotPairs)
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsOpen(true)
+    }, 400) // 0.4 seconds
+
+    return () => clearTimeout(timer) // cleanup on unmount
+  }, [])
 
   // Close dropdown when clicking outside
   // useEffect(() => {
@@ -112,6 +131,47 @@ export default function HotPairBox() {
   const toggleDropdown = () => {
     setIsOpen(!isOpen)
   }
+
+  const handleSelectPair = (pairLabel: string, index: number) => {
+    const [fromRaw, toRaw] = pairLabel.split('/')
+    const fromSymbol = fromRaw?.trim() || ''
+    const toSymbol = toRaw?.trim() || ''
+    const fromToken = tokens.find(
+      (t) => t.symbol?.toLowerCase() === fromSymbol.toLowerCase()
+    )
+    const toToken = tokens.find(
+      (t) => t.symbol?.toLowerCase() === toSymbol.toLowerCase()
+    )
+    if (fromToken && toToken) {
+      setSelectedTokenFrom(fromToken)
+      setSelectedTokenTo(toToken)
+      setHotPairsState((prev) =>
+        prev.map((p, i) => ({ ...p, isActive: i === index }))
+      )
+      setIsOpen(false)
+    }
+  }
+
+  // Sync active hot pair with currently selected tokens
+  useEffect(() => {
+    const currentPairNorm =
+      selectedTokenFrom && selectedTokenTo
+        ? `${selectedTokenFrom.symbol}/${selectedTokenTo.symbol}`
+            .replace(/\s/g, '')
+            .toLowerCase()
+        : null
+
+    setHotPairsState((prev) =>
+      prev.map((p, i) => {
+        if (!currentPairNorm) {
+          // Default to first if nothing selected
+          return { ...p, isActive: i === 0 }
+        }
+        const pNorm = p.pair.replace(/\s/g, '').toLowerCase()
+        return { ...p, isActive: pNorm === currentPairNorm }
+      })
+    )
+  }, [selectedTokenFrom, selectedTokenTo])
 
   return (
     <div className="relative inline-block z-[5555555]">
@@ -173,20 +233,35 @@ export default function HotPairBox() {
                     <X className="h-4 w-4 text-[#3F4542] group-hover:text-white transition-all duration-300" />
                   </div>
                   {/*  */}
+                  {/* <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <InfoIcon className="h-5 w-5 cursor-help block" />
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-zinc-800 text-white border-zinc-700">
+                        <p>Hot pair info</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider> */}
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  {hotPairs.map((pair, index) => (
-                    <CryptoCard2
+                  {hotPairsState.map((pair, index) => (
+                    <div
                       key={index}
-                      icon1={pair.icon1}
-                      icon2={pair.icon2}
-                      pair={pair.pair}
-                      price={pair.price}
-                      vol={pair.vol}
-                      win={pair.win}
-                      isActive={pair.isActive}
-                    />
+                      onClick={() => handleSelectPair(pair.pair, index)}
+                      className="cursor-pointer"
+                    >
+                      <CryptoCard2
+                        icon1={pair.icon1}
+                        icon2={pair.icon2}
+                        pair={pair.pair}
+                        price={pair.price}
+                        vol={pair.vol}
+                        win={pair.win}
+                        isActive={pair.isActive}
+                      />
+                    </div>
                   ))}
                   {/* <CryptoCard />
                   <CryptoCard2 /> */}
