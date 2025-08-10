@@ -20,6 +20,7 @@ import { useReserves } from '@/app/lib/hooks/useReserves'
 import { useRefreshTimer } from '@/app/lib/hooks/useRefreshTimer'
 import { useSwapCalculator } from '@/app/lib/hooks/useSwapCalculator'
 import HotPairBox from './HotPair/HotPairBox'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
 
 const TIMER_DURATION = 10 // 10 seconds
 
@@ -58,6 +59,9 @@ const SELSection = () => {
   const stateData = useAppKitState()
   const chainIdWithPrefix = stateData?.selectedNetworkId || 'eip155:1'
   const chainId = chainIdWithPrefix.split(':')[1]
+
+  // Get token list for setting defaults
+  const { tokens } = useTokenList()
   const pathname = usePathname()
   const router = useRouter()
 
@@ -75,6 +79,31 @@ const SELSection = () => {
       setSelectedTokenTo(null)
     }
   }, [setSelectedTokenFrom, setSelectedTokenTo])
+
+  // Set default tokens on mount if no tokens are selected
+  useEffect(() => {
+    if (!selectedTokenFrom && !selectedTokenTo && tokens.length > 0) {
+      const usdt = tokens.find((token) => token.symbol.toLowerCase() === 'usdt')
+      const weth = tokens.find((token) => token.symbol.toLowerCase() === 'weth')
+
+      if (usdt && weth) {
+        console.log('Setting default tokens:', {
+          from: usdt.symbol,
+          to: weth.symbol,
+          chainId,
+        })
+        setSelectedTokenFrom(usdt)
+        setSelectedTokenTo(weth)
+      }
+    }
+  }, [
+    selectedTokenFrom,
+    selectedTokenTo,
+    tokens,
+    chainId,
+    setSelectedTokenFrom,
+    setSelectedTokenTo,
+  ])
 
   // Get our reserves hook functionality
   const {

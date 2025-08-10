@@ -8,6 +8,7 @@ import {
   Zap,
   Check,
   ArrowRight,
+  X,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -30,41 +31,52 @@ import CryptoCard2 from './CryptoCard2'
 
 const hotPairs = [
   {
-    icon1: '/tokens/leo.png',
-    icon2: '/tokens/usdt.webp',
-    pair: 'LEO / USDT',
+    // icon1: '/tokens/leo.png',
+    icon1: '/tokens/usdt.webp',
+    icon2: '/tokens/weth.webp',
+    // pair: 'LEO / USDT',
+    pair: 'USDT / WETH',
     price: 1000,
     vol: 1000,
     win: 10,
     save: 1000,
     details1: '1,000 USDT - 5.2%',
     details2: 'in est. savings',
+    isActive: true,
   },
   {
-    icon1: '/tokens/aave.webp',
-    icon2: '/tokens/eth.svg',
-    pair: 'AAVE / ETH',
+    // icon1: '/tokens/aave.webp',
+    // icon2: '/tokens/eth.svg',
+    // pair: 'AAVE / ETH',
+    icon1: '/tokens/usdc.svg',
+    icon2: '/tokens/weth.webp',
+    pair: 'USDC / WETH',
     price: 2000,
     vol: 1000,
     win: 20,
     save: 1000,
     details1: '1,000 USDT - 5.2%',
     details2: 'in est. savings',
+    isActive: false,
   },
   {
-    icon1: '/tokens/etc.png',
-    icon2: '/tokens/usdt.webp',
-    pair: 'ETC / USDT',
+    // icon1: '/tokens/etc.png',
+    // icon2: '/tokens/usdt.webp',
+    // pair: 'ETC / USDT',
+    icon1: '/tokens/usdt.webp',
+    icon2: '/tokens/usdc.svg',
+    pair: 'USDT / USDC',
     price: 3000,
     vol: 1000,
     win: 15,
     save: 1000,
     details1: '1,000 USDT - 5.2%',
     details2: 'in est. savings',
+    isActive: false,
   },
 ]
 export default function HotPairBox() {
-  const [isOpen, setIsOpen] = useState(false)
+  const [isOpen, setIsOpen] = useState(true)
   const [isHovered, setIsHovered] = useState(false)
   const [showTradeOptions, setShowTradeOptions] = useState(false)
   const [defaultSelected, setDefaultSelected] = useState(true)
@@ -79,23 +91,23 @@ export default function HotPairBox() {
   const buttonRef = useRef<HTMLDivElement>(null)
 
   // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        buttonRef.current &&
-        !dropdownRef.current.contains(event.target as Node) &&
-        !buttonRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false)
-      }
-    }
+  // useEffect(() => {
+  //   const handleClickOutside = (event: MouseEvent) => {
+  //     if (
+  //       dropdownRef.current &&
+  //       buttonRef.current &&
+  //       !dropdownRef.current.contains(event.target as Node) &&
+  //       !buttonRef.current.contains(event.target as Node)
+  //     ) {
+  //       setIsOpen(false)
+  //     }
+  //   }
 
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [])
+  //   document.addEventListener('mousedown', handleClickOutside)
+  //   return () => {
+  //     document.removeEventListener('mousedown', handleClickOutside)
+  //   }
+  // }, [])
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen)
@@ -132,25 +144,35 @@ export default function HotPairBox() {
             <Card className="w-[350px] bg-zinc-900 border-zinc-800 text-white rounded-xl border-2">
               <CardContent className="p-4 space-y-5">
                 <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-1">
-                    <FireIcon
-                      className="transition-all duration-300 w-5 h-5"
-                      isActive={isHovered || isOpen}
-                    />
-                    <h2 className="text-xl font-medium text-center flex-1">
-                      HOT PAIRS
-                    </h2>
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
+                      <FireIcon
+                        className="transition-all duration-300 w-5 h-5"
+                        isActive={isHovered || isOpen}
+                      />
+                      <h2 className="text-xl font-medium text-center flex-1">
+                        HOT PAIRS
+                      </h2>
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <InfoIcon className="h-5 w-5 cursor-help block" />
+                        </TooltipTrigger>
+                        <TooltipContent className="bg-zinc-800 text-white border-zinc-700">
+                          <p>Hot pair info</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <InfoIcon className="h-5 w-5 cursor-help block" />
-                      </TooltipTrigger>
-                      <TooltipContent className="bg-zinc-800 text-white border-zinc-700">
-                        <p>Hot pair info</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+
+                  <div
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-center text-gray-400 group-hover:text-white hover:bg-[#827a7a33] group cursor-pointer group p-[0.15rem] rounded-md transition-all duration-300"
+                  >
+                    <X className="h-4 w-4 text-[#3F4542] group-hover:text-white transition-all duration-300" />
+                  </div>
+                  {/*  */}
                 </div>
 
                 <div className="flex flex-col gap-4">
@@ -163,6 +185,7 @@ export default function HotPairBox() {
                       price={pair.price}
                       vol={pair.vol}
                       win={pair.win}
+                      isActive={pair.isActive}
                     />
                   ))}
                   {/* <CryptoCard />

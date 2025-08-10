@@ -1,4 +1,5 @@
 'use client'
+import { cn } from '@/lib/utils'
 import Image from 'next/image'
 
 export default function CryptoCard2({
@@ -8,6 +9,7 @@ export default function CryptoCard2({
   price,
   vol,
   win,
+  isActive,
 }: {
   icon1: string
   icon2: string
@@ -17,24 +19,35 @@ export default function CryptoCard2({
   price: number
   vol: number
   win: number
+  isActive: boolean
 }) {
   return (
     <div className="group relative rounded-md p-[1px] transition-all duration-300 cursor-pointer">
       <div
-        className="absolute inset-0 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+        className={cn(
+          'absolute inset-0 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300',
+          isActive && 'opacity-100'
+        )}
         style={{
           background: 'linear-gradient(87.35deg, #3F4542 2.21%, #33F498 100%)',
         }}
       ></div>
 
       <div
-        className="relative z-10 p-3 rounded-md bg-gradient-to-b from-[#2C2D2E] to-[#292B2C]
-                 border border-[#3F4542] group-hover:border-transparent transition-colors duration-300"
+        className={cn(
+          'relative z-10 p-3 rounded-md bg-gradient-to-b from-[#2C2D2E] to-[#292B2C] border border-[#3F4542] group-hover:border-transparent transition-colors duration-300',
+          isActive && 'border-transparent'
+        )}
       >
         <div className="flex flex-col gap-2">
           {/* Top section: Icons and Pair Name */}
           <div className="flex items-center gap-3 w-full justify-center">
-            <div className="flex items-center group-hover:-translate-x-1 transition-all duration-300">
+            <div
+              className={cn(
+                'flex items-center transition-all duration-300',
+                isActive ? 'translate-x-0' : 'group-hover:-translate-x-1'
+              )}
+            >
               {/* Ethereum icon */}
               <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
                 <Image
@@ -46,7 +59,14 @@ export default function CryptoCard2({
                 />
               </div>
 
-              <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] -ml-3 transition-all duration-300 group-hover:translate-x-0 group-hover:ml-0">
+              <div
+                className={cn(
+                  'w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] -ml-3 transition-all duration-300',
+                  isActive
+                    ? 'translate-x-0 ml-0'
+                    : 'group-hover:translate-x-0 group-hover:ml-0'
+                )}
+              >
                 <Image
                   src={icon2}
                   alt="dai"
