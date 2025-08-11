@@ -25,9 +25,9 @@ contract SweetSpotAlgoTest is Deploys {
 
     function test_SweetSpotAlgo_NormalCase() public {
         // Setup: 1M tokens in reserves, 100k volume
-        uint256 reserveIn = 5 * 10 ** 18;
+        uint256 reserveIn = 5_000_000 * 10 ** 18;
         uint256 reserveOut = 500_000 * 10 ** 8;
-        uint256 volume = 1 * 10 ** 18; // 100k tokens
+        uint256 volume = 400_000 * 10 ** 18; // 100k tokens
         uint256 effectiveGas = 1; // $1 gas
 
         uint256 sweetSpot = streamDaemon._sweetSpotAlgo(
