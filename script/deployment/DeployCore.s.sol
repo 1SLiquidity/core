@@ -22,14 +22,13 @@ contract DeployCore is Script {
         HelperConfig.DexTypeRouter[] memory dexTypeRouters = helperConfig.getActiveDexTypesRouters();
         address[] memory dexes = helperConfig.getActiveDexes();
         address[] memory routers = helperConfig.getActiveRouters();
-        uint256 lastGasUsed = helperConfig.activeLastGasUsed();
 
         address streamDaemon = address(deployStreamDaemon.createNewStreamDaemon(dexes, routers));
         address executor = address(deployExecutor.createNewExecutor());
         address registry = address(deployRegistry.createNewRegistry(dexTypeRouters));
 
         vm.startBroadcast(deployerPrivateKey);
-        Core core = createNewCore(streamDaemon, executor, registry, lastGasUsed);
+        Core core = createNewCore(streamDaemon, executor, registry);
         vm.stopBroadcast();
         return core;
     }
@@ -37,12 +36,11 @@ contract DeployCore is Script {
     function createNewCore(
         address streamDaemon,
         address executor,
-        address registry,
-        uint256 lastGasUsed
+        address registry
     )
         public
         returns (Core)
     {
-        return new Core(streamDaemon, executor, registry, lastGasUsed);
+        return new Core(streamDaemon, executor, registry);
     }
 }

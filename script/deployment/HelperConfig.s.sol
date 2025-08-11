@@ -17,7 +17,6 @@ contract HelperConfig is Script {
     DexTypeRouter[] public activeDexTypesRouters;
     address[] public activeDexes;
     address[] public activeRouters;
-    uint256 public activeLastGasUsed;
 
     constructor() {
         if (block.chainid == 1) {
@@ -59,8 +58,6 @@ contract HelperConfig is Script {
             activeRouters.push(UNISWAP_V3_ROUTER); // for 3000 fee tier
             activeRouters.push(UNISWAP_V3_ROUTER); // for 10000 fee tier
             activeRouters.push(SUSHISWAP_ROUTER);
-
-            activeLastGasUsed = 100_000;
         } else if (block.chainid == 31_337) {
             console.log("Deploying on anvil");
             address router1 = address(0x0000000000000000000000000000000000000001);
@@ -78,8 +75,6 @@ contract HelperConfig is Script {
 
             activeRouters.push(router1);
             activeRouters.push(router2);
-
-            activeLastGasUsed = 100_000;
         } else {
             revert("Unsupported network");
         }

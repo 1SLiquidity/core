@@ -98,8 +98,7 @@ contract SingleDexProtocol is Test {
         core = new Core(
             address(streamDaemon),
             address(executor),
-            address(registry),
-            100_000 // Initial gas estimate
+            address(registry)
         );
 
         vm.startPrank(WETH_WHALE);

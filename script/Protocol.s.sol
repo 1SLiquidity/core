@@ -43,9 +43,9 @@ contract Protocol is Test {
     address constant WETH_WHALE = 0x2F0b23f53734252Bda2277357e97e1517d6B042A;
     address constant USDC_WHALE = 0x55FE002aefF02F77364de339a1292923A15844B8;
 
-    address public constant TEST_EOA = address(0xB0B);  // Easy to recognize test address
-    uint256 public constant TEST_EOA_WETH_AMOUNT = 10 ether;  // 10 WETH
-    uint256 public constant TEST_EOA_USDC_AMOUNT = 20_000e6;  // 20,000 USDC
+    address public constant TEST_EOA = address(0xB0B); // Easy to recognize test address
+    uint256 public constant TEST_EOA_WETH_AMOUNT = 10 ether; // 10 WETH
+    uint256 public constant TEST_EOA_USDC_AMOUNT = 20_000e6; // 20,000 USDC
 
     function setUp() public virtual {
         console.log("Protocol: setUp() start");
@@ -85,7 +85,7 @@ contract Protocol is Test {
         // Deploy Registry and configure routers
         registry = new Registry();
         console.log("Registry deployed");
-        
+
         // Configure all DEX routers
         console.log("Configuring DEX routers...");
         registry.setRouter("UniswapV2", UNISWAP_V2_ROUTER);
@@ -97,12 +97,7 @@ contract Protocol is Test {
 
         console.log("Deploying Core...");
         // Deploy Core
-        core = new Core(
-            address(streamDaemon),
-            address(executor),
-            address(registry),
-            100_000 // Initial gas estimate
-        );
+        core = new Core(address(streamDaemon), address(executor), address(registry));
         console.log("Core deployed");
 
         // Log deployment addresses

@@ -28,7 +28,6 @@ contract Deploys is Test {
         activeDexTypesRouters = helperConfig.getActiveDexTypesRouters();
         dexes = helperConfig.getActiveDexes();
         routers = helperConfig.getActiveRouters();
-        activeLastGasUsed = helperConfig.activeLastGasUsed();
 
         _deployExecutor();
         _deployStreamDaemon();
@@ -53,6 +52,6 @@ contract Deploys is Test {
 
     function _deployCore() internal {
         DeployCore deployCore = new DeployCore();
-        core = deployCore.createNewCore(address(streamDaemon), address(executor), address(registry), activeLastGasUsed);
+        core = deployCore.createNewCore(address(streamDaemon), address(executor), address(registry));
     }
 }
