@@ -74,7 +74,7 @@ export default function TradingSettings() {
       >
         <div
           className={cn(
-            'flex items-center gap-2 w-fit h-8 px-3 bg-white bg-opacity-[12%] rounded-[12px]',
+            'flex items-center gap-2 w-fit h-8 px-3 rounded-[12px] transition-all duration-300 ease-out',
             isOpen || isHovered
               ? 'bg-tabsGradient'
               : 'bg-white bg-opacity-[12%]'
