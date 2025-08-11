@@ -15,11 +15,11 @@ contract Registry is IRegistry, Ownable {
     // Immutable DEX-specific parameters
     uint24 public constant UNISWAP_V3_FEE = 3000; // 0.3%
     uint160 public constant SQRT_PRICE_LIMIT_X96 = 0;
-    
+
     // DEX type to router mapping
     mapping(string => address) public dexRouters;
-    
-    constructor() Ownable(msg.sender) {}
+
+    constructor() Ownable(msg.sender) { }
 
     /**
      * @notice Set router address for a DEX type
@@ -43,7 +43,12 @@ contract Registry is IRegistry, Ownable {
         uint256 amount,
         uint256 minOut,
         address recipient
-    ) external view override returns (TradeData memory) {
+    )
+        external
+        view
+        override
+        returns (TradeData memory)
+    {
         console.log("Registry: Preparing trade data for DEX at", dex);
         console.log("Registry: Input parameters:");
         console.log("  - Token in:", tokenIn);
@@ -51,12 +56,12 @@ contract Registry is IRegistry, Ownable {
         console.log("  - Amount:", amount);
         console.log("  - Min out:", minOut);
         console.log("  - Recipient:", recipient);
-        
+
         // Get DEX type from the fetcher
         IUniversalDexInterface fetcher = IUniversalDexInterface(dex);
         string memory dexType = fetcher.getDexType();
         console.log("Registry: Fetcher returned DEX type", dexType);
-        
+
         // Get router for this DEX type
         address router = dexRouters[dexType];
         console.log("Registry: Found router for DEX type", router);
@@ -90,7 +95,7 @@ contract Registry is IRegistry, Ownable {
         console.log("  - Router:", tradeData.router);
         console.log("  - Selector: 0x%x", uint32(tradeData.selector));
         console.log("  - Params length:", tradeData.params.length);
-        
+
         return tradeData;
     }
 
@@ -101,7 +106,11 @@ contract Registry is IRegistry, Ownable {
         uint256 minOut,
         address recipient,
         address router
-    ) internal pure returns (TradeData memory) {
+    )
+        internal
+        pure
+        returns (TradeData memory)
+    {
         console.log("Registry: Preparing UniswapV2 trade data");
         console.log("Registry: Token in:", tokenIn);
         console.log("Registry: Token out:", tokenOut);
@@ -121,11 +130,7 @@ contract Registry is IRegistry, Ownable {
         );
         console.log("Registry: Parameters encoded");
 
-        return TradeData({
-            selector: Executor.executeUniswapV2Trade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeUniswapV2Trade.selector, router: router, params: params });
     }
 
     function _prepareUniswapV3Trade(
@@ -135,7 +140,11 @@ contract Registry is IRegistry, Ownable {
         uint256 minOut,
         address recipient,
         address router
-    ) internal pure returns (TradeData memory) {
+    )
+        internal
+        pure
+        returns (TradeData memory)
+    {
         console.log("Registry: Preparing UniswapV3 trade data");
         console.log("Registry: Token in:", tokenIn);
         console.log("Registry: Token out:", tokenOut);
@@ -145,23 +154,11 @@ contract Registry is IRegistry, Ownable {
         console.log("Registry: Router:", router);
 
         // Encode all parameters into a single bytes value
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            amount,
-            minOut,
-            recipient,
-            UNISWAP_V3_FEE,
-            SQRT_PRICE_LIMIT_X96,
-            router
-        );
+        bytes memory params =
+            abi.encode(tokenIn, tokenOut, amount, minOut, recipient, UNISWAP_V3_FEE, SQRT_PRICE_LIMIT_X96, router);
         console.log("Registry: Parameters encoded");
 
-        return TradeData({
-            selector: Executor.executeUniswapV3Trade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeUniswapV3Trade.selector, router: router, params: params });
     }
 
     function _prepareBalancerTrade(
@@ -171,7 +168,11 @@ contract Registry is IRegistry, Ownable {
         uint256 minOut,
         address recipient,
         address router
-    ) internal pure returns (TradeData memory) {
+    )
+        internal
+        pure
+        returns (TradeData memory)
+    {
         console.log("Registry: Preparing Balancer trade data");
         console.log("Registry: Token in:", tokenIn);
         console.log("Registry: Token out:", tokenOut);
@@ -181,24 +182,12 @@ contract Registry is IRegistry, Ownable {
         console.log("Registry: Router:", router);
 
         bytes32 poolId = bytes32(0);
-        
+
         // Encode all parameters into a single bytes value
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            amount,
-            minOut,
-            recipient,
-            poolId,
-            router
-        );
+        bytes memory params = abi.encode(tokenIn, tokenOut, amount, minOut, recipient, poolId, router);
         console.log("Registry: Parameters encoded");
 
-        return TradeData({
-            selector: Executor.executeBalancerTrade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeBalancerTrade.selector, router: router, params: params });
     }
 
     function _prepareCurveTrade(
@@ -208,7 +197,11 @@ contract Registry is IRegistry, Ownable {
         uint256 minOut,
         address recipient,
         address router
-    ) internal pure returns (TradeData memory) {
+    )
+        internal
+        pure
+        returns (TradeData memory)
+    {
         console.log("Registry: Preparing Curve trade data");
         console.log("Registry: Token in:", tokenIn);
         console.log("Registry: Token out:", tokenOut);
@@ -220,24 +213,12 @@ contract Registry is IRegistry, Ownable {
         // For Curve we need to determine i and j indices
         int128 i = 0;
         int128 j = 1;
-        
+
         // Encode all parameters into a single bytes value
-        bytes memory params = abi.encode(
-            tokenIn,
-            i,
-            j,
-            amount,
-            minOut,
-            recipient,
-            router
-        );
+        bytes memory params = abi.encode(tokenIn, i, j, amount, minOut, recipient, router);
         console.log("Registry: Parameters encoded");
 
-        return TradeData({
-            selector: Executor.executeCurveTrade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeCurveTrade.selector, router: router, params: params });
     }
 
     function _prepareSushiswapTrade(
@@ -247,7 +228,11 @@ contract Registry is IRegistry, Ownable {
         uint256 minOut,
         address recipient,
         address router
-    ) internal pure returns (TradeData memory) {
+    )
+        internal
+        pure
+        returns (TradeData memory)
+    {
         console.log("Registry: Preparing Sushiswap trade data");
         console.log("Registry: Token in:", tokenIn);
         console.log("Registry: Token out:", tokenOut);
@@ -257,24 +242,13 @@ contract Registry is IRegistry, Ownable {
         console.log("Registry: Router:", router);
 
         // Sushiswap uses the same interface as UniswapV2
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            amount,
-            minOut,
-            recipient,
-            router
-        );
+        bytes memory params = abi.encode(tokenIn, tokenOut, amount, minOut, recipient, router);
         console.log("Registry: Parameters encoded");
 
-        return TradeData({
-            selector: Executor.executeUniswapV2Trade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeUniswapV2Trade.selector, router: router, params: params });
     }
 
     function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
-} 
+}

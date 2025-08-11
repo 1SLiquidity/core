@@ -8,10 +8,13 @@ import "./Executor.sol";
 import "./Utils.sol";
 import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "forge-std/console.sol";
 
 contract Core is Ownable /*, UUPSUpgradeable */ {
+    using SafeERC20 for IERC20;
+
     // @audit must be able to recieve and transfer tokens
     StreamDaemon public streamDaemon;
     Executor public executor;
@@ -40,11 +43,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 lastSweetSpot
     );
 
-    event TradeCancelled(
-        uint256 indexed tradeId,
-        uint256 amountRemaining,
-        uint256 realisedAmountOut
-    );
+    event TradeCancelled(uint256 indexed tradeId, uint256 amountRemaining, uint256 realisedAmountOut);
 
     event TradeSettled(
         uint256 indexed tradeId,
@@ -245,8 +244,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function _cancelTrade(uint256 tradeId) public returns (bool) {
-        // @audit It is essential that this authority may be granted by a bot, therefore meaning if the msg.sender is Core.
-        // @audit Similarly, when the Router is implemented, we mnust forward the msg.sender in the function call / veridy signed message
+        // @audit It is essential that this authority may be granted by a bot, therefore meaning if the msg.sender is
+        // Core.
+        // @audit Similarly, when the Router is implemented, we mnust forward the msg.sender in the function call /
+        // veridy signed message
         Utils.Trade memory trade = trades[tradeId];
         if (trade.owner == address(0)) {
             revert("Trade does not exist");
@@ -255,15 +256,11 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             bytes32 pairId = keccak256(abi.encode(trade.tokenIn, trade.tokenOut));
             delete trades[tradeId];
             _removeTradeIdFromArray(pairId, tradeId);
-            IERC20(trade.tokenOut).transfer(msg.sender, trade.realisedAmountOut);
-            IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
-            
-            emit TradeCancelled(
-                tradeId,
-                trade.amountRemaining,
-                trade.realisedAmountOut
-            );
-            
+            IERC20(trade.tokenOut).safeTransfer(msg.sender, trade.realisedAmountOut);
+            IERC20(trade.tokenIn).safeTransfer(msg.sender, trade.amountRemaining);
+
+            emit TradeCancelled(tradeId, trade.amountRemaining, trade.realisedAmountOut);
+
             return true;
         } else {
             revert("Only trade owner can cancel");
@@ -271,7 +268,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function executeTrades(bytes32 pairId) public {
-
         uint256[] storage tradeIds = pairIdTradeIds[pairId];
         uint256 botFeesAccrued = 0;
         address tokenOutForRun = address(0);
@@ -384,16 +380,11 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         console.log(targetAmountOut);
 
         IRegistry.TradeData memory tradeData = registry.prepareTradeData(
-            bestDex, 
-            trade.tokenIn,
-            trade.tokenOut,
-            streamVolume,
-            targetAmountOut,
-            address(this)
+            bestDex, trade.tokenIn, trade.tokenOut, streamVolume, targetAmountOut, address(this)
         );
         console.log("Core: Trade data prepared");
 
-        IERC20(trade.tokenIn).approve(tradeData.router, streamVolume);
+        IERC20(trade.tokenIn).forceApprove(tradeData.router, streamVolume);
         console.log("Core: Router approved");
 
         (bool success, bytes memory returnData) = address(executor).delegatecall(

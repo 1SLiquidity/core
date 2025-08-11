@@ -7,7 +7,7 @@ import "../../src/Utils.sol";
 contract UniswapV2TradePlacement is SingleDexProtocol {
     function setUp() public {
         UniswapV2Fetcher uniswapV2Fetcher = new UniswapV2Fetcher(UNISWAP_V2_FACTORY);
-        
+
         // set up protocol with only UniswapV2
         setUpSingleDex(address(uniswapV2Fetcher), UNISWAP_V2_ROUTER);
 
@@ -90,4 +90,4 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
         console.log("Updated Realised Amount Out:", trade.realisedAmountOut);
         console.log("Updated Last Sweet Spot:", trade.lastSweetSpot);
     }
-} 
+}

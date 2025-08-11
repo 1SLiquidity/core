@@ -201,7 +201,7 @@ contract TradePlacement is Protocol {
 
     function test_RevertWhen_InsufficientBalance() public {
         uint256 amountIn = formatTokenAmount(WETH, 1000); // Try to trade 1000 WETH
-        uint256 amountOutMin = formatTokenAmount(USDC, 1800000);
+        uint256 amountOutMin = formatTokenAmount(USDC, 1_800_000);
 
         approveToken(WETH, address(core), amountIn);
 

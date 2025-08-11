@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {Script, console} from "forge-std/Script.sol";
-import {StreamDaemon} from "../src/StreamDaemon.sol";
-import {Executor} from "../src/Executor.sol";
-import {IUniversalDexInterface} from "../src/interfaces/IUniversalDexInterface.sol";
-import {UniswapV2Fetcher} from "../src/adapters/UniswapV2Fetcher.sol";
-import {SushiswapFetcher} from "../src/adapters/SushiswapFetcher.sol";
-import {UniswapV3Fetcher} from "../src/adapters/UniswapV3Fetcher.sol";
+import { Script, console } from "forge-std/Script.sol";
+import { StreamDaemon } from "../src/StreamDaemon.sol";
+import { Executor } from "../src/Executor.sol";
+import { IUniversalDexInterface } from "../src/interfaces/IUniversalDexInterface.sol";
+import { UniswapV2Fetcher } from "../src/adapters/UniswapV2Fetcher.sol";
+import { SushiswapFetcher } from "../src/adapters/SushiswapFetcher.sol";
+import { UniswapV3Fetcher } from "../src/adapters/UniswapV3Fetcher.sol";
 
 // we are going to rewrite the full suite with a singular call to identify the area where
 
@@ -25,7 +25,7 @@ contract TestReservesScript is Script {
         uint24[] memory feeTiers = new uint24[](3);
         feeTiers[0] = 500; // 0.05%
         feeTiers[1] = 3000; // 0.3%
-        feeTiers[2] = 10000; // 1%
+        feeTiers[2] = 10_000; // 1%
         UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers[1]);
 
         address[][] memory tokenPairs = new address[][](1);
@@ -73,7 +73,7 @@ contract TestReservesScript is Script {
 
         // For a $10M pool, let's test with ~1% / $100,000
         // now testing ETH at $1500
-        uint256 testVolume = 2 * 33333333333333333333; // ~66 eth in 18 decimal
+        uint256 testVolume = 2 * 33_333_333_333_333_333_333; // ~66 eth in 18 decimal
 
         uint256 effectiveGasInDollars = 1; // $30 gas cost
 

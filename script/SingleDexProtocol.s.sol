@@ -47,7 +47,7 @@ contract SingleDexProtocol is Test {
         console.log("SingleDexProtocol: Starting setUp for single DEX...");
         console.log("SingleDexProtocol: Fetcher address:", _dexFetcher);
         console.log("SingleDexProtocol: Router address:", _dexRouter);
-        
+
         dexFetcher = _dexFetcher;
         dexRouter = _dexRouter;
 
@@ -98,7 +98,8 @@ contract SingleDexProtocol is Test {
         core = new Core(
             address(streamDaemon),
             address(executor),
-            address(registry)
+            address(registry),
+            100_000 // Initial gas estimate
         );
 
         vm.startPrank(WETH_WHALE);
@@ -128,4 +129,4 @@ contract SingleDexProtocol is Test {
     function approveToken(address token, address spender, uint256 amount) public {
         IERC20(token).approve(spender, amount);
     }
-} 
+}

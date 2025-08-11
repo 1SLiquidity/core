@@ -20,7 +20,10 @@ contract BalancerFetcher is IUniversalDexInterface {
         vault = _vault;
     }
 
-    function getReserves(address tokenA, address tokenB)
+    function getReserves(
+        address tokenA,
+        address tokenB
+    )
         external
         view
         override
@@ -56,7 +59,8 @@ contract BalancerFetcher is IUniversalDexInterface {
     //     revert("Not implemented");
     // }
 
-    // function getSwapData(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+    // function getSwapData(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address
+    // recipient)
     //     external
     //     view
     //     override

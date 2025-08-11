@@ -23,14 +23,16 @@ interface IUniswapV3Pool {
     function liquidity() external view returns (uint128);
     function token0() external view returns (address);
     function token1() external view returns (address);
-    
+
     function swap(
         address recipient,
         bool zeroForOne,
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    ) external returns (int256 amount0, int256 amount1);
+    )
+        external
+        returns (int256 amount0, int256 amount1);
 }
 
 /**
@@ -45,7 +47,10 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
         fee = _fee;
     }
 
-    function getReserves(address tokenA, address tokenB)
+    function getReserves(
+        address tokenA,
+        address tokenB
+    )
         external
         view
         override
@@ -76,7 +81,8 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
         // Use fixed point arithmetic to avoid overflow
         uint256 reserve0 = (uint256(liquidity) * 1e9) / sqrtPrice;
         uint256 reserve1 = (uint256(liquidity) * sqrtPrice) / 1e9;
-        // @audit this should rather getSingleFixQuote() from the contract in order to determine the depth within ticks, +/- 1%.
+        // @audit this should rather getSingleFixQuote() from the contract in order to determine the depth within ticks,
+        // +/- 1%.
         // for testing purposes it is satisfactory but for productoin this need correcting
 
         // Adjust for token decimals

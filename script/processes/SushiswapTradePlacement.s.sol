@@ -9,11 +9,11 @@ contract SushiswapTradePlacement is SingleDexProtocol {
         SushiswapFetcher sushiswapFetcher = new SushiswapFetcher(SUSHISWAP_FACTORY);
         setUpSingleDex(address(sushiswapFetcher), SUSHISWAP_ROUTER);
         vm.startPrank(WETH_WHALE);
-        IERC20(WETH).transfer(address(this), 100 * 1e18); 
+        IERC20(WETH).transfer(address(this), 100 * 1e18);
         vm.stopPrank();
 
         vm.startPrank(USDC_WHALE);
-        IERC20(USDC).transfer(address(this), 200_000 * 1e6); 
+        IERC20(USDC).transfer(address(this), 200_000 * 1e6);
         vm.stopPrank();
 
         IERC20(WETH).approve(address(core), type(uint256).max);
@@ -26,7 +26,7 @@ contract SushiswapTradePlacement is SingleDexProtocol {
 
     function testPlaceTradeWETHUSDC() public {
         console.log("Starting Sushiswap trade test");
-        
+
         uint256 amountIn = formatTokenAmount(WETH, 1);
         uint256 amountOutMin = formatTokenAmount(USDC, 1800);
 
@@ -87,4 +87,4 @@ contract SushiswapTradePlacement is SingleDexProtocol {
         console.log("Updated Realised Amount Out:", trade.realisedAmountOut);
         console.log("Updated Last Sweet Spot:", trade.lastSweetSpot);
     }
-} 
+}

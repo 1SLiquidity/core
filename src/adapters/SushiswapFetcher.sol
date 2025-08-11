@@ -30,7 +30,10 @@ contract SushiswapFetcher is IUniversalDexInterface {
      * @return reserveA Reserve of tokenA
      * @return reserveB Reserve of tokenB
      */
-    function getReserves(address tokenA, address tokenB)
+    function getReserves(
+        address tokenA,
+        address tokenB
+    )
         external
         view
         override

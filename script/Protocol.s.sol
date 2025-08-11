@@ -100,7 +100,8 @@ contract Protocol is Test {
         core = new Core(
             address(streamDaemon),
             address(executor),
-            address(registry)
+            address(registry),
+            100_000 // Initial gas estimate
         );
         console.log("Core deployed");
 
@@ -176,7 +177,7 @@ contract Protocol is Test {
         console.log("USDC Balance: %s", usdcBalance);
     }
 
-    function run() virtual external {
+    function run() external virtual {
         setUp();
         testSetup();
     }

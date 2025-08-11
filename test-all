@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Quick shortcut to run all tests and export to JSON
+# Usage: ./test-all [output-file]
+
+OUTPUT_FILE=${1:-"test-results-$(date +%Y%m%d_%H%M%S).json"}
+
+echo "🧪 Running all trade tests..."
+echo "📁 Output: $OUTPUT_FILE"
+
+forge test --match-test "test_PlaceTradeWith" -vv 2>&1 | ./scripts/extract-json-logs.sh - "$OUTPUT_FILE"
+
+echo ""
+echo "✅ All tests completed!"
+echo "📊 Results saved to: $OUTPUT_FILE"
+
+# Display quick summary if jq is available
+if command -v jq &> /dev/null; then
+    echo ""
+    echo "📈 Quick Summary:"
+    jq -r '.testResults[] | "\(.baseToken): \(.successCount)/\(.totalTests) success (\((.successCount/.totalTests*100)|floor)%)"' "$OUTPUT_FILE"
+fi
