@@ -1,9 +1,4 @@
 [profile.default]
-remappings = [
-    "@openzeppelin=node_modules/@openzeppelin",
-    "forge-std=node_modules/forge-std/src",
-    "@uniswap/v3-periphery=node_modules/@uniswap/v3-periphery",
-]
 src = "src"
 out = "out"
 libs = ["lib", "node_modules"]
@@ -44,6 +39,6 @@ polygon = { key = "${API_KEY_POLYGONSCAN}" }
 base = { key = "${API_KEY_BASESCAN}" }
 
 [rpc_endpoints]
-mainnet = "https://eth-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
-polygon = "https://polygon-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
-base = "https://base-mainnet.g.alchemy.com/v2/${API_KEY_ALCHEMY}"
+mainnet = "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}"
+polygon = "https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}"
+base = "https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}"
