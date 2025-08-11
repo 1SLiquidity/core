@@ -73,12 +73,11 @@ export default function TradingSettings() {
         className="group cursor-pointer"
       >
         <div
-          className={cn(
-            'flex items-center gap-2 w-fit h-8 px-3 rounded-[12px] transition-all duration-300 ease-out',
+          className={`flex items-center gap-2 w-fit h-8 px-3 rounded-[12px] transition-all duration-300 ease-out ${
             isOpen || isHovered
               ? 'bg-tabsGradient'
               : 'bg-white bg-opacity-[12%]'
-          )}
+          }`}
         >
           <span
             className={cn(
