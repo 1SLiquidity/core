@@ -10,10 +10,13 @@ import "../src/adapters/UniswapV3Fetcher.sol";
 import "../src/adapters/SushiswapFetcher.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../src/Registry.sol";
 
 contract Protocol is Test {
+    using SafeERC20 for IERC20;
     // Core protocol contracts
+
     Core public core;
     StreamDaemon public streamDaemon;
     Executor public executor;
@@ -151,7 +154,7 @@ contract Protocol is Test {
 
     // Helper function to approve token spending
     function approveToken(address token, address spender, uint256 amount) public {
-        IERC20(token).approve(spender, amount);
+        IERC20(token).forceApprove(spender, amount);
     }
 
     // Basic test to verify setup
