@@ -79,7 +79,7 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
 
         // Calculate virtual reserves
         // Use fixed point arithmetic to avoid overflow
-        uint256 reserve0 = (uint256(liquidity) * 1e9) / sqrtPrice;
+        uint256 reserve0 = (uint256(liquidity) * 1e9) / sqrtPrice; // ! WARNING if sqrtPrice is 0, this will revert
         uint256 reserve1 = (uint256(liquidity) * sqrtPrice) / 1e9;
         // @audit this should rather getSingleFixQuote() from the contract in order to determine the depth within ticks,
         // +/- 1%.
