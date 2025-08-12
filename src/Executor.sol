@@ -20,21 +20,17 @@ contract Executor {
 
     function executeUniswapV2Trade(
         bytes memory params // @audit consider adding validation for params length
-    ) external returns (uint256) {
-        
+    )
+        external
+        returns (uint256)
+    {
         // Decode all parameters
-        (
-            address tokenIn,
-            address tokenOut,
-            uint256 amountIn,
-            uint256 amountOutMin,
-            address recipient,
-            address router
-        ) = abi.decode(params, (address, address, uint256, uint256, address, address));
-        
+        (address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient, address router) =
+            abi.decode(params, (address, address, uint256, uint256, address, address));
+
         if (amountIn == 0) revert ZeroAmount();
-        
-        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+
+        IERC20(tokenIn).forceApprove(router, amountIn);
 
         address[] memory path = new address[](2);
         path[0] = tokenIn;
@@ -56,8 +52,10 @@ contract Executor {
 
     function executeUniswapV3Trade(
         bytes memory params // @audit consider adding validation for params length
-    ) external returns (uint256) {
-        
+    )
+        external
+        returns (uint256)
+    {
         // Decode all parameters
         (
             address tokenIn,
@@ -68,14 +66,11 @@ contract Executor {
             uint24 fee,
             uint160 sqrtPriceLimitX96,
             address router
-        ) = abi.decode(
-            params,
-            (address, address, uint256, uint256, address, uint24, uint160, address)
-        );
+        ) = abi.decode(params, (address, address, uint256, uint256, address, uint24, uint160, address));
 
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        IERC20(tokenIn).forceApprove(router, amountIn);
 
         IUniswapV3Router.ExactInputSingleParams memory swapParams = IUniswapV3Router.ExactInputSingleParams({
             tokenIn: tokenIn,
@@ -86,10 +81,10 @@ contract Executor {
             amountIn: amountIn,
             amountOutMinimum: amountOutMin, // @audit consider minimum slippage threshold
             sqrtPriceLimitX96: sqrtPriceLimitX96 // @audit document impact of this parameter
-        });
+         });
 
         uint256 amountOut = IUniswapV3Router(router).exactInputSingle(swapParams);
-        
+
         // @audit consider additional validation on amountOut
         emit TradeExecuted(tokenIn, tokenOut, amountIn, amountOut); // @audit consider adding more event data
             // (recipient, fee)
@@ -98,8 +93,10 @@ contract Executor {
 
     function executeBalancerTrade(
         bytes memory params // @audit consider adding validation for params length
-    ) external returns (uint256) {
-        
+    )
+        external
+        returns (uint256)
+    {
         // Decode all parameters
         (
             address tokenIn,
@@ -110,10 +107,10 @@ contract Executor {
             bytes32 poolId,
             address router
         ) = abi.decode(params, (address, address, uint256, uint256, address, bytes32, address));
-        
+
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        IERC20(tokenIn).forceApprove(router, amountIn);
 
         IBalancerVault.SingleSwap memory singleSwap = IBalancerVault.SingleSwap({
             poolId: poolId,
@@ -131,8 +128,9 @@ contract Executor {
             toInternalBalance: false
         });
 
-        IBalancerVault(router).swap(singleSwap, funds, amountOutMin, block.timestamp + 300); // @audit standardize deadline
-        
+        IBalancerVault(router).swap(singleSwap, funds, amountOutMin, block.timestamp + 300); // @audit standardize
+            // deadline
+
         uint256 amountOut = IERC20(tokenOut).balanceOf(address(this));
 
         // @audit consider additional validation on amountOut
@@ -142,8 +140,10 @@ contract Executor {
 
     function executeCurveTrade(
         bytes memory params // @audit consider adding validation for params length
-    ) external returns (uint256) {
-        
+    )
+        external
+        returns (uint256)
+    {
         // Decode all parameters
         (
             address pool,
@@ -154,10 +154,10 @@ contract Executor {
             address recipient, // @audit verify recipient is not zero address
             address router
         ) = abi.decode(params, (address, int128, int128, uint256, uint256, address, address));
-        
+
         if (amountIn == 0) revert ZeroAmount();
 
-        IERC20(pool).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        IERC20(pool).forceApprove(router, amountIn);
 
         ICurvePool(router).exchange(i, j, amountIn, amountOutMin); // @audit consider adding deadline parameter
 
