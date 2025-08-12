@@ -20,3 +20,11 @@ out/
 /broadcast
 
 notes.txt
+
+DEPLOYMENT.md
+
+deployment.env.example
+
+DeployMainnet.s.sol
+
+AddPancakeSwap.s.sol
