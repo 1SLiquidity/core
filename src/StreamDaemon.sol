@@ -142,13 +142,9 @@ contract StreamDaemon is Ownable {
         uint256 scaledReserveOut = reserveOut / (10 ** decimalsOut);
 
         sweetSpot = _sweetSpotAlgo_v1(scaledVolume, scaledReserveIn, scaledReserveOut);
-        console.log("calculated sweetSpot", sweetSpot);
 
         if (scaledReserveIn > scaledReserveOut && sweetSpot > 500) {
             sweetSpot = _sweetSpotAlgo_v2(scaledVolume, scaledReserveIn);
-            console.log("sweetSpot_v2", sweetSpot);
-            console.log("calculated max % of reserveIn", 500 * 100_000 / sqrt(scaledReserveIn));
-            console.log("calculated current % of reserveIn", scaledVolume * 100_000 / scaledReserveIn);
         }
 
         if (sweetSpot == 0) {
@@ -168,53 +164,18 @@ contract StreamDaemon is Ownable {
         uint256 scaledReserveOut
     )
         public
-        view
+        pure
         returns (uint256 sweetSpot)
     {
-        uint256 gStart = gasleft();
-
         uint256 alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
         sweetSpot = sqrt((alpha * scaledVolume * scaledVolume) / 1e24);
-
-        uint256 gUsed = gStart - gasleft();
-        console.log("_sweetSpotAlgo_v1 gas used:", gUsed);
     }
 
-    function _sweetSpotAlgo_v2(uint256 scaledVolume, uint256 scaledReserveIn) public view returns (uint256 sweetSpot) {
-        //         - ReserveIn = 1 000
-        //   • √Rin ≃ 31,6 ⇒ p_threshold ≃ 500/31,6 ≃ 15,8 (fraction)
-        //   • soit ≃ 1 580 % de ReserveIn
-        //   → **Impossible** de dépasser, on ne peut pas injecter plus de 100 %.
-
-        // - ReserveIn = 250 000
-        //   • √Rin = 500   ⇒ p_threshold = 500/500 = 1,0
-        //   • soit **100 %** de ReserveIn
-        //   → il faut injecter 100 % de la réserve pour que la 2ᵉ formule atteigne 500.
-
-        // - ReserveIn = 1 000 000
-        //   • √Rin = 1 000 ⇒ p_threshold = 500/1 000 = 0,50
-        //   • soit **50 %** de ReserveIn
-        //   → injection ≥ 50 % → sweetSpot_new > 500.
-
-        // - ReserveIn = 10 000 000
-        //   • √Rin = 3 162 ⇒ p_threshold ≃ 500/3 162 ≃ 0,158
-        //   • soit **15,8 %** de ReserveIn
-        //   → injection ≥ 15,8 % → sweetSpot_new > 500.
-
-        // !p_threshold = 500 / √(ReserveIn)
-        // !
-        uint256 gStart = gasleft();
-
+    function _sweetSpotAlgo_v2(uint256 scaledVolume, uint256 scaledReserveIn) public pure returns (uint256 sweetSpot) {
         sweetSpot = (scaledVolume) / sqrt(scaledReserveIn);
-
-        uint256 gUsed = gStart - gasleft();
-        console.log("_sweetSpotAlgo_v2 gas used:", gUsed);
     }
 
-    // babylonian
-    function sqrt(uint256 y) internal view returns (uint256 z) {
-        uint256 gStart = gasleft();
-
+    function sqrt(uint256 y) internal pure returns (uint256 z) {
         if (y > 3) {
             z = y;
             uint256 x = y / 2 + 1;
@@ -225,11 +186,5 @@ contract StreamDaemon is Ownable {
         } else if (y != 0) {
             z = 1;
         }
-
-        uint256 gUsed = gStart - gasleft();
-        console.log("sqrt gas used:", gUsed);
     }
-
-    // math for min vol
-    // Vmin_scaled = min(Rin, Rout) / √( max(Rin, Rout) )
 }
