@@ -54,12 +54,10 @@ contract StreamDaemon is Ownable {
         view
         returns (uint256 sweetSpot, address bestFetcher, address router)
     {
-        console.log("evaluating sweet spot and dex");
         (address identifiedFetcher, uint256 maxReserveIn, uint256 maxReserveOut) =
             findHighestReservesForTokenPair(tokenIn, tokenOut);
         bestFetcher = identifiedFetcher;
         router = dexToRouters[bestFetcher];
-        console.log("bestFetcher", bestFetcher);
 
         // Ensure effective gas is at least the minimum
         if (effectiveGas < MIN_EFFECTIVE_GAS_DOLLARS) {
@@ -123,23 +121,14 @@ contract StreamDaemon is Ownable {
         if (reserveIn == 0 || reserveOut == 0 || effectiveGas == 0) {
             revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
         }
-        console.log("Start |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||");
-        console.log("reserveOut", reserveOut);
-        console.log("effectiveGas", effectiveGas);
-        console.log("volume", volume);
 
         uint8 decimalsIn = IERC20Metadata(tokenIn).decimals();
-        console.log("decimalsIn", decimalsIn);
         uint8 decimalsOut = IERC20Metadata(tokenOut).decimals();
-        console.log("decimalsOut", decimalsOut);
 
         // scale tokens to decimal zero
         uint256 scaledVolume = volume / (10 ** decimalsIn);
-        console.log("scaledVolume", scaledVolume);
         uint256 scaledReserveIn = reserveIn / (10 ** decimalsIn);
-        console.log("scaledReserveIn", scaledReserveIn);
         uint256 scaledReserveOut = reserveOut / (10 ** decimalsOut);
-        console.log("scaledReserveOut", scaledReserveOut);
 
         uint256 alpha;
 
@@ -149,18 +138,13 @@ contract StreamDaemon is Ownable {
             alpha = computeAlpha(scaledReserveOut, scaledReserveIn);
         }
 
-        console.log("alpha", alpha);
-
         // N = sqrt(alpha * V^2)
         uint256 numerator = alpha * scaledVolume * scaledVolume;
-        console.log("numerator", numerator);
         uint256 denominator = 1e24;
-        console.log("denominator", denominator);
 
         require(denominator > 0, "Invalid effective gas");
 
         sweetSpot = sqrt(numerator / denominator);
-        console.log("calculated sweetSpot", sweetSpot);
 
         if (sweetSpot == 0) {
             sweetSpot = 4;

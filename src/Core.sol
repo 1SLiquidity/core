@@ -9,7 +9,7 @@ import "./Utils.sol";
 import "./interfaces/IRegistry.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "forge-std/console.sol";
+// import "forge-std/console.sol";
 
 contract Core is Ownable /*, UUPSUpgradeable */ {
     // @audit must be able to recieve and transfer tokens
@@ -204,7 +204,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         });
 
         pairIdTradeIds[pairId].push(tradeId);
-        console.log("trade created in memory");
 
         emit TradeCreated(
             tradeId,
@@ -279,26 +278,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         for (uint256 i = 0; i < tradeIds.length; i++) {
             Utils.Trade storage trade = trades[tradeIds[i]];
 
-            console.log("[executeTrades] TradeId:");
-            console.log(trade.tradeId);
-            console.log("attempts:");
-            console.log(trade.attempts);
-            console.log("amountRemaining:");
-            console.log(trade.amountRemaining);
-            console.log("lastSweetSpot:");
-            console.log(trade.lastSweetSpot);
-
             if (trade.attempts >= 3) {
-                console.log("Core: executeTrades: trade attempts > 3");
                 // we delete the trade from storage
                 _cancelTrade(trade.tradeId);
             } else {
                 uint256 realisedBefore = trade.realisedAmountOut;
                 try this._executeStream(trade) returns (Utils.Trade memory updatedTrade) {
-                    console.log("[executeTrades] After _executeStream: amountRemaining:");
-                    console.log(updatedTrade.amountRemaining);
-                    console.log("lastSweetSpot:");
-                    console.log(updatedTrade.lastSweetSpot);
                     uint256 delta = updatedTrade.realisedAmountOut - realisedBefore;
                     if (delta > 0) {
                         if (tokenOutForRun == address(0)) tokenOutForRun = updatedTrade.tokenOut;
@@ -307,19 +292,13 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                         botFeesAccrued += botFee;
                     }
                     if (updatedTrade.lastSweetSpot == 0) {
-                        console.log("Core: executeTrades: lastSweetSpot == 0");
                         IERC20(trade.tokenOut).transfer(trade.owner, trade.realisedAmountOut);
                         delete trades[tradeIds[i]];
                         _removeTradeIdFromArray(pairId, tradeIds[i]);
-                        console.log("[executeTrades] : trade completed");
                     }
                 } catch Error(string memory reason) {
-                    console.log("[executeTrades] Error:");
-                    console.log(reason);
                     trade.attempts++;
                 } catch (bytes memory lowLevelData) {
-                    console.log("[executeTrades] trade failed");
-                    console.log(string(lowLevelData));
                     trade.attempts++;
                 }
             }
@@ -333,39 +312,27 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function _executeStream(Utils.Trade memory trade) public returns (Utils.Trade memory updatedTrade) {
-        console.log("Executing stream for trade");
-        console.log(trade.tradeId);
         
         Utils.Trade storage storageTrade = trades[trade.tradeId];
         
         // security measure @audit may need review
         // if (trade.realisedAmountOut > trade.targetAmountOut) {
-        //     console.log("[_executeStream] ToxicTrade: realisedAmountOut > targetAmountOut");
         //     revert ToxicTrade(trade.tradeId);
         // }
 
         (uint256 sweetSpot, address bestDex, address router) = 
             streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, 0);
-        console.log("[_executeStream] algo calculated sweetSpot:");
-        console.log(sweetSpot);
-        console.log("execute stream: last sweet spot = ");
-        console.log(trade.lastSweetSpot);
-        console.log("evaluating conditions");
 
         if (trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3 || trade.lastSweetSpot == 4) {
-        console.log("low sweet spot condition being looked at");
             
             sweetSpot = trade.lastSweetSpot;
 
         }
-        console.log("low sweet spot condition evaluated");
 
         if (sweetSpot > 500) {
-        console.log("high sweet spot condition being looked at");
 
             sweetSpot = 500; // this is an arbitrary value @audit needs revision
         }
-        console.log("high sweet spot condition evaluated");
 
         require(sweetSpot > 0, "Invalid sweet spot");
         uint256 targetAmountOut;
@@ -378,10 +345,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         sweetSpot = 1;
         streamVolume = trade.amountRemaining;
         }
-        console.log("[_executeStream] streamVolume:");
-        console.log(streamVolume);
-        console.log("targetAmountOut:");
-        console.log(targetAmountOut);
 
         IRegistry.TradeData memory tradeData = registry.prepareTradeData(
             bestDex, 
@@ -391,10 +354,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             targetAmountOut,
             address(this)
         );
-        console.log("Core: Trade data prepared");
 
         IERC20(trade.tokenIn).approve(tradeData.router, streamVolume);
-        console.log("Core: Router approved");
 
         (bool success, bytes memory returnData) = address(executor).delegatecall(
             abi.encodeWithSelector(
@@ -402,10 +363,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                 tradeData.params  
             )
         );
-        console.log("Core: Delegatecall success:");
-        console.log(success);
         if (!success) {
-            console.log("[_executeStream] Delegatecall failed");
             revert("DEX trade failed");
         }
         uint256 amountOut = abi.decode(returnData, (uint256));
@@ -419,14 +377,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         storageTrade.realisedAmountOut += amountOut;
         storageTrade.lastSweetSpot = sweetSpot;
 
-        console.log("[_executeStream] Post-update: amountRemaining:");
-        console.log(storageTrade.amountRemaining);
-        console.log("realisedAmountOut:");
-        console.log(storageTrade.realisedAmountOut);
-        console.log("Execute Trades: sweet spot decrimented. Value is: ");
-        console.log(storageTrade.lastSweetSpot);
-        console.log("EXECUTE TRADES: ONE STREAM EXECUTED");
-
         emit TradeStreamExecuted(
             trade.tradeId,
             streamVolume,
@@ -438,15 +388,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
     }
 
     function instasettle(uint256 tradeId) external {
-        console.log("Instasettle: %s", tradeId);
         Utils.Trade memory trade = trades[tradeId];
         require(trade.owner != address(0), "Trade not found");
         require(trade.isInstasettlable, "Trade not instasettlable");
-        console.log("Trade is instasettlable");
 
         // If lastSweetSpot == 1, just settle the amountRemaining
         if (trade.lastSweetSpot == 1) {
-            console.log("Instasettle: lastSweetSpot == 1");
             delete trades[tradeId];
             bool statusIn1 = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, trade.realisedAmountOut);
             require(statusIn1, "Instasettle: Failed to transfer tokens to trade owner");
@@ -461,7 +408,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             );
             return;
         }
-        console.log("Instasettle: lastSweetSpot != 1");
 
         // Calculate remaining amount that needs to be settled
         uint256 remainingAmountOut = trade.targetAmountOut - trade.realisedAmountOut;
@@ -470,7 +416,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // Calculate how much the settler should pay
         // targetAmountOut - (realisedAmountOut * (1 - instasettleBps/10000))
         uint256 settlerPayment = ((trade.targetAmountOut - trade.realisedAmountOut) * (10000 - trade.instasettleBps)) / 10000;
-        console.log("Instasettle: settlerPayment: %s", settlerPayment);
 
         // Take protocol fee from settler on instasettle
         uint256 protocolFee = _computeFee(settlerPayment, instasettleProtocolFeeBps);
@@ -484,10 +429,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         delete trades[tradeId];
         bool statusIn = IERC20(trade.tokenOut).transferFrom(msg.sender, trade.owner, settlerPayment);
         require(statusIn, "Instasettle: Failed to transfer tokens to trade owner");
-        console.log("Instasettle: statusIn: %s", statusIn);
         bool statusOut = IERC20(trade.tokenIn).transfer(msg.sender, trade.amountRemaining);
         require(statusOut, "Instasettle: Failed to transfer tokens to settler");
-        console.log("Instasettle: statusOut: %s", statusOut);
         emit TradeSettled(
             trade.tradeId,
             msg.sender,
@@ -495,7 +438,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             settlerPayment,
             remainingAmountOut - settlerPayment // totalFees is the difference (logical fee notion)
         );
-        console.log("Instasettle: TradeSettle Event Emitted");
     }
 
     function getPairIdTradeIds(bytes32 pairId) external view returns (uint256[] memory) {
