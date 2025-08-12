@@ -5,6 +5,7 @@ import { Fork_Test } from "test/fork/Fork.t.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Config } from "../../config/Config.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IUniversalDexInterface } from "src/interfaces/IUniversalDexInterface.sol";
 
 import "forge-std/console.sol";
 
@@ -127,8 +128,7 @@ contract CoreForkTest is Fork_Test {
         string memory tokenSymbol,
         address[] memory pairAddresses,
         address baseToken,
-        address whaleAddress,
-        uint256 amountIn
+        address whaleAddress
     )
         internal
     {
@@ -151,6 +151,9 @@ contract CoreForkTest is Fork_Test {
             console.log("Testing token", i, ":", tokenName);
 
             if (tokenAddress != address(0)) {
+                uint256 amountIn = getAggreateTokenInAmount(baseToken, tokenAddress);
+                console.log("Amount in for token", tokenSymbol, ":", amountIn);
+
                 bytes memory tradeData = abi.encode(baseToken, tokenAddress, amountIn, 0, false, 0.0005 ether);
                 vm.startPrank(whaleAddress);
                 SafeERC20.forceApprove(IERC20(baseToken), address(core), amountIn);
@@ -370,26 +373,22 @@ contract CoreForkTest is Fork_Test {
 
     function test_PlaceTradeWithUSDCTokens() public {
         address usdc = getTokenByName("usdc");
-        uint256 amountIn = formatTokenAmount(usdc, 10);
-        _testTradesForToken("USDC", usdcPairAddresses, usdc, USDC_WHALE, amountIn);
+        _testTradesForToken("USDC", usdcPairAddresses, usdc, USDC_WHALE);
     }
 
     function test_PlaceTradeWithUSDTTokens() public {
         address usdt = getTokenByName("usdt");
-        uint256 amountIn = formatTokenAmount(usdt, 100);
-        _testTradesForToken("USDT", usdtPairAddresses, usdt, USDT_WHALE, amountIn);
+        _testTradesForToken("USDT", usdtPairAddresses, usdt, USDT_WHALE);
     }
 
     function test_PlaceTradeWithWETHTokens() public {
         address weth = getTokenByName("weth");
-        uint256 amountIn = formatTokenAmount(weth, 1);
-        _testTradesForToken("WETH", wethPairAddresses, weth, WETH_WHALE, amountIn);
+        _testTradesForToken("WETH", wethPairAddresses, weth, WETH_WHALE);
     }
 
     function test_PlaceTradeWithWBTCTokens() public {
         address wbtc = getTokenByName("wbtc");
-        uint256 amountIn = 1 * 10 ** 5; // 0.001 BTC =
-        _testTradesForToken("WBTC", wbtcPairAddresses, wbtc, WBTC_WHALE, amountIn);
+        _testTradesForToken("WBTC", wbtcPairAddresses, wbtc, WBTC_WHALE);
     }
 
     /**
@@ -443,7 +442,7 @@ contract CoreForkTest is Fork_Test {
     /**
      * @dev Get the appropriate whale address for a token
      */
-    function _getWhaleForToken(string memory tokenName) internal view returns (address) {
+    function _getWhaleForToken(string memory tokenName) internal pure returns (address) {
         if (_compareStrings(tokenName, "usdc")) return USDC_WHALE;
         if (_compareStrings(tokenName, "usdt")) return USDT_WHALE;
         if (_compareStrings(tokenName, "weth")) return WETH_WHALE;
@@ -458,6 +457,28 @@ contract CoreForkTest is Fork_Test {
      */
     function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
+    }
+
+    function getAggreateTokenInAmount(
+        address tokenIn,
+        address tokenOut
+    )
+        public
+        view
+        returns (uint256 aggregateTokenInAmount)
+    {
+        for (uint256 i = 0; i < dexes.length; i++) {
+            IUniversalDexInterface fetcher = IUniversalDexInterface(dexes[i]);
+            try fetcher.getReserves(tokenIn, tokenOut) returns (uint256 reserveTokenIn, uint256) {
+                aggregateTokenInAmount += reserveTokenIn;
+            } catch Error(string memory reason) {
+                console.log("Error:", reason);
+                continue;
+            } catch Panic(uint256 errorCode) {
+                console.log("Panic error code:", errorCode);
+                continue;
+            }
+        }
     }
 }
 
