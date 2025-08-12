@@ -4,15 +4,18 @@ pragma solidity ^0.8.13;
 import "forge-std/Test.sol";
 import "../Protocol.s.sol";
 import "../../src/Utils.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract TradePlacement is Protocol {
+    using SafeERC20 for IERC20;
+
     function setUp() public virtual override {
         console.log("TradePlacement: setUp() start");
         super.setUp();
         console.log("TradePlacement: setUp() end");
     }
 
-    function run() virtual override external {
+    function run() external virtual override {
         console.log("TradePlacement: run() start");
         testPlaceTradeWETHUSDC();
         test_RevertWhen_InsufficientAllowance();
@@ -22,19 +25,13 @@ contract TradePlacement is Protocol {
 
     function testPlaceTradeWETHUSDC() public {
         console.log("TradePlacement: testPlaceTradeWETHUSDC() start");
-        
+
         uint256 amountIn = formatTokenAmount(WETH, 1);
         uint256 amountOutMin = formatTokenAmount(USDC, 1800);
 
         approveToken(WETH, address(core), amountIn);
 
-        bytes memory tradeData = abi.encode(
-            WETH,
-            USDC,
-            amountIn,
-            amountOutMin,
-            false
-        );
+        bytes memory tradeData = abi.encode(WETH, USDC, amountIn, amountOutMin, false);
 
         core.placeTrade(tradeData);
 
@@ -50,7 +47,9 @@ contract TradePlacement is Protocol {
         assertEq(trade.tokenIn, WETH, "Token in should be WETH");
         assertEq(trade.tokenOut, USDC, "Token out should be USDC");
         assertEq(trade.amountIn, amountIn, "Amount in should match");
-        assertTrue(trade.amountRemaining < amountIn, "Amount remaining should be less than amount in after initial execution");
+        assertTrue(
+            trade.amountRemaining < amountIn, "Amount remaining should be less than amount in after initial execution"
+        );
         assertEq(trade.targetAmountOut, amountOutMin, "Target amount out should match");
         assertTrue(trade.realisedAmountOut > 0, "Realised amount out should be greater than 0 after initial execution");
         assertEq(trade.attempts, 1, "Attempts should be 1 initially");
@@ -82,7 +81,7 @@ contract TradePlacement is Protocol {
         console.log("Updated Amount Remaining:", trade.amountRemaining);
         console.log("Updated Realised Amount Out:", trade.realisedAmountOut);
         console.log("Updated Last Sweet Spot:", trade.lastSweetSpot);
-        
+
         console.log("TradePlacement: testPlaceTradeWETHUSDC() end");
     }
 
@@ -98,12 +97,11 @@ contract TradePlacement is Protocol {
 
         // Approve Core to spend WETH
         uint256 allowanceBefore = IERC20(WETH).allowance(address(this), address(core));
-        
+
         approveToken(WETH, address(core), amountIn);
-        
+
         uint256 allowanceAfter = IERC20(WETH).allowance(address(this), address(core));
         allowanceAfter;
-
 
         // Record initial balances
         uint256 initialWethBalance = getTokenBalance(WETH, address(core));
@@ -169,9 +167,11 @@ contract TradePlacement is Protocol {
         // uint256 finalWethBalance = getTokenBalance(WETH, address(core));
         // uint256 finalUsdcBalance = getTokenBalance(USDC, address(core));
 
-        // assertEq(finalWethBalance - initialWethBalance, amountIn * 3 / 4, "WETH balance not decreased correctly"); // we know sweet spot comes out at 4 for this tx
+        // assertEq(finalWethBalance - initialWethBalance, amountIn * 3 / 4, "WETH balance not decreased correctly"); //
+        // we know sweet spot comes out at 4 for this tx
         // assertEq(
-        //     initialUsdcBalance + realisedAmountOut, finalUsdcBalance, "USDC balance should increase by realised amount"
+        //     initialUsdcBalance + realisedAmountOut, finalUsdcBalance, "USDC balance should increase by realised
+        // amount"
         // );
 
         // // Verify trade execution metrics
@@ -201,7 +201,7 @@ contract TradePlacement is Protocol {
 
     function test_RevertWhen_InsufficientBalance() public {
         uint256 amountIn = formatTokenAmount(WETH, 1000); // Try to trade 1000 WETH
-        uint256 amountOutMin = formatTokenAmount(USDC, 1800000);
+        uint256 amountOutMin = formatTokenAmount(USDC, 1_800_000);
 
         approveToken(WETH, address(core), amountIn);
 

@@ -72,5 +72,10 @@
   "bugs": {
     "url": "https://github.com/1SLiquidity/core/issues"
   },
-  "homepage": "https://github.com/1SLiquidity/core#readme"
+  "homepage": "https://github.com/1SLiquidity/core#readme",
+  "devDependencies": {
+    "@openzeppelin/contracts": "^5.3.0",
+    "@uniswap/v3-periphery": "^1.4.4",
+    "forge-std": "github:foundry-rs/forge-std"
+  }
 }

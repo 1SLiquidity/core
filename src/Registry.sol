@@ -15,7 +15,7 @@ contract Registry is IRegistry, Ownable {
     // Immutable DEX-specific parameters
     uint24 public constant UNISWAP_V3_FEE = 3000; // 0.3%
     uint160 public constant SQRT_PRICE_LIMIT_X96 = 0;
-    
+
     // DEX type to router mapping
     mapping(string => address) public dexRouters;
     
@@ -236,11 +236,7 @@ contract Registry is IRegistry, Ownable {
             router
         );
 
-        return TradeData({
-            selector: Executor.executeUniswapV2Trade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeUniswapV2Trade.selector, router: router, params: params });
     }
 
     function _prepareUniswapV3Trade(
@@ -264,11 +260,7 @@ contract Registry is IRegistry, Ownable {
             router
         );
 
-        return TradeData({
-            selector: Executor.executeUniswapV3Trade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeUniswapV3Trade.selector, router: router, params: params });
     }
 
     function _prepareBalancerTrade(
@@ -281,7 +273,7 @@ contract Registry is IRegistry, Ownable {
     ) internal pure returns (TradeData memory) {
 
         bytes32 poolId = bytes32(0);
-        
+
         // Encode all parameters into a single bytes value
         bytes memory params = abi.encode(
             tokenIn,
@@ -293,11 +285,7 @@ contract Registry is IRegistry, Ownable {
             router
         );
 
-        return TradeData({
-            selector: Executor.executeBalancerTrade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeBalancerTrade.selector, router: router, params: params });
     }
 
     function _prepareCurveTrade(
@@ -312,7 +300,7 @@ contract Registry is IRegistry, Ownable {
         // For Curve we need to determine i and j indices
         int128 i = 0;
         int128 j = 1;
-        
+
         // Encode all parameters into a single bytes value
         bytes memory params = abi.encode(
             tokenIn,
@@ -324,11 +312,7 @@ contract Registry is IRegistry, Ownable {
             router
         );
 
-        return TradeData({
-            selector: Executor.executeCurveTrade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeCurveTrade.selector, router: router, params: params });
     }
 
     function _prepareSushiswapTrade(
@@ -376,14 +360,10 @@ contract Registry is IRegistry, Ownable {
             router
         );
 
-        return TradeData({
-            selector: Executor.executeUniswapV2Trade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({ selector: Executor.executeUniswapV2Trade.selector, router: router, params: params });
     }
 
     function _compareStrings(string memory a, string memory b) internal pure returns (bool) {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
-} 
+}

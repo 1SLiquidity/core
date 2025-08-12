@@ -20,7 +20,10 @@ contract UniswapV2Fetcher is IUniversalDexInterface {
         factory = _factory;
     }
 
-    function getReserves(address tokenA, address tokenB)
+    function getReserves(
+        address tokenA,
+        address tokenB
+    )
         external
         view
         override

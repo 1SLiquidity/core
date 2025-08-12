@@ -10,9 +10,12 @@ import "../src/adapters/UniswapV2Fetcher.sol";
 import "../src/adapters/SushiswapFetcher.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract SingleDexProtocol is Test {
+    using SafeERC20 for IERC20;
     // Core protocol contracts
+
     Core public core;
     StreamDaemon public streamDaemon;
     Executor public executor;
@@ -47,7 +50,7 @@ contract SingleDexProtocol is Test {
         console.log("SingleDexProtocol: Starting setUp for single DEX...");
         console.log("SingleDexProtocol: Fetcher address:", _dexFetcher);
         console.log("SingleDexProtocol: Router address:", _dexRouter);
-        
+
         dexFetcher = _dexFetcher;
         dexRouter = _dexRouter;
 
@@ -95,11 +98,7 @@ contract SingleDexProtocol is Test {
         registry.setRouter(dexType, dexRouter);
 
         console.log("SingleDexProtocol: Deploying Core...");
-        core = new Core(
-            address(streamDaemon),
-            address(executor),
-            address(registry)
-        );
+        core = new Core(address(streamDaemon), address(executor), address(registry));
 
         vm.startPrank(WETH_WHALE);
         IERC20(WETH).transfer(address(this), 100 * 1e18); // 100 WETH
@@ -109,8 +108,8 @@ contract SingleDexProtocol is Test {
         IERC20(USDC).transfer(address(this), 200_000 * 1e6); // 200,000 USDC
         vm.stopPrank();
 
-        IERC20(WETH).approve(address(core), type(uint256).max);
-        IERC20(USDC).approve(address(core), type(uint256).max);
+        IERC20(WETH).forceApprove(address(core), type(uint256).max);
+        IERC20(USDC).forceApprove(address(core), type(uint256).max);
     }
 
     function getTokenDecimals(address token) public view returns (uint8) {
@@ -126,6 +125,6 @@ contract SingleDexProtocol is Test {
     }
 
     function approveToken(address token, address spender, uint256 amount) public {
-        IERC20(token).approve(spender, amount);
+        IERC20(token).forceApprove(spender, amount);
     }
-} 
+}
