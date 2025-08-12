@@ -3,8 +3,11 @@ pragma solidity ^0.8.13;
 
 import "../SingleDexProtocol.s.sol";
 import "../../src/Utils.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract UniswapV2TradePlacement is SingleDexProtocol {
+    using SafeERC20 for IERC20;
+
     function setUp() public {
         UniswapV2Fetcher uniswapV2Fetcher = new UniswapV2Fetcher(UNISWAP_V2_FACTORY);
 
@@ -19,8 +22,8 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
         IERC20(USDC).transfer(address(this), 200_000 * 1e6); // 200,000 USDC
         vm.stopPrank();
 
-        IERC20(WETH).approve(address(core), type(uint256).max);
-        IERC20(USDC).approve(address(core), type(uint256).max);
+        IERC20(WETH).forceApprove(address(core), type(uint256).max);
+        IERC20(USDC).forceApprove(address(core), type(uint256).max);
     }
 
     function run() external {
@@ -29,19 +32,13 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
 
     function testPlaceTradeWETHUSDC() public {
         console.log("Starting UniswapV2 trade test");
-        
+
         uint256 amountIn = formatTokenAmount(WETH, 1);
         uint256 amountOutMin = formatTokenAmount(USDC, 1800);
 
         approveToken(WETH, address(core), amountIn);
 
-        bytes memory tradeData = abi.encode(
-            WETH,
-            USDC,
-            amountIn,
-            amountOutMin,
-            false
-        );
+        bytes memory tradeData = abi.encode(WETH, USDC, amountIn, amountOutMin, false);
 
         core.placeTrade(tradeData);
 
@@ -57,7 +54,9 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
         assertEq(trade.tokenIn, WETH, "Token in should be WETH");
         assertEq(trade.tokenOut, USDC, "Token out should be USDC");
         assertEq(trade.amountIn, amountIn, "Amount in should match");
-        assertTrue(trade.amountRemaining < amountIn, "Amount remaining should be less than amount in after initial execution");
+        assertTrue(
+            trade.amountRemaining < amountIn, "Amount remaining should be less than amount in after initial execution"
+        );
         assertEq(trade.targetAmountOut, amountOutMin, "Target amount out should match");
         assertTrue(trade.realisedAmountOut > 0, "Realised amount out should be greater than 0 after initial execution");
         assertEq(trade.attempts, 1, "Attempts should be 1 initially");
