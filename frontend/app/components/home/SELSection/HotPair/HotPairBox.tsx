@@ -30,6 +30,7 @@ import CryptoCard from './CryptoCard'
 import CryptoCard2 from './CryptoCard2'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { useModal } from '@/app/lib/context/modalContext'
+import { useRouter } from 'next/navigation'
 
 const hotPairs = [
   {
@@ -100,6 +101,8 @@ export default function HotPairBox() {
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLDivElement>(null)
+
+  const router = useRouter()
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -263,11 +266,12 @@ export default function HotPairBox() {
                       />
                     </div>
                   ))}
-                  {/* <CryptoCard />
-                  <CryptoCard2 /> */}
                 </div>
                 <div className="flex w-full justify-center items-center group">
-                  <div className="flex items-center justify-center gap-2 cursor-pointer text-zinc-400 group-hover:text-white hover:text-white">
+                  <div
+                    className="flex items-center justify-center gap-2 cursor-pointer text-zinc-400 group-hover:text-white hover:text-white"
+                    onClick={() => router.push('/hotpairs')}
+                  >
                     <span>View all pairs</span>
                     <ArrowRight className="h-4 w-4 " />
                   </div>

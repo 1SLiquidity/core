@@ -70,26 +70,50 @@ export default function TradingSettings() {
         onClick={toggleDropdown}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="group cursor-pointer"
+        className="group cursor-pointer relative"
       >
+        {/* Background gradient container */}
         <div
-          className={`flex items-center gap-2 w-fit h-8 px-3 rounded-[12px] transition-all duration-300 ease-out ${
-            isOpen || isHovered
-              ? 'bg-tabsGradient'
-              : 'bg-white bg-opacity-[12%]'
+          className={`
+        absolute inset-0 rounded-[12px] p-[1px] transition-all duration-300 ease-out
+        ${isHovered || isOpen ? 'opacity-100' : 'opacity-0'}
+      `}
+          style={{
+            background:
+              isHovered || isOpen
+                ? 'linear-gradient(90deg, #33F498 0%, #00CCFF 100%)'
+                : 'transparent',
+            transitionProperty: 'opacity, background',
+          }}
+        >
+          {/* Inner background with gradient */}
+          <div
+            className="w-full h-full rounded-[11px] transition-all duration-300 ease-out"
+            style={{
+              background:
+                isHovered || isOpen
+                  ? 'linear-gradient(90deg, #071310 0%, #042418 100%)'
+                  : 'transparent',
+            }}
+          />
+        </div>
+
+        <div
+          className={`relative flex items-center gap-2 w-fit h-8 px-3 rounded-[12px] transition-all duration-300 ease-out ${
+            isOpen || isHovered ? 'bg-transparent' : 'bg-white bg-opacity-[12%]'
           }`}
         >
           <span
-            className={cn(
-              'text-sm',
+            className={`text-sm transition-colors duration-300 ${
               isOpen || isHovered ? 'text-white' : 'text-zinc-400'
-            )}
+            }`}
           >
             ADVANCED
           </span>
+
           <div
-            className={`transition-transform duration-300 ease-in-out transform ${
-              isOpen || isHovered ? 'rotate-90' : 'rotate-0'
+            className={`relative transition-all duration-300 ease-in-out transform ${
+              isHovered || isOpen ? 'rotate-90' : 'rotate-0'
             }`}
           >
             <SettingsIcon
