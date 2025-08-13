@@ -35,10 +35,6 @@ chainId = 25875
 
 [etherscan]
 mainnet = { key = "${API_KEY_ETHERSCAN}" }
-polygon = { key = "${API_KEY_POLYGONSCAN}" }
-base = { key = "${API_KEY_BASESCAN}" }
 
 [rpc_endpoints]
-mainnet = "https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}"
-polygon = "https://polygon-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}"
-base = "https://base-mainnet.g.alchemy.com/v2/${ALCHEMY_KEY}"
+mainnet = "https://mainnet.infura.io/v3/${INFURA_KEY}"
