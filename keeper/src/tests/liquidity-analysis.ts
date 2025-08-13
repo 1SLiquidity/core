@@ -713,7 +713,7 @@ async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
       if (tokensToProcess.length === 0) {
         console.log('All tokens have been processed!')
         // Generate final Excel report
-        await generateExcelReport(existingData, timestamp)
+        // await generateExcelReport(existingData, timestamp)
         return
       }
     } else {
@@ -756,7 +756,7 @@ async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
     )
 
     // Generate Excel report from all data
-    await generateExcelReport(existingData, timestamp)
+    // await generateExcelReport(existingData, timestamp)
 
     // Save data to database
     if (process.env.DATABASE_URL) {
