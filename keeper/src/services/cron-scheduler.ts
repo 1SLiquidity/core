@@ -34,9 +34,9 @@ class CronScheduler {
       jobs: [
         {
           name: 'liquidity-analysis',
-          schedule: '0 8,20 * * *', // 8 AM, 8 PM
+          schedule: process.env.CRON_SCHEDULE || '0 8,20 * * *', // 8 AM, 8 PM
           description: '2 times daily at 8 AM and 8 PM',
-          enabled: true,
+          enabled: process.env.CRON_ENABLED === 'true',
         },
       ],
       timezone: 'UTC',

@@ -24,7 +24,7 @@ class CronRunner {
           name: 'liquidity-analysis',
           schedule: process.env.CRON_SCHEDULE || '0 8,20 * * *',
           description: '2 times daily at 8 AM and 8 PM',
-          enabled: process.env.CRON_ENABLED !== 'false', // Default enabled
+          enabled: process.env.CRON_ENABLED === 'true', // Default enabled
         },
       ],
     })
