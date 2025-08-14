@@ -3,7 +3,7 @@
 import { SEL_SECTION_TABS } from '@/app/lib/constants'
 import { useToast } from '@/app/lib/context/toastProvider'
 import { isNumberValid } from '@/app/lib/helper'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import Button from '../../button'
 import NotifiSwapStream from '../../toasts/notifiSwapStream'
 import DetailSection from '../detailSection'
@@ -14,7 +14,7 @@ import { useModal } from '@/app/lib/context/modalContext'
 import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
 import { motion, useAnimation, Variants } from 'framer-motion'
 import { ChevronDown, RefreshCcw } from 'lucide-react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import TradingSettings from './TradeSettings'
 import { useReserves } from '@/app/lib/hooks/useReserves'
 import { useRefreshTimer } from '@/app/lib/hooks/useRefreshTimer'
@@ -64,6 +64,7 @@ const SELSection = () => {
   const { tokens } = useTokenList()
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const lastTokenChangeRef = useRef<{ from: string | null; to: string | null }>(
     {
@@ -103,6 +104,91 @@ const SELSection = () => {
     chainId,
     setSelectedTokenFrom,
     setSelectedTokenTo,
+  ])
+
+  // Handle URL search parameters for token pair selection (higher priority than defaults)
+  useEffect(() => {
+    const fromSymbol = searchParams.get('from')
+    const toSymbol = searchParams.get('to')
+
+    if ((fromSymbol || toSymbol) && tokens.length > 0) {
+      let fromToken = null
+      let toToken = null
+
+      if (fromSymbol) {
+        fromToken = tokens.find(
+          (token) => token.symbol.toLowerCase() === fromSymbol.toLowerCase()
+        )
+      }
+
+      if (toSymbol) {
+        toToken = tokens.find(
+          (token) => token.symbol.toLowerCase() === toSymbol.toLowerCase()
+        )
+      }
+
+      // Only set tokens if we found valid matches and they're different
+      if (
+        fromToken &&
+        toToken &&
+        fromToken.token_address !== toToken.token_address
+      ) {
+        console.log('Setting tokens from URL params:', {
+          from: fromToken.symbol,
+          to: toToken.symbol,
+        })
+        setSelectedTokenFrom(fromToken)
+        setSelectedTokenTo(toToken)
+
+        // Clean up URL parameters after setting tokens to avoid conflicts
+        const url = new URL(window.location.href)
+        url.searchParams.delete('from')
+        url.searchParams.delete('to')
+        router.replace(url.pathname, { scroll: false })
+      } else if (fromToken && !toToken) {
+        // If only 'from' token is valid, set it and keep existing 'to' token or set default
+        setSelectedTokenFrom(fromToken)
+        if (!selectedTokenTo) {
+          const defaultTo = tokens.find(
+            (token) =>
+              token.symbol.toLowerCase() === 'weth' &&
+              token.token_address !== fromToken.token_address
+          )
+          if (defaultTo) setSelectedTokenTo(defaultTo)
+        }
+
+        // Clean up URL parameters
+        const url = new URL(window.location.href)
+        url.searchParams.delete('from')
+        url.searchParams.delete('to')
+        router.replace(url.pathname, { scroll: false })
+      } else if (!fromToken && toToken) {
+        // If only 'to' token is valid, set it and keep existing 'from' token or set default
+        setSelectedTokenTo(toToken)
+        if (!selectedTokenFrom) {
+          const defaultFrom = tokens.find(
+            (token) =>
+              token.symbol.toLowerCase() === 'usdt' &&
+              token.token_address !== toToken.token_address
+          )
+          if (defaultFrom) setSelectedTokenFrom(defaultFrom)
+        }
+
+        // Clean up URL parameters
+        const url = new URL(window.location.href)
+        url.searchParams.delete('from')
+        url.searchParams.delete('to')
+        router.replace(url.pathname, { scroll: false })
+      }
+    }
+  }, [
+    searchParams,
+    tokens,
+    setSelectedTokenFrom,
+    setSelectedTokenTo,
+    router,
+    selectedTokenFrom,
+    selectedTokenTo,
   ])
 
   // Get our reserves hook functionality

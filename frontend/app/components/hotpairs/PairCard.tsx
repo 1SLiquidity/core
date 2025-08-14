@@ -2,6 +2,7 @@
 import { cn } from '@/lib/utils'
 import Image from 'next/image'
 import Button from '../button'
+import { useRouter } from 'next/navigation'
 
 export default function PairCard({
   pair,
@@ -12,6 +13,18 @@ export default function PairCard({
   isActive: boolean
   onClick: (pair: any) => void
 }) {
+  const router = useRouter()
+
+  const handleStreamClick = () => {
+    // Navigate to swaps page with token symbols as query parameters
+    const searchParams = new URLSearchParams({
+      from: pair.token1Symbol,
+      to: pair.token2Symbol,
+    })
+
+    router.push(`/swaps?${searchParams.toString()}`)
+  }
+
   return (
     <div
       className="group relative rounded-md p-[2px] transition-all duration-300 cursor-pointer max-w-[18rem]"
@@ -91,7 +104,13 @@ export default function PairCard({
             <p className="text-[#40FAAC] text-lg font-bold">${pair.price}</p>
           </div>
 
-          <Button text="STREAM NOW" className="h-9 w-full text-[#40f798]" />
+          <div onClick={(e) => e.stopPropagation()}>
+            <Button
+              text="STREAM NOW"
+              className="h-9 w-full text-[#40f798]"
+              onClick={handleStreamClick}
+            />
+          </div>
         </div>
       </div>
     </div>

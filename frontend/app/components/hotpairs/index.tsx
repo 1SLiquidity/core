@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useAnimation } from 'framer-motion'
 import { motion, Variants, useMotionValue, animate } from 'framer-motion'
+import { useRouter } from 'next/navigation'
 import Navbar from '../navbar'
 import { FireIcon } from '../home/SELSection/HotPair/fire-icon'
 import PairsTable from './pairs-table'
@@ -14,6 +15,7 @@ import Button from '../button'
 import { allPairs, hotPairs } from './pairs-data'
 
 const HotPairs = () => {
+  const router = useRouter()
   const [volumeAmount, setVolumeAmount] = useState(0)
   const [invaliVolumeAmount, setInvaliVolumeAmount] = useState(false)
   const [isFetchingReserves, setIsFetchingReserves] = useState(false)
@@ -102,6 +104,8 @@ const HotPairs = () => {
       icon2: activeHotPair.icon1,
       token1Address: activeHotPair.token2Address,
       token2Address: activeHotPair.token1Address,
+      token1Symbol: activeHotPair.token2Symbol,
+      token2Symbol: activeHotPair.token1Symbol,
     }
 
     setActiveHotPair(newPair)
@@ -127,6 +131,18 @@ const HotPairs = () => {
     setTimeout(() => {
       setVolumeLoading(false)
     }, 1000)
+  }
+
+  const handleMainStreamClick = () => {
+    if (activeHotPair) {
+      // Navigate to swaps page with active token pair as query parameters
+      const searchParams = new URLSearchParams({
+        from: activeHotPair.token1Symbol,
+        to: activeHotPair.token2Symbol,
+      })
+
+      router.push(`/swaps?${searchParams.toString()}`)
+    }
   }
 
   return (
@@ -247,6 +263,7 @@ const HotPairs = () => {
               text="STREAM NOW"
               className="h-12 max-w-14 text-[#40f798]"
               disabled={!activeHotPair}
+              onClick={handleMainStreamClick}
             />
           </motion.div>
 
