@@ -9,94 +9,15 @@ import {
 } from '@/components/ui/carousel'
 import PairCard from './PairCard'
 
-const hotPairs = [
-  {
-    icon1: '/tokens/usdt.webp',
-    icon2: '/tokens/weth.webp',
-    pair: 'USDT / WETH',
-    price: 1000,
-    vol: 1000,
-    win: 10,
-    save: 1000,
-    details1: '1,000 USDT - 5.2%',
-    details2: 'in est. savings',
-    isActive: true,
-  },
-  {
-    icon1: '/tokens/usdc.svg',
-    icon2: '/tokens/weth.webp',
-    pair: 'USDC / WETH',
-    price: 2000,
-    vol: 1000,
-    win: 20,
-    save: 1000,
-    details1: '1,000 USDT - 5.2%',
-    details2: 'in est. savings',
-    isActive: false,
-  },
-  {
-    icon1: '/tokens/usdt.webp',
-    icon2: '/tokens/usdc.svg',
-    pair: 'USDT / USDC',
-    price: 3000,
-    vol: 1000,
-    win: 15,
-    save: 1000,
-    details1: '1,000 USDT - 5.2%',
-    details2: 'in est. savings',
-    isActive: false,
-  },
-  {
-    icon1: '/tokens/usdc.svg',
-    icon2: '/tokens/weth.webp',
-    pair: 'USDC / WETH',
-    price: 2000,
-    vol: 1000,
-    win: 20,
-    save: 1000,
-    details1: '1,000 USDT - 5.2%',
-    details2: 'in est. savings',
-    isActive: false,
-  },
-  {
-    icon1: '/tokens/usdt.webp',
-    icon2: '/tokens/usdc.svg',
-    pair: 'USDT / USDC',
-    price: 3000,
-    vol: 1000,
-    win: 15,
-    save: 1000,
-    details1: '1,000 USDT - 5.2%',
-    details2: 'in est. savings',
-    isActive: false,
-  },
-  {
-    icon1: '/tokens/usdc.svg',
-    icon2: '/tokens/weth.webp',
-    pair: 'USDC / WETH',
-    price: 2000,
-    vol: 1000,
-    win: 20,
-    save: 1000,
-    details1: '1,000 USDT - 5.2%',
-    details2: 'in est. savings',
-    isActive: false,
-  },
-  {
-    icon1: '/tokens/usdt.webp',
-    icon2: '/tokens/usdc.svg',
-    pair: 'USDT / USDC',
-    price: 3000,
-    vol: 1000,
-    win: 15,
-    save: 1000,
-    details1: '1,000 USDT - 5.2%',
-    details2: 'in est. savings',
-    isActive: false,
-  },
-]
-
-export default function TopPairsCarousel() {
+export default function TopPairsCarousel({
+  topHotPairs,
+  activeHotPair,
+  setActiveHotPair,
+}: {
+  topHotPairs: any
+  activeHotPair: any
+  setActiveHotPair: any
+}) {
   return (
     <div className="dark bg-gray-950 my-20">
       <div
@@ -106,9 +27,7 @@ export default function TopPairsCarousel() {
             'linear-gradient(90deg, rgba(0, 10, 16, 0.7) 0%, rgba(0, 22, 28, 0.49) 100%)',
         }}
       >
-        <h1 className="text-3xl font-bold text-white mb-8">
-          Top Pairs (Filtered)
-        </h1>
+        <h1 className="text-3xl font-bold text-white mb-8">Top Savers</h1>
 
         <Carousel
           opts={{
@@ -118,20 +37,16 @@ export default function TopPairsCarousel() {
           className="w-full"
         >
           <CarouselContent className="-ml-2 md:-ml-4">
-            {hotPairs.map((pair, index) => (
+            {topHotPairs.map((pair: any, index: number) => (
               <CarouselItem
                 key={index}
                 className="pl-2 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
               >
                 <div className="cursor-pointer">
                   <PairCard
-                    icon1={pair.icon1}
-                    icon2={pair.icon2}
-                    pair={pair.pair}
-                    price={pair.price}
-                    vol={pair.vol}
-                    win={pair.win}
-                    isActive={false}
+                    pair={pair}
+                    onClick={setActiveHotPair}
+                    isActive={activeHotPair?.id === pair.id}
                   />
                 </div>
               </CarouselItem>

@@ -5,6 +5,7 @@ import useOnClickOutside from '@/app/lib/hooks/useOnClickOutside'
 import React, { useRef, useState } from 'react'
 import { NumericFormat } from 'react-number-format'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 
 interface InputAmountProps {
   amount: number
@@ -17,6 +18,8 @@ interface InputAmountProps {
   isLoading?: boolean
   isBuySection?: boolean
   isSellSection?: boolean
+  skeletonClassName?: string
+  autoFocus?: boolean
 }
 
 const InputAmount: React.FC<InputAmountProps> = ({
@@ -30,6 +33,8 @@ const InputAmount: React.FC<InputAmountProps> = ({
   isLoading = false,
   isBuySection = false,
   isSellSection = false,
+  skeletonClassName,
+  autoFocus = true,
 }) => {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const [focus, setFocus] = useState(false)
@@ -54,7 +59,9 @@ const InputAmount: React.FC<InputAmountProps> = ({
 
   // If loading, render custom skeleton that matches input dimensions
   if (isLoading) {
-    return <Skeleton className="h-10 w-32 sm:w-[12rem]" />
+    return (
+      <Skeleton className={cn('h-10 w-32 sm:w-[12rem]', skeletonClassName)} />
+    )
   }
 
   return (
@@ -69,7 +76,7 @@ const InputAmount: React.FC<InputAmountProps> = ({
       onFocus={onInputFocus}
       onValueChange={handleValueChange}
       placeholder="0"
-      autoFocus={true}
+      autoFocus={autoFocus}
       disabled={disable}
       className={`w-full placeholder:text-white h-full bg-transparent border-none outline-none placeholder:text-gray text-[30px] md:text-[42px] ${
         textAlignRight ? 'text-right' : ''

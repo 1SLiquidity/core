@@ -4,6 +4,13 @@ import useOnClickOutside from '@/app/lib/hooks/useOnClickOutside'
 import { useModal } from '@/app/lib/context/modalContext'
 import SelectTokenWithAmountSection from '../home/SELSection/SelectTokenWithAmountSection'
 import InputFieldWithIcon from './InputFieldWithIcon'
+import { TooltipContent } from '@/components/ui/tooltip'
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipProvider,
+} from '@/components/ui/tooltip'
+import { InfoIcon } from '@/app/lib/icons'
 
 interface Props {
   amount: number
@@ -12,6 +19,9 @@ interface Props {
   disabled?: boolean
   isInsufficientBalance?: boolean
   setIsInsufficientBalance?: (isInsufficientBalance: boolean) => void
+  active: boolean
+  handleActive: (active: boolean) => void
+  isLoading: boolean
 }
 
 const VolumeSection: React.FC<Props> = ({
@@ -21,14 +31,18 @@ const VolumeSection: React.FC<Props> = ({
   disabled,
   isInsufficientBalance,
   setIsInsufficientBalance,
+  active,
+  handleActive,
+  isLoading,
 }) => {
-  const [active, setActive] = useState(true)
+  // const [active, setActive] = useState(true)
   const sectionRef = useRef<HTMLDivElement>(null)
 
   // useOnClickOutside(sectionRef, () => {
   //   setActive(false)
   // })
 
+  console.log('WinSection isLoading', isLoading)
   return (
     <div ref={sectionRef} className="md:w-fit w-full h-fit relative">
       {amount > 0 && (
@@ -45,9 +59,9 @@ const VolumeSection: React.FC<Props> = ({
       )}
 
       <div
-        className={`w-full h-[150px] md:h-[171px] rounded-[15px] p-[2px] relative
+        className={`w-full h-[150px] md:h-[171px] md:min-w-[25rem] rounded-[15px] p-[2px] relative
           ${
-            amount > 0 && !inValidAmount && active
+            amount > 0 && !inValidAmount
               ? 'bg-primary'
               : inValidAmount
               ? 'bg-primaryRed'
@@ -55,14 +69,28 @@ const VolumeSection: React.FC<Props> = ({
           }`}
       >
         <div
-          className={`w-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-5 rounded-[13px] h-full ${
-            amount > 0 && !inValidAmount && active
-              ? 'bg-gradient-to-r from-[#071310] to-[#062118]'
+          className={`w-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-5 rounded-[13px] h-full overflow-hidden ${
+            amount > 0 && !inValidAmount
+              ? active
+                ? 'bg-gradient-to-r from-[#071310] to-[#062118]'
+                : 'bg-[#0D0D0D]'
               : 'bg-[#0D0D0D]'
-          } ${amount > 0 && !inValidAmount && active && 'dotsbg'}`}
+          } ${amount > 0 && !inValidAmount && 'dotsbg'}`}
         >
           {/* title */}
-          <p className="uppercase text-white text-[18px]">% WIN</p>
+          <div className="flex items-center gap-2">
+            <p className="uppercase text-white text-[18px]">% WIN</p>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <InfoIcon className="h-4 w-4 cursor-help block" />
+                </TooltipTrigger>
+                <TooltipContent className="bg-zinc-800 text-white border-zinc-700">
+                  <p>Win info</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
 
           <div className="w-full h-full">
             <InputFieldWithIcon
@@ -72,11 +100,12 @@ const VolumeSection: React.FC<Props> = ({
               inValidAmount={inValidAmount}
               inputRef={sectionRef}
               onInputFocus={() => {
-                if (!active) setActive(true)
+                handleActive(true)
               }}
               disabled={disabled}
               isInsufficientBalance={isInsufficientBalance}
               setIsInsufficientBalance={setIsInsufficientBalance}
+              isLoading={isLoading}
             />
           </div>
         </div>

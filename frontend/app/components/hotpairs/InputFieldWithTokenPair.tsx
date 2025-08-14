@@ -1,4 +1,6 @@
 import InputAmount from '@/app/components/inputAmount'
+import Image from 'next/image'
+import { ArrowLeftRightIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface InputAmountProps {
@@ -12,9 +14,14 @@ interface InputAmountProps {
   isLoading?: boolean
   isInsufficientBalance?: boolean
   setIsInsufficientBalance?: (isInsufficientBalance: boolean) => void
+  icon1: string
+  icon2: string
+  switchTokens: () => void
 }
 
-const InputFieldWithIcon: React.FC<InputAmountProps> = ({
+const InputFieldWithTokenPair: React.FC<InputAmountProps> = ({
+  icon1,
+  icon2,
   amount,
   setAmount,
   inValidAmount,
@@ -25,6 +32,7 @@ const InputFieldWithIcon: React.FC<InputAmountProps> = ({
   isLoading,
   isInsufficientBalance,
   setIsInsufficientBalance,
+  switchTokens,
 }) => {
   return (
     <div className="w-full">
@@ -45,6 +53,36 @@ const InputFieldWithIcon: React.FC<InputAmountProps> = ({
             skeletonClassName="h-[2.75rem] mt-2"
           />
         </div>
+
+        {icon1 && icon2 && (
+          <div className="flex items-center justify-between gap-2">
+            {/* Ethereum icon */}
+            <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
+              <Image
+                src={icon1}
+                alt="eth"
+                width={20}
+                height={20}
+                className="w-full h-full"
+              />
+            </div>
+
+            <ArrowLeftRightIcon
+              className="w-4 h-4 cursor-pointer"
+              onClick={switchTokens}
+            />
+
+            <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#827a7a33] transition-all duration-300">
+              <Image
+                src={icon2}
+                alt="dai"
+                width={20}
+                height={20}
+                className="w-full h-full"
+              />
+            </div>
+          </div>
+        )}
       </div>
       {amount > 0 && (
         <div
@@ -53,11 +91,11 @@ const InputFieldWithIcon: React.FC<InputAmountProps> = ({
             isLoading && 'mt-[0.85rem]'
           )}
         >
-          Dummy text of the win
+          Dummy text for given Volume
         </div>
       )}
     </div>
   )
 }
 
-export default InputFieldWithIcon
+export default InputFieldWithTokenPair
