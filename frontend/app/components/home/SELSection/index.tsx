@@ -428,6 +428,10 @@ const SELSection = () => {
     },
   }
 
+  console.log('isCalculating ===>', isCalculating)
+  console.log('buyAmount ===>', buyAmount)
+  console.log('sellAmount ===>', sellAmount)
+
   return (
     <div className="w-full flex flex-col justify-center items-center">
       {pathname === '/' && (
