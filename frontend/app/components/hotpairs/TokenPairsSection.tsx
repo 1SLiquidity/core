@@ -35,8 +35,9 @@ export default function TokenPairsSection({
               <TokenIcon
                 key={token.id}
                 token={token}
-                selectedBaseToken={selectedBaseToken}
                 isBaseToken={true}
+                selectedBaseToken={selectedBaseToken}
+                selectedOtherToken={selectedOtherToken}
                 setSelectedBaseToken={setSelectedBaseToken}
               />
             ))}
@@ -134,7 +135,8 @@ function TokenIcon({
       onClick={() => {
         if (isBaseToken) {
           if (
-            (selectedOtherToken && selectedBaseToken.symbol !== token.symbol) ||
+            (selectedOtherToken &&
+              selectedOtherToken.symbol !== token.symbol) ||
             !selectedOtherToken
           ) {
             setSelectedBaseToken(token)
