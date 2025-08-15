@@ -13,13 +13,13 @@ import WinSection from './WinSection'
 import { HeroBgImage } from './hotpairs-icons'
 import Button from '../button'
 import { allPairs, hotPairs } from './pairs-data'
+import TokenPairsSection from './TokenPairsSection'
 
 const HotPairs = () => {
   const router = useRouter()
   const [volumeAmount, setVolumeAmount] = useState(0)
   const [invaliVolumeAmount, setInvaliVolumeAmount] = useState(false)
   const [isFetchingReserves, setIsFetchingReserves] = useState(false)
-  const [savingsAmount, setSavingsAmount] = useState(0)
   const [invaliSavingsAmount, setInvaliSavingsAmount] = useState(false)
   const [winAmount, setWinAmount] = useState(0)
   const [invaliWinAmount, setInvaliWinAmount] = useState(false)
@@ -30,6 +30,9 @@ const HotPairs = () => {
   const [winActive, setWinActive] = useState(true)
   const [winLoading, setWinLoading] = useState(false)
   const [volumeLoading, setVolumeLoading] = useState(false)
+
+  const [selectedBaseToken, setSelectedBaseToken] = useState<any>(null)
+  const [selectedOtherToken, setSelectedOtherToken] = useState<any>(null)
 
   const controls = useAnimation()
 
@@ -55,6 +58,34 @@ const HotPairs = () => {
     controls.start('visible')
   }, [controls])
 
+  useEffect(() => {
+    if (selectedBaseToken && selectedOtherToken) {
+      const filteredPairs = allPairs.filter(
+        (p: any) => p.token1Symbol === selectedBaseToken.symbol
+      )
+      const activePair = allPairs.filter(
+        (p: any) =>
+          p.token1Symbol === selectedBaseToken.symbol &&
+          p.token2Symbol === selectedOtherToken.symbol
+      )[0]
+      setFilteredPairsData(filteredPairs)
+
+      if (activePair) {
+        setActiveHotPair(activePair)
+        setVolumeAmount(activePair.vol)
+        setWinAmount(activePair.win)
+        setVolumeActive(true)
+        setWinActive(true)
+      } else {
+        setActiveHotPair(null)
+        setVolumeAmount(0)
+        setWinAmount(0)
+        setVolumeActive(false)
+        setWinActive(false)
+      }
+    }
+  }, [selectedBaseToken, selectedOtherToken])
+
   const titleVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -72,7 +103,6 @@ const HotPairs = () => {
     setActiveHotPair(pair)
     setVolumeAmount(pair.vol)
     setWinAmount(pair.win)
-    setSavingsAmount(pair.save)
     setVolumeActive(true)
     setWinActive(true)
 
@@ -82,6 +112,15 @@ const HotPairs = () => {
       (p: any) => p.token1Address === pair.token1Address
     )
     setFilteredPairsData(filteredPairs)
+
+    setSelectedBaseToken({
+      icon: pair.icon1,
+      symbol: pair.token1Symbol,
+    })
+    setSelectedOtherToken({
+      icon: pair.icon2,
+      symbol: pair.token2Symbol,
+    })
   }
 
   const sectionVariants: Variants = {
@@ -144,6 +183,19 @@ const HotPairs = () => {
       router.push(`/swaps?${searchParams.toString()}`)
     }
   }
+
+  const clearAllSelectedTokens = () => {
+    setSelectedBaseToken(null)
+    setSelectedOtherToken(null)
+    setFilteredPairsData([])
+    setActiveHotPair(null)
+    setVolumeAmount(0)
+    setWinAmount(0)
+    setVolumeActive(false)
+    setWinActive(false)
+  }
+
+  console.log('activeHotPair ===>', activeHotPair)
 
   return (
     <>
@@ -221,20 +273,22 @@ const HotPairs = () => {
             <div className="flex justify-center items-center gap-6">
               <div className="w-full md:max-w-[25rem] md:min-w-[25rem]">
                 <VolumeSection
-                  amount={savingsAmount}
+                  amount={volumeAmount}
                   setAmount={handleVolumeAmountChange}
                   isLoading={volumeLoading}
                   inValidAmount={false}
                   pair={activeHotPair}
                   switchTokens={handleSwitchTokens}
                   clearActiveTokenPair={() => {
-                    setActiveHotPair(null)
-                    setFilteredPairsData([])
+                    console.log('clearActiveTokenPair ==>')
                     setVolumeAmount(0)
-                    setWinAmount(0)
-                    setSavingsAmount(0)
-                    setVolumeActive(false)
-                    setWinActive(false)
+                    // setActiveHotPair(null)
+                    // setFilteredPairsData([])
+                    // setWinAmount(0)
+                    // setVolumeActive(false)
+                    // setWinActive(false)
+                    // setSelectedBaseToken(null)
+                    // setSelectedOtherToken(null)
                   }}
                   active={volumeActive}
                   handleActive={() => {
@@ -264,6 +318,22 @@ const HotPairs = () => {
               className="h-12 max-w-14 text-[#40f798]"
               disabled={!activeHotPair}
               onClick={handleMainStreamClick}
+            />
+          </motion.div>
+
+          <motion.div
+            initial="hidden"
+            animate={controls}
+            variants={sectionVariants}
+            custom={0.4}
+            className="mt-24 md:mt-28"
+          >
+            <TokenPairsSection
+              selectedBaseToken={selectedBaseToken}
+              selectedOtherToken={selectedOtherToken}
+              setSelectedBaseToken={setSelectedBaseToken}
+              setSelectedOtherToken={setSelectedOtherToken}
+              clearAllSelectedTokens={clearAllSelectedTokens}
             />
           </motion.div>
 
