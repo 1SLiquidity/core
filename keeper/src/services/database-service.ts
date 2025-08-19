@@ -1,9 +1,9 @@
-import { PrismaClient } from '../../generated/prisma'
+import { PrismaClient } from '@prisma/client'
 import * as dotenv from 'dotenv'
 
 // Load environment variables
 dotenv.config()
-class DatabaseService {
+export default class DatabaseService {
   private static instance: DatabaseService
   private prisma: PrismaClient | null = null
 
@@ -14,6 +14,14 @@ class DatabaseService {
       DatabaseService.instance = new DatabaseService()
     }
     return DatabaseService.instance
+  }
+
+  // Getter for prisma client
+  public get client(): PrismaClient {
+    if (!this.prisma) {
+      throw new Error('Database not connected. Call connect() first.')
+    }
+    return this.prisma
   }
 
   public async connect(): Promise<void> {
@@ -119,6 +127,9 @@ class DatabaseService {
           reserveAtotaldepth: data.reserveAtotaldepth,
           reserveBtotaldepthWei: data.reserveBtotaldepthWei,
           reserveBtotaldepth: data.reserveBtotaldepth,
+
+          // Slippage savings
+          slippageSavings: data.slippageSavings,
         },
       })
     } catch (error) {
@@ -205,6 +216,9 @@ class DatabaseService {
                 reserveAtotaldepth: data.reserveAtotaldepth,
                 reserveBtotaldepthWei: data.reserveBtotaldepthWei,
                 reserveBtotaldepth: data.reserveBtotaldepth,
+
+                // Slippage savings
+                slippageSavings: data.slippageSavings,
               },
             })
           }
@@ -234,6 +248,8 @@ class DatabaseService {
       throw new Error('Database not connected')
     }
 
+    console.log('tokenAAddress', tokenAAddress)
+    console.log('tokenBAddress', tokenBAddress)
     try {
       return await this.prisma.liquidityData.findUnique({
         where: {
@@ -354,6 +370,3 @@ class DatabaseService {
     return this.upsertBatchLiquidityData(dataArray)
   }
 }
-
-export default DatabaseService
-export { DatabaseService }

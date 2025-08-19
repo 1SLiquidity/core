@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -59,6 +58,9 @@ model LiquidityData {
   // Total depth fields for Token B (wei format)
   reserveBtotaldepthWei String? // Sum of all Token B reserves across DEXes in wei
   reserveBtotaldepth    Float?  // Sum of all Token B reserves in normal decimal format
+  
+  // Slippage savings
+  slippageSavings Float?
   
   // Metadata
   createdAt DateTime @default(now())
