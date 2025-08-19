@@ -56,3 +56,4 @@ coverage/
 .node_modules/
 
 dump.rdb
+/generated/prisma
