@@ -207,7 +207,7 @@ const HotPairs = () => {
           ref={containerRef}
           className="mt-[60px] mb-10 mx-auto relative z-10 w-full px-4 md:max-w-6xl"
         >
-          <div className="flex flex-col items-center justify-center gap-2 md:gap-4 md:max-w-6xl w-full mx-auto mb-10 sm:mb-16">
+          <div className="flex flex-col items-center justify-center gap-2 md:gap-2 md:max-w-6xl w-full mx-auto mb-10 sm:mb-16">
             <motion.div
               className="flex items-center gap-2"
               initial="hidden"
@@ -228,9 +228,9 @@ const HotPairs = () => {
                 Hot Pairs
               </h1>
             </motion.div>
-            <div>
+            <div className="flex flex-col items-center justify-center gap-2">
               <motion.h2
-                className="text-3xl md:text-5xl font-bold text-white text-center"
+                className="text-3xl md:text-[2.75rem] font-bold text-white text-center leading-none md:leading-[1.2]"
                 initial="hidden"
                 animate={controls}
                 variants={titleVariants}
@@ -238,12 +238,12 @@ const HotPairs = () => {
                 Execute the Hottest High Market Cap / Low Liquidity Trades.
               </motion.h2>
               <motion.h2
-                className="text-3xl md:text-5xl font-bold text-white text-center"
+                className="text-3xl md:text-[2.75rem] font-bold text-white text-center"
                 initial="hidden"
                 animate={controls}
                 variants={titleVariants}
               >
-                Stream with One Click
+                Stream with One Click.
               </motion.h2>
             </div>
           </div>
