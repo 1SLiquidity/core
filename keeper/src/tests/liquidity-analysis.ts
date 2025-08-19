@@ -46,6 +46,70 @@ const NATIVE_TOKEN_ADDRESSES = [
   '0x0000000000000000000000000000000000000000', // ETH (native)
 ]
 
+// Utility function to convert wei to normal value
+function weiToNormal(weiValue: string | null, decimals: number): number {
+  if (!weiValue || weiValue === '0') return 0
+  try {
+    const bigIntValue = BigInt(weiValue)
+    const divisor = BigInt(10) ** BigInt(decimals)
+    // Convert to number with proper decimal places
+    return Number(bigIntValue) / Number(divisor)
+  } catch (error) {
+    console.warn(
+      `Error converting wei value ${weiValue} with decimals ${decimals}:`,
+      error
+    )
+    return 0
+  }
+}
+
+// Function to calculate total reserves for a token across all DEXes
+function calculateTotalReserves(
+  reserves: any,
+  isTokenA: boolean,
+  decimals: number
+): { weiTotal: string; normalTotal: number } {
+  const reserveFields = isTokenA
+    ? [
+        'reservesAUniswapV2',
+        'reservesASushiswap',
+        'reservesAUniswapV3_500',
+        'reservesAUniswapV3_3000',
+        'reservesAUniswapV3_10000',
+      ]
+    : [
+        'reservesBUniswapV2',
+        'reservesBSushiswap',
+        'reservesBUniswapV3_500',
+        'reservesBUniswapV3_3000',
+        'reservesBUniswapV3_10000',
+      ]
+
+  let totalWei = BigInt(0)
+
+  reserveFields.forEach((field) => {
+    const reserveValue = reserves[field]
+    if (reserveValue && reserveValue !== '0') {
+      try {
+        totalWei += BigInt(reserveValue)
+      } catch (error) {
+        console.warn(
+          `Error adding reserve value ${reserveValue} for field ${field}:`,
+          error
+        )
+      }
+    }
+  })
+
+  const weiTotalStr = totalWei.toString()
+  const normalTotal = weiToNormal(weiTotalStr, decimals)
+
+  return {
+    weiTotal: weiTotalStr,
+    normalTotal: normalTotal,
+  }
+}
+
 // Improved function to check if a token is an ERC20 token on a specific platform
 const isERC20Token = (
   tokenAddress: string,
@@ -446,57 +510,7 @@ async function saveTokenToJson(
   console.log(`  💾 Saved ${tokenResult.tokenSymbol} data to JSON`)
 }
 
-async function generateExcelReport(
-  results: TokenLiquiditySummary[],
-  timestamp: string
-): Promise<void> {
-  console.log('\nGenerating Excel report...')
-
-  // Create workbook
-  const workbook = XLSX.utils.book_new()
-
-  // Add detailed liquidity pairs sheet
-  const detailedData = results.flatMap((result) =>
-    result.liquidityPairs.map((pair) => {
-      // Calculate reserves in normal decimal units
-      const token0ReserveRaw = BigInt(pair.reserves.token0)
-      const token1ReserveRaw = BigInt(pair.reserves.token1)
-
-      const token0ReserveNormal =
-        Number(token0ReserveRaw) / Math.pow(10, pair.decimals.token0)
-      const token1ReserveNormal =
-        Number(token1ReserveRaw) / Math.pow(10, pair.decimals.token1)
-
-      return {
-        'Token Symbol': pair.tokenSymbol,
-        'Token Name': pair.tokenName,
-        'Token Address': pair.tokenAddress,
-        'Base Token': pair.baseTokenSymbol,
-        DEX: pair.dex,
-        'Reserve Token0 (Raw)': pair.reserves.token0,
-        'Reserve Token1 (Raw)': pair.reserves.token1,
-        'Reserve Token0 (Normal)': token0ReserveNormal,
-        'Reserve Token1 (Normal)': token1ReserveNormal,
-        'Token0 Decimals': pair.decimals.token0,
-        'Token1 Decimals': pair.decimals.token1,
-        'Market Cap': result.marketCap,
-        Timestamp: new Date(pair.timestamp).toISOString(),
-      }
-    })
-  )
-
-  const detailedSheet = XLSX.utils.json_to_sheet(detailedData)
-  XLSX.utils.book_append_sheet(workbook, detailedSheet, 'All DEX Reserves')
-
-  // Save to file using provided timestamp
-  const filename = `liquidity-analysis-${timestamp}.xlsx`
-  const filepath = path.join(__dirname, filename)
-
-  XLSX.writeFile(workbook, filepath)
-  console.log(`Excel report saved to: ${filepath}`)
-}
-
-// Database saving function - transforms row-based data to column-based format
+// Database saving function - transforms row-based data to column-based format with upsert functionality
 async function saveToDatabase(
   results: TokenLiquiditySummary[],
   timestamp: string
@@ -515,7 +529,7 @@ async function saveToDatabase(
       `📊 Transformed ${results.length} token summaries into ${transformedData.length} database records`
     )
 
-    // Save data in batches to avoid overwhelming the database
+    // Save data in batches with upsert functionality
     const batchSize = 50
     let saved = 0
 
@@ -528,7 +542,8 @@ async function saveToDatabase(
         )} (${batch.length} records)`
       )
 
-      await dbService.saveBatchLiquidityData(batch)
+      // Use upsert functionality to update existing records or create new ones
+      await dbService.upsertBatchLiquidityData(batch)
       saved += batch.length
 
       // Small delay between batches
@@ -537,7 +552,9 @@ async function saveToDatabase(
       }
     }
 
-    console.log(`✅ Successfully saved ${saved} liquidity records to database`)
+    console.log(
+      `✅ Successfully upserted ${saved} liquidity records to database`
+    )
   } catch (error) {
     console.error('❌ Error saving to database:', error)
     throw error
@@ -617,8 +634,28 @@ function transformToColumnFormat(
     })
   })
 
-  // Convert map to array
-  transformedRecords.push(...Array.from(tokenPairMap.values()))
+  // Convert map to array and calculate total depths
+  Array.from(tokenPairMap.values()).forEach((record) => {
+    // Calculate total depth for token A
+    const tokenATotals = calculateTotalReserves(
+      record,
+      true,
+      record.tokenADecimals
+    )
+    record.reserveAtotaldepthWei = tokenATotals.weiTotal
+    record.reserveAtotaldepth = tokenATotals.normalTotal
+
+    // Calculate total depth for token B
+    const tokenBTotals = calculateTotalReserves(
+      record,
+      false,
+      record.tokenBDecimals
+    )
+    record.reserveBtotaldepthWei = tokenBTotals.weiTotal
+    record.reserveBtotaldepth = tokenBTotals.normalTotal
+
+    transformedRecords.push(record)
+  })
 
   console.log(
     `📋 Grouped ${results.reduce(
@@ -626,7 +663,7 @@ function transformToColumnFormat(
       0
     )} individual DEX pairs into ${
       transformedRecords.length
-    } token pair records`
+    } token pair records with total depth calculations`
   )
 
   return transformedRecords
@@ -712,8 +749,6 @@ async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
 
       if (tokensToProcess.length === 0) {
         console.log('All tokens have been processed!')
-        // Generate final Excel report
-        // await generateExcelReport(existingData, timestamp)
         return
       }
     } else {
@@ -754,9 +789,6 @@ async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
     console.log(
       `\nAnalysis complete! Total tokens processed: ${existingData.length}`
     )
-
-    // Generate Excel report from all data
-    // await generateExcelReport(existingData, timestamp)
 
     // Save data to database
     if (process.env.DATABASE_URL) {

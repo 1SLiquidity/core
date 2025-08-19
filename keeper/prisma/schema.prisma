@@ -51,6 +51,14 @@ model LiquidityData {
   // UniswapV3 fee tier 10000 (1%)
   reservesAUniswapV3_10000 String?
   reservesBUniswapV3_10000 String?
+
+  // Total depth fields for Token A (wei format)
+  reserveAtotaldepthWei String? // Sum of all Token A reserves across DEXes in wei
+  reserveAtotaldepth    Float?  // Sum of all Token A reserves in normal decimal format
+  
+  // Total depth fields for Token B (wei format)
+  reserveBtotaldepthWei String? // Sum of all Token B reserves across DEXes in wei
+  reserveBtotaldepth    Float?  // Sum of all Token B reserves in normal decimal format
   
   // Metadata
   createdAt DateTime @default(now())
@@ -63,9 +71,12 @@ model LiquidityData {
   @@index([marketCap])
   @@index([tokenASymbol])
   @@index([tokenBSymbol])
+  @@index([reserveAtotaldepth])
+  @@index([reserveBtotaldepth])
   
-  // Unique constraint to prevent duplicate entries for same token pair at same time
-  @@unique([tokenAAddress, tokenBAddress, timestamp])
+  // Unique constraint on tokenAAddress and tokenBAddress to prevent duplicates
+  // This will allow upsert operations for updating existing pairs
+  @@unique([tokenAAddress, tokenBAddress])
   
   @@map("liquidity_data")
 }
