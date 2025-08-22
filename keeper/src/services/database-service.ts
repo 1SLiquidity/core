@@ -66,16 +66,16 @@ export default class DatabaseService {
       await this.prisma.liquidityData.upsert({
         where: {
           tokenAAddress_tokenBAddress: {
-            tokenAAddress: data.tokenAAddress,
-            tokenBAddress: data.tokenBAddress,
+            tokenAAddress: data.tokenAAddress.toLowerCase(),
+            tokenBAddress: data.tokenBAddress.toLowerCase(),
           },
         },
         update: {
           timestamp: data.timestamp,
-          tokenASymbol: data.tokenASymbol,
+          tokenASymbol: data.tokenASymbol.toLowerCase(),
           tokenAName: data.tokenAName,
           tokenADecimals: data.tokenADecimals,
-          tokenBSymbol: data.tokenBSymbol,
+          tokenBSymbol: data.tokenBSymbol.toLowerCase(),
           tokenBDecimals: data.tokenBDecimals,
           marketCap: data.marketCap,
 
@@ -101,12 +101,12 @@ export default class DatabaseService {
         },
         create: {
           timestamp: data.timestamp,
-          tokenAAddress: data.tokenAAddress,
-          tokenASymbol: data.tokenASymbol,
+          tokenAAddress: data.tokenAAddress.toLowerCase(),
+          tokenASymbol: data.tokenASymbol.toLowerCase(),
           tokenAName: data.tokenAName,
           tokenADecimals: data.tokenADecimals,
-          tokenBAddress: data.tokenBAddress,
-          tokenBSymbol: data.tokenBSymbol,
+          tokenBAddress: data.tokenBAddress.toLowerCase(),
+          tokenBSymbol: data.tokenBSymbol.toLowerCase(),
           tokenBDecimals: data.tokenBDecimals,
           marketCap: data.marketCap,
 
@@ -130,6 +130,10 @@ export default class DatabaseService {
 
           // Slippage savings
           slippageSavings: data.slippageSavings,
+          percentageSavings: data.percentageSavings,
+
+          // Highest liquidity DEX
+          highestLiquidityADex: data.highestLiquidityADex,
         },
       })
     } catch (error) {
@@ -155,47 +159,16 @@ export default class DatabaseService {
             await tx.liquidityData.upsert({
               where: {
                 tokenAAddress_tokenBAddress: {
-                  tokenAAddress: data.tokenAAddress,
-                  tokenBAddress: data.tokenBAddress,
+                  tokenAAddress: data.tokenAAddress.toLowerCase(),
+                  tokenBAddress: data.tokenBAddress.toLowerCase(),
                 },
               },
               update: {
                 timestamp: data.timestamp,
-                tokenASymbol: data.tokenASymbol,
+                tokenASymbol: data.tokenASymbol.toLowerCase(),
                 tokenAName: data.tokenAName,
                 tokenADecimals: data.tokenADecimals,
-                tokenBSymbol: data.tokenBSymbol,
-                tokenBDecimals: data.tokenBDecimals,
-                marketCap: data.marketCap,
-
-                // DEX reserves
-                reservesAUniswapV2: data.reservesAUniswapV2,
-                reservesBUniswapV2: data.reservesBUniswapV2,
-                reservesASushiswap: data.reservesASushiswap,
-                reservesBSushiswap: data.reservesBSushiswap,
-                reservesAUniswapV3_500: data.reservesAUniswapV3_500,
-                reservesBUniswapV3_500: data.reservesBUniswapV3_500,
-                reservesAUniswapV3_3000: data.reservesAUniswapV3_3000,
-                reservesBUniswapV3_3000: data.reservesBUniswapV3_3000,
-                reservesAUniswapV3_10000: data.reservesAUniswapV3_10000,
-                reservesBUniswapV3_10000: data.reservesBUniswapV3_10000,
-
-                // Total depth fields
-                reserveAtotaldepthWei: data.reserveAtotaldepthWei,
-                reserveAtotaldepth: data.reserveAtotaldepth,
-                reserveBtotaldepthWei: data.reserveBtotaldepthWei,
-                reserveBtotaldepth: data.reserveBtotaldepth,
-
-                updatedAt: new Date(),
-              },
-              create: {
-                timestamp: data.timestamp,
-                tokenAAddress: data.tokenAAddress,
-                tokenASymbol: data.tokenASymbol,
-                tokenAName: data.tokenAName,
-                tokenADecimals: data.tokenADecimals,
-                tokenBAddress: data.tokenBAddress,
-                tokenBSymbol: data.tokenBSymbol,
+                tokenBSymbol: data.tokenBSymbol.toLowerCase(),
                 tokenBDecimals: data.tokenBDecimals,
                 marketCap: data.marketCap,
 
@@ -219,6 +192,48 @@ export default class DatabaseService {
 
                 // Slippage savings
                 slippageSavings: data.slippageSavings,
+                percentageSavings: data.percentageSavings,
+
+                // Highest liquidity DEX
+                highestLiquidityADex: data.highestLiquidityADex,
+
+                updatedAt: new Date(),
+              },
+              create: {
+                timestamp: data.timestamp,
+                tokenAAddress: data.tokenAAddress.toLowerCase(),
+                tokenASymbol: data.tokenASymbol.toLowerCase(),
+                tokenAName: data.tokenAName,
+                tokenADecimals: data.tokenADecimals,
+                tokenBAddress: data.tokenBAddress.toLowerCase(),
+                tokenBSymbol: data.tokenBSymbol.toLowerCase(),
+                tokenBDecimals: data.tokenBDecimals,
+                marketCap: data.marketCap,
+
+                // DEX reserves
+                reservesAUniswapV2: data.reservesAUniswapV2,
+                reservesBUniswapV2: data.reservesBUniswapV2,
+                reservesASushiswap: data.reservesASushiswap,
+                reservesBSushiswap: data.reservesBSushiswap,
+                reservesAUniswapV3_500: data.reservesAUniswapV3_500,
+                reservesBUniswapV3_500: data.reservesBUniswapV3_500,
+                reservesAUniswapV3_3000: data.reservesAUniswapV3_3000,
+                reservesBUniswapV3_3000: data.reservesBUniswapV3_3000,
+                reservesAUniswapV3_10000: data.reservesAUniswapV3_10000,
+                reservesBUniswapV3_10000: data.reservesBUniswapV3_10000,
+
+                // Total depth fields
+                reserveAtotaldepthWei: data.reserveAtotaldepthWei,
+                reserveAtotaldepth: data.reserveAtotaldepth,
+                reserveBtotaldepthWei: data.reserveBtotaldepthWei,
+                reserveBtotaldepth: data.reserveBtotaldepth,
+
+                // Slippage savings
+                slippageSavings: data.slippageSavings,
+                percentageSavings: data.percentageSavings,
+
+                // Highest liquidity DEX
+                highestLiquidityADex: data.highestLiquidityADex,
               },
             })
           }
@@ -254,8 +269,8 @@ export default class DatabaseService {
       return await this.prisma.liquidityData.findUnique({
         where: {
           tokenAAddress_tokenBAddress: {
-            tokenAAddress,
-            tokenBAddress,
+            tokenAAddress: tokenAAddress.toLowerCase(),
+            tokenBAddress: tokenBAddress.toLowerCase(),
           },
         },
       })
@@ -277,8 +292,8 @@ export default class DatabaseService {
       return await this.prisma.liquidityData.findMany({
         where: {
           OR: [
-            { tokenAAddress: tokenAddress },
-            { tokenBAddress: tokenAddress },
+            { tokenAAddress: tokenAddress.toLowerCase() },
+            { tokenBAddress: tokenAddress.toLowerCase() },
           ],
         },
         orderBy: [

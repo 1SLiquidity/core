@@ -6,6 +6,12 @@ import { useRouter } from 'next/navigation'
 import { tokensList } from './pairs-data'
 import { useState } from 'react'
 import { X } from 'lucide-react'
+import {
+  fetchSpecificPair,
+  useEnhancedSpecificPair,
+  useTokenEnhancer,
+} from '@/app/lib/hooks/hotpairs/useEnhancedTokens'
+import { useQueryClient } from '@tanstack/react-query'
 
 export default function TokenPairsSection({
   selectedBaseToken,
@@ -13,16 +19,45 @@ export default function TokenPairsSection({
   setSelectedBaseToken,
   setSelectedOtherToken,
   clearAllSelectedTokens,
+  handleActiveHotPair,
 }: {
   selectedBaseToken: any
   selectedOtherToken: any
   setSelectedBaseToken: any
   setSelectedOtherToken: any
   clearAllSelectedTokens: () => void
+  handleActiveHotPair: (pair: any) => void
 }) {
-  const router = useRouter()
-
   const baseTokensSymbol = ['USDT', 'USDC', 'WBTC', 'WETH']
+
+  const queryClient = useQueryClient()
+
+  const { enhanceTokenPair, isLoadingTokenList } = useTokenEnhancer()
+
+  const refetchSpecificPair = async (
+    baseTokenAddress: any,
+    otherTokenAddress: any
+  ) => {
+    if (baseTokenAddress && otherTokenAddress) {
+      try {
+        const result = await queryClient.fetchQuery({
+          queryKey: ['specificPair', baseTokenAddress, otherTokenAddress],
+          queryFn: () =>
+            fetchSpecificPair({
+              tokenA: baseTokenAddress,
+              tokenB: otherTokenAddress,
+            }),
+        })
+
+        if (result.data) {
+          const data = enhanceTokenPair(result.data)
+          handleActiveHotPair(data)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col items-center w-full justify-center gap-8">
@@ -30,7 +65,9 @@ export default function TokenPairsSection({
         {/* Left Section: 2x2 Grid */}
         <div className="grid grid-cols-2 gap-4">
           {tokensList
-            .filter((token) => baseTokensSymbol.includes(token.symbol))
+            .filter((token) =>
+              baseTokensSymbol.includes(token.symbol.toUpperCase())
+            )
             .map((token) => (
               <TokenIcon
                 key={token.id}
@@ -39,6 +76,7 @@ export default function TokenPairsSection({
                 selectedBaseToken={selectedBaseToken}
                 selectedOtherToken={selectedOtherToken}
                 setSelectedBaseToken={setSelectedBaseToken}
+                refetchSpecificPair={refetchSpecificPair}
               />
             ))}
         </div>
@@ -56,6 +94,7 @@ export default function TokenPairsSection({
               selectedBaseToken={selectedBaseToken}
               selectedOtherToken={selectedOtherToken}
               setSelectedOtherToken={setSelectedOtherToken}
+              refetchSpecificPair={refetchSpecificPair}
             />
           ))}
         </div>
@@ -92,7 +131,8 @@ export default function TokenPairsSection({
                 </div>
               </div>
               <h2 className="text-white text-xl font-semibold min-w-[8rem] text-left">
-                {selectedBaseToken.symbol} / {selectedOtherToken.symbol}
+                {selectedBaseToken.symbol.toUpperCase()} /{' '}
+                {selectedOtherToken.symbol.toUpperCase()}
               </h2>
             </div>
             <button
@@ -115,6 +155,7 @@ function TokenIcon({
   selectedOtherToken,
   setSelectedBaseToken,
   setSelectedOtherToken,
+  refetchSpecificPair,
 }: {
   token: any
   isBaseToken?: boolean
@@ -122,13 +163,18 @@ function TokenIcon({
   selectedOtherToken?: any
   setSelectedBaseToken?: any
   setSelectedOtherToken?: any
+  refetchSpecificPair: (baseToken: any, otherToken: any) => void
 }) {
   return (
     <div
       className={cn(
         'w-16 h-16 rounded-full flex items-center justify-center border-4 border-neutral-700 transition-all duration-300 group hover:scale-110 overflow-hidden',
-        (selectedBaseToken?.symbol === token.symbol && isBaseToken) ||
-          (selectedOtherToken?.symbol === token.symbol && !isBaseToken)
+        (selectedBaseToken?.symbol.toUpperCase() ===
+          token.symbol.toUpperCase() &&
+          isBaseToken) ||
+          (selectedOtherToken?.symbol.toUpperCase() ===
+            token.symbol.toUpperCase() &&
+            !isBaseToken)
           ? 'border-[#40f798] scale-110 border-2'
           : ''
       )}
@@ -136,14 +182,27 @@ function TokenIcon({
         if (isBaseToken) {
           if (
             (selectedOtherToken &&
-              selectedOtherToken.symbol !== token.symbol) ||
+              selectedOtherToken.symbol.toUpperCase() !==
+                token.symbol.toUpperCase()) ||
             !selectedOtherToken
           ) {
             setSelectedBaseToken(token)
+            refetchSpecificPair(
+              token?.tokenAddress,
+              selectedOtherToken?.tokenAddress
+            )
           }
         } else {
-          if (selectedBaseToken && selectedBaseToken.symbol !== token.symbol) {
+          if (
+            selectedBaseToken &&
+            selectedBaseToken.symbol.toUpperCase() !==
+              token.symbol.toUpperCase()
+          ) {
             setSelectedOtherToken(token)
+            refetchSpecificPair(
+              selectedBaseToken?.tokenAddress,
+              token?.tokenAddress
+            )
           }
         }
       }}
@@ -155,8 +214,12 @@ function TokenIcon({
         height={20}
         className={cn(
           'w-full h-full filter grayscale opacity-80 group-hover:grayscale-0 group-hover:opacity-100',
-          (selectedBaseToken?.symbol === token.symbol && isBaseToken) ||
-            (selectedOtherToken?.symbol === token.symbol && !isBaseToken)
+          (selectedBaseToken?.symbol.toUpperCase() ===
+            token.symbol.toUpperCase() &&
+            isBaseToken) ||
+            (selectedOtherToken?.symbol.toUpperCase() ===
+              token.symbol.toUpperCase() &&
+              !isBaseToken)
             ? 'grayscale-0 opacity-100'
             : ''
         )}

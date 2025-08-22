@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useAnimation } from 'framer-motion'
-import { motion, Variants, useMotionValue, animate } from 'framer-motion'
+import { motion, Variants } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import Navbar from '../navbar'
 import { FireIcon } from '../home/SELSection/HotPair/fire-icon'
@@ -12,20 +12,19 @@ import VolumeSection from './VolumeSection'
 import WinSection from './WinSection'
 import { HeroBgImage } from './hotpairs-icons'
 import Button from '../button'
-import { allPairs, hotPairs } from './pairs-data'
 import TokenPairsSection from './TokenPairsSection'
+import {
+  calculateSlippageSavings,
+  calculateSweetSpot,
+  normalizeAmount,
+} from '@/app/lib/gas-calculations'
+import { DexCalculatorFactory } from '@/app/lib/dex/calculators'
 
 const HotPairs = () => {
   const router = useRouter()
   const [volumeAmount, setVolumeAmount] = useState(0)
-  const [invaliVolumeAmount, setInvaliVolumeAmount] = useState(false)
-  const [isFetchingReserves, setIsFetchingReserves] = useState(false)
-  const [invaliSavingsAmount, setInvaliSavingsAmount] = useState(false)
   const [winAmount, setWinAmount] = useState(0)
-  const [invaliWinAmount, setInvaliWinAmount] = useState(false)
-  const [topHotPairs, setTopHotPairs] = useState(hotPairs)
   const [activeHotPair, setActiveHotPair] = useState<any>(null)
-  const [filteredPairsData, setFilteredPairsData] = useState<any[]>([])
   const [volumeActive, setVolumeActive] = useState(true)
   const [winActive, setWinActive] = useState(true)
   const [winLoading, setWinLoading] = useState(false)
@@ -58,34 +57,6 @@ const HotPairs = () => {
     controls.start('visible')
   }, [controls])
 
-  useEffect(() => {
-    if (selectedBaseToken && selectedOtherToken) {
-      const filteredPairs = allPairs.filter(
-        (p: any) => p.token1Symbol === selectedBaseToken.symbol
-      )
-      const activePair = allPairs.filter(
-        (p: any) =>
-          p.token1Symbol === selectedBaseToken.symbol &&
-          p.token2Symbol === selectedOtherToken.symbol
-      )[0]
-      setFilteredPairsData(filteredPairs)
-
-      if (activePair) {
-        setActiveHotPair(activePair)
-        setVolumeAmount(activePair.vol)
-        setWinAmount(activePair.win)
-        setVolumeActive(true)
-        setWinActive(true)
-      } else {
-        setActiveHotPair(null)
-        setVolumeAmount(0)
-        setWinAmount(0)
-        setVolumeActive(false)
-        setWinActive(false)
-      }
-    }
-  }, [selectedBaseToken, selectedOtherToken])
-
   const titleVariants: Variants = {
     hidden: { opacity: 0, y: 30 },
     visible: {
@@ -100,26 +71,24 @@ const HotPairs = () => {
   }
 
   const handleActiveHotPair = (pair: any) => {
+    if (!pair) return
+
     setActiveHotPair(pair)
-    setVolumeAmount(pair.vol)
-    setWinAmount(pair.win)
+    setVolumeAmount(pair?.reserveAtotaldepth)
+    // setVolumeAmount(pair?.reserveAtotaldepthWei)
+    setWinAmount(pair?.percentageSavings || 0)
     setVolumeActive(true)
     setWinActive(true)
 
-    // Here we'll filter the pairs data based on the active hot pair first token address only
-
-    const filteredPairs = allPairs.filter(
-      (p: any) => p.token1Address === pair.token1Address
-    )
-    setFilteredPairsData(filteredPairs)
-
     setSelectedBaseToken({
-      icon: pair.icon1,
-      symbol: pair.token1Symbol,
+      icon: pair.tokenAIcon,
+      symbol: pair.tokenASymbol,
+      tokenAddress: pair?.tokenAAddress,
     })
     setSelectedOtherToken({
-      icon: pair.icon2,
-      symbol: pair.token2Symbol,
+      icon: pair?.tokenBIcon,
+      symbol: pair?.tokenBSymbol,
+      tokenAddress: pair?.tokenBAddress,
     })
   }
 
@@ -139,45 +108,113 @@ const HotPairs = () => {
   const handleSwitchTokens = () => {
     const newPair = {
       ...activeHotPair,
-      icon1: activeHotPair.icon2,
-      icon2: activeHotPair.icon1,
-      token1Address: activeHotPair.token2Address,
-      token2Address: activeHotPair.token1Address,
-      token1Symbol: activeHotPair.token2Symbol,
-      token2Symbol: activeHotPair.token1Symbol,
+      tokenAIcon: activeHotPair.tokenBIcon,
+      tokenBIcon: activeHotPair.tokenAIcon,
+      tokenAAddress: activeHotPair.tokenBAddress,
+      tokenBAddress: activeHotPair.tokenAAddress,
+      tokenASymbol: activeHotPair.tokenBSymbol,
+      tokenBSymbol: activeHotPair.tokenASymbol,
     }
 
     setActiveHotPair(newPair)
   }
 
-  const handleVolumeAmountChange = (amount: number) => {
+  const handleVolumeAmountChange = async (amount: number) => {
+    // if (!activeHotPair || amount === activeHotPair?.reserveAtotaldepthWei)
+    //   return
+    if (!activeHotPair || amount === activeHotPair?.reserveAtotaldepth) return
+
     setVolumeAmount(amount)
     setWinLoading(true)
     setVolumeLoading(false)
 
+    const calculator = DexCalculatorFactory.createCalculator(
+      activeHotPair?.highestLiquidityADex || 'uniswap-v2',
+      undefined,
+      '1'
+    )
+
+    console.log('activeHotPair ===>', activeHotPair)
+    console.log('calculator ===>', calculator)
+    const tradeVolumeBN = normalizeAmount(
+      amount.toString(),
+      activeHotPair?.tokenADecimals
+    )
+
+    console.log('tradeVolumeBN ===>', tradeVolumeBN)
+    console.log(
+      'reserveAtotaldepthWei ===>',
+      activeHotPair?.reserveAtotaldepthWei
+    )
+    console.log(
+      'reserveBtotaldepthWei ===>',
+      activeHotPair?.reserveBtotaldepthWei
+    )
+    console.log('tokenADecimals ===>', activeHotPair?.tokenADecimals)
+    console.log('tokenBDecimals ===>', activeHotPair?.tokenBDecimals)
+
+    const sweetSpot = calculateSweetSpot(
+      tradeVolumeBN,
+      BigInt(activeHotPair?.reserveAtotaldepthWei),
+      BigInt(activeHotPair?.reserveBtotaldepthWei),
+      activeHotPair?.tokenADecimals,
+      activeHotPair?.tokenBDecimals,
+      0
+    )
+
+    console.log('sweetSpot ===>', sweetSpot)
+
+    const feeTier = activeHotPair?.highestLiquidityADex
+      ? activeHotPair?.highestLiquidityADex?.startsWith('uniswap-v3')
+        ? parseInt(activeHotPair?.highestLiquidityADex.split('-')[2])
+        : 3000
+      : 3000
+
+    console.log('feeTier ===>', feeTier)
+    const { savings, percentageSavings } = await calculateSlippageSavings(
+      calculator.getProvider(),
+      tradeVolumeBN,
+      activeHotPair?.highestLiquidityADex || 'uniswap-v2',
+      feeTier,
+      BigInt(activeHotPair?.reserveAtotaldepthWei),
+      BigInt(activeHotPair?.reserveBtotaldepthWei),
+      activeHotPair?.tokenADecimals,
+      activeHotPair?.tokenBDecimals,
+      activeHotPair?.tokenAAddress,
+      activeHotPair?.tokenBAddress,
+      sweetSpot
+    )
+
+    console.log('savings ===>', savings)
+    const savingsInUSD = savings * (activeHotPair?.tokenBUsdPrice || 0)
+    // setWinAmount(savingsInUSD || 0)
+    setWinAmount(Number(percentageSavings.toFixed(2)) || 0)
+
+    setWinLoading(false)
+
     // After one seond set volume loading to false
-    setTimeout(() => {
-      setWinLoading(false)
-    }, 1000)
+    // setTimeout(() => {
+    //   setWinLoading(false)
+    // }, 1000)
   }
 
   const handleWinAmountChange = (amount: number) => {
     setWinAmount(amount)
     setWinLoading(false)
-    setVolumeLoading(true)
+    // setVolumeLoading(true)
 
     // After one seond set volume loading to false
-    setTimeout(() => {
-      setVolumeLoading(false)
-    }, 1000)
+    // setTimeout(() => {
+    //   setVolumeLoading(false)
+    // }, 1000)
   }
 
   const handleMainStreamClick = () => {
     if (activeHotPair) {
       // Navigate to swaps page with active token pair as query parameters
       const searchParams = new URLSearchParams({
-        from: activeHotPair.token1Symbol,
-        to: activeHotPair.token2Symbol,
+        from: activeHotPair.tokenASymbol,
+        to: activeHotPair.tokenBSymbol,
       })
 
       router.push(`/swaps?${searchParams.toString()}`)
@@ -187,7 +224,6 @@ const HotPairs = () => {
   const clearAllSelectedTokens = () => {
     setSelectedBaseToken(null)
     setSelectedOtherToken(null)
-    setFilteredPairsData([])
     setActiveHotPair(null)
     setVolumeAmount(0)
     setWinAmount(0)
@@ -195,7 +231,9 @@ const HotPairs = () => {
     setWinActive(false)
   }
 
-  console.log('activeHotPair ===>', activeHotPair)
+  // console.log('activeHotPair ===>', activeHotPair)
+  console.log('selectedBaseToken ===>', selectedBaseToken)
+  console.log('selectedOtherToken ===>', selectedOtherToken)
 
   return (
     <>
@@ -256,7 +294,6 @@ const HotPairs = () => {
             custom={0.2}
           >
             <TopPairsCarousel
-              topHotPairs={topHotPairs}
               activeHotPair={activeHotPair}
               setActiveHotPair={handleActiveHotPair}
             />
@@ -280,10 +317,8 @@ const HotPairs = () => {
                   pair={activeHotPair}
                   switchTokens={handleSwitchTokens}
                   clearActiveTokenPair={() => {
-                    console.log('clearActiveTokenPair ==>')
                     setVolumeAmount(0)
                     // setActiveHotPair(null)
-                    // setFilteredPairsData([])
                     // setWinAmount(0)
                     // setVolumeActive(false)
                     // setWinActive(false)
@@ -304,12 +339,14 @@ const HotPairs = () => {
                   setAmount={handleWinAmountChange}
                   isLoading={winLoading}
                   inValidAmount={false}
-                  active={winActive}
+                  // active={winActive}
                   handleActive={() => {
                     setVolumeActive(false)
                     setWinActive(true)
                   }}
-                  disabled={!activeHotPair}
+                  active={false}
+                  disabled={true}
+                  // disabled={!activeHotPair}
                 />
               </div>
             </div>
@@ -334,6 +371,17 @@ const HotPairs = () => {
               setSelectedBaseToken={setSelectedBaseToken}
               setSelectedOtherToken={setSelectedOtherToken}
               clearAllSelectedTokens={clearAllSelectedTokens}
+              // triggerChangeOfTokens={(token: any, otherToken: any) => {
+              //   if (
+              //     token?.symbol?.toUpperCase() !==
+              //       selectedBaseToken?.symbol?.toUpperCase() ||
+              //     otherToken?.symbol?.toUpperCase() !==
+              //       selectedOtherToken?.symbol?.toUpperCase()
+              //   ) {
+              //     setTriggerChangeOfActiveHotPair(true)
+              //   }
+              // }}
+              handleActiveHotPair={handleActiveHotPair}
             />
           </motion.div>
 
@@ -344,7 +392,7 @@ const HotPairs = () => {
             custom={0.4}
             className="mt-24 md:mt-36"
           >
-            <PairsTable pairsData={filteredPairsData} />
+            <PairsTable selectedTokenAddress={activeHotPair?.tokenAAddress} />
           </motion.div>
         </div>
       </div>

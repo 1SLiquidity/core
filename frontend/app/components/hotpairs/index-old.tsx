@@ -3,158 +3,37 @@
 // import { useEffect, useState, useRef } from 'react'
 // import { useAnimation } from 'framer-motion'
 // import { motion, Variants, useMotionValue, animate } from 'framer-motion'
+// import { useRouter } from 'next/navigation'
 // import Navbar from '../navbar'
 // import { FireIcon } from '../home/SELSection/HotPair/fire-icon'
 // import PairsTable from './pairs-table'
 // import TopPairsCarousel from './top-pairs-carousel'
 // import VolumeSection from './VolumeSection'
-// import SavingsSection from './SavingsSection'
 // import WinSection from './WinSection'
-// import {
-//   HeroBgImage,
-//   UsdcIcon,
-//   UsdtIcon,
-//   WethIcon,
-//   BnbIcon,
-// } from './hotpairs-icons'
-
-// type Pair = { id: number; label: string; A: any; B: any }
-
-// const PAIRS: Pair[] = [
-//   { id: 1, label: 'USDC-USDT', A: UsdcIcon, B: UsdtIcon },
-//   { id: 2, label: 'USDT-WETH', A: UsdtIcon, B: WethIcon },
-//   { id: 3, label: 'WETH-USDC', A: WethIcon, B: UsdcIcon },
-//   { id: 4, label: 'USDT-BNB', A: UsdtIcon, B: BnbIcon },
-//   // repeat to create a fuller cloud
-//   { id: 5, label: 'USDC-USDT', A: UsdcIcon, B: UsdtIcon },
-//   { id: 6, label: 'USDT-WETH', A: UsdtIcon, B: WethIcon },
-//   { id: 7, label: 'WETH-USDC', A: WethIcon, B: UsdcIcon },
-//   { id: 8, label: 'USDT-BNB', A: UsdtIcon, B: BnbIcon },
-// ]
-
-// const FloatingPair = ({
-//   pair,
-//   wrapperHeight,
-//   leftPercent,
-//   anchorPercent,
-//   startDown,
-// }: {
-//   pair: Pair
-//   wrapperHeight?: number
-//   leftPercent: number // 0..100
-//   anchorPercent: number // 0..1
-//   startDown: boolean
-// }) => {
-//   const [paused, setPaused] = useState(false)
-//   const pausedRef = useRef(false)
-//   const [hovered, setHovered] = useState(false)
-
-//   // Fixed small vertical oscillation around anchor, resumes from current position
-//   const y = useMotionValue(0)
-//   const [ay, setAy] = useState<ReturnType<typeof animate> | null>(null)
-//   const [amplitude] = useState(() => Math.random() * 24 + 16) // 16–40px (up)
-//   const [baseDuration] = useState(() => Math.random() * 4 + 4) // 4–8s full swing
-
-//   // Compute downward allowance to avoid touching the cards edge
-//   const computeDownAmp = () => {
-//     if (!wrapperHeight || wrapperHeight <= 0) return amplitude
-//     const bottomPadding = 96 // extra gap to avoid touching the cut edge
-//     const iconHalf = 40 // approximate icon half size + blur/shadow
-//     const anchorPx = wrapperHeight * Math.max(0, Math.min(1, anchorPercent))
-//     const maxDown = wrapperHeight - bottomPadding - iconHalf - anchorPx
-//     // Soften downward travel a bit to keep a comfortable margin
-//     return Math.max(0, Math.min(amplitude * 0.7, maxDown))
-//   }
-
-//   const loopDrift = () => {
-//     const downAmp = computeDownAmp()
-//     const current = y.get()
-//     const nextUp = -amplitude
-//     const nextDown = downAmp
-//     // If no room downward, always go up
-//     const target = downAmp <= 0 ? nextUp : current >= 0 ? nextUp : nextDown
-//     const distance = Math.max(1, Math.abs(target - current))
-//     const fullSpan = Math.max(1, amplitude + downAmp)
-//     const ratio = Math.min(1, distance / fullSpan)
-//     const duration = Math.max(0.18, baseDuration * ratio)
-
-//     const anim = animate(y, target, {
-//       duration,
-//       ease: 'easeInOut',
-//       onComplete: () => {
-//         if (!pausedRef.current) loopDrift()
-//       },
-//     })
-//     setAy(anim)
-//   }
-
-//   const startDrift = () => {
-//     pausedRef.current = false
-//     loopDrift()
-//   }
-
-//   const stopDrift = () => {
-//     pausedRef.current = true
-//     ay?.stop()
-//   }
-
-//   useEffect(() => {
-//     // seed direction so top row moves down first, bottom row up first
-//     y.set(startDown ? -1 : 1)
-//     startDrift()
-//     return () => stopDrift()
-//     // eslint-disable-next-line react-hooks/exhaustive-deps
-//   }, [])
-
-//   const A = pair.A
-//   const B = pair.B
-
-//   return (
-//     <motion.div
-//       className="absolute will-change-transform pointer-events-auto"
-//       style={{
-//         top: `${anchorPercent * 100}%`,
-//         left: `${leftPercent}%`,
-//         y,
-//         zIndex: hovered ? 30 : 1,
-//         filter: paused ? 'blur(0px)' : 'blur(6px)',
-//         transition: 'filter 0.25s ease',
-//       }}
-//       onMouseEnter={() => {
-//         setHovered(true)
-//         setPaused(true)
-//         stopDrift()
-//       }}
-//       onMouseLeave={() => {
-//         setHovered(false)
-//         setPaused(false)
-//         startDrift()
-//       }}
-//       onClick={() => {
-//         // eslint-disable-next-line no-console
-//         console.log('pair:', pair.label)
-//       }}
-//     >
-//       <div className="flex items-center transition-all duration-300 group cursor-pointer">
-//         <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 border-[#827a7a33] bg-black/30 overflow-hidden z-10">
-//           <A className="w-full h-full" />
-//         </div>
-//         <div className="w-12 h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center border-2 border-[#827a7a33] -ml-3 bg-black/30 overflow-hidden">
-//           <B className="w-full h-full" />
-//         </div>
-//       </div>
-//     </motion.div>
-//   )
-// }
+// import { HeroBgImage } from './hotpairs-icons'
+// import Button from '../button'
+// import { allPairs, hotPairs } from './pairs-data'
+// import TokenPairsSection from './TokenPairsSection'
+// import { useTopTokens } from '@/app/lib/hooks/useTopTokens'
 
 // const HotPairs = () => {
+//   const router = useRouter()
 //   const [volumeAmount, setVolumeAmount] = useState(0)
 //   const [invaliVolumeAmount, setInvaliVolumeAmount] = useState(false)
 //   const [isFetchingReserves, setIsFetchingReserves] = useState(false)
-//   const [savingsAmount, setSavingsAmount] = useState(0)
 //   const [invaliSavingsAmount, setInvaliSavingsAmount] = useState(false)
 //   const [winAmount, setWinAmount] = useState(0)
 //   const [invaliWinAmount, setInvaliWinAmount] = useState(false)
+//   const [topHotPairs, setTopHotPairs] = useState(hotPairs)
+//   const [activeHotPair, setActiveHotPair] = useState<any>(null)
+//   const [filteredPairsData, setFilteredPairsData] = useState<any[]>([])
+//   const [volumeActive, setVolumeActive] = useState(true)
+//   const [winActive, setWinActive] = useState(true)
+//   const [winLoading, setWinLoading] = useState(false)
+//   const [volumeLoading, setVolumeLoading] = useState(false)
+
+//   const [selectedBaseToken, setSelectedBaseToken] = useState<any>(null)
+//   const [selectedOtherToken, setSelectedOtherToken] = useState<any>(null)
 
 //   const controls = useAnimation()
 
@@ -180,6 +59,34 @@
 //     controls.start('visible')
 //   }, [controls])
 
+//   useEffect(() => {
+//     if (selectedBaseToken && selectedOtherToken) {
+//       const filteredPairs = allPairs.filter(
+//         (p: any) => p.token1Symbol === selectedBaseToken.symbol
+//       )
+//       const activePair = allPairs.filter(
+//         (p: any) =>
+//           p.token1Symbol === selectedBaseToken.symbol &&
+//           p.token2Symbol === selectedOtherToken.symbol
+//       )[0]
+//       setFilteredPairsData(filteredPairs)
+
+//       if (activePair) {
+//         setActiveHotPair(activePair)
+//         setVolumeAmount(activePair.vol)
+//         setWinAmount(activePair.win)
+//         setVolumeActive(true)
+//         setWinActive(true)
+//       } else {
+//         setActiveHotPair(null)
+//         setVolumeAmount(0)
+//         setWinAmount(0)
+//         setVolumeActive(false)
+//         setWinActive(false)
+//       }
+//     }
+//   }, [selectedBaseToken, selectedOtherToken])
+
 //   const titleVariants: Variants = {
 //     hidden: { opacity: 0, y: 30 },
 //     visible: {
@@ -191,6 +98,30 @@
 //         delay: 0,
 //       },
 //     },
+//   }
+
+//   const handleActiveHotPair = (pair: any) => {
+//     setActiveHotPair(pair)
+//     setVolumeAmount(pair.vol)
+//     setWinAmount(pair.win)
+//     setVolumeActive(true)
+//     setWinActive(true)
+
+//     // Here we'll filter the pairs data based on the active hot pair first token address only
+
+//     const filteredPairs = allPairs.filter(
+//       (p: any) => p.token1Address === pair.token1Address
+//     )
+//     setFilteredPairsData(filteredPairs)
+
+//     setSelectedBaseToken({
+//       icon: pair.icon1,
+//       symbol: pair.token1Symbol,
+//     })
+//     setSelectedOtherToken({
+//       icon: pair.icon2,
+//       symbol: pair.token2Symbol,
+//     })
 //   }
 
 //   const sectionVariants: Variants = {
@@ -205,6 +136,66 @@
 //       },
 //     }),
 //   }
+
+//   const handleSwitchTokens = () => {
+//     const newPair = {
+//       ...activeHotPair,
+//       icon1: activeHotPair.icon2,
+//       icon2: activeHotPair.icon1,
+//       token1Address: activeHotPair.token2Address,
+//       token2Address: activeHotPair.token1Address,
+//       token1Symbol: activeHotPair.token2Symbol,
+//       token2Symbol: activeHotPair.token1Symbol,
+//     }
+
+//     setActiveHotPair(newPair)
+//   }
+
+//   const handleVolumeAmountChange = (amount: number) => {
+//     setVolumeAmount(amount)
+//     setWinLoading(true)
+//     setVolumeLoading(false)
+
+//     // After one seond set volume loading to false
+//     setTimeout(() => {
+//       setWinLoading(false)
+//     }, 1000)
+//   }
+
+//   const handleWinAmountChange = (amount: number) => {
+//     setWinAmount(amount)
+//     setWinLoading(false)
+//     setVolumeLoading(true)
+
+//     // After one seond set volume loading to false
+//     setTimeout(() => {
+//       setVolumeLoading(false)
+//     }, 1000)
+//   }
+
+//   const handleMainStreamClick = () => {
+//     if (activeHotPair) {
+//       // Navigate to swaps page with active token pair as query parameters
+//       const searchParams = new URLSearchParams({
+//         from: activeHotPair.token1Symbol,
+//         to: activeHotPair.token2Symbol,
+//       })
+
+//       router.push(`/swaps?${searchParams.toString()}`)
+//     }
+//   }
+
+//   const clearAllSelectedTokens = () => {
+//     setSelectedBaseToken(null)
+//     setSelectedOtherToken(null)
+//     setFilteredPairsData([])
+//     setActiveHotPair(null)
+//     setVolumeAmount(0)
+//     setWinAmount(0)
+//     setVolumeActive(false)
+//     setWinActive(false)
+//   }
+
 //   return (
 //     <>
 //       <div className="relative min-h-screen overflow-hidden">
@@ -213,9 +204,9 @@
 //         <HeroBgImage className="absolute -top-28 right-0 w-full h-full object-cover" />
 //         <div
 //           ref={containerRef}
-//           className="mt-[60px] mb-10 mx-auto relative z-10 w-full px-4 w-full"
+//           className="mt-[60px] mb-10 mx-auto relative z-10 w-full px-4 md:max-w-6xl"
 //         >
-//           <div className="flex flex-col items-center justify-center gap-2 md:gap-4 md:max-w-4xl w-full mx-auto">
+//           <div className="flex flex-col items-center justify-center gap-2 md:gap-2 md:max-w-6xl w-full mx-auto mb-10 sm:mb-16">
 //             <motion.div
 //               className="flex items-center gap-2"
 //               initial="hidden"
@@ -236,87 +227,126 @@
 //                 Hot Pairs
 //               </h1>
 //             </motion.div>
-//             <motion.h2
-//               className="text-3xl md:text-5xl font-bold mb-10 sm:mb-16 text-white text-center"
-//               initial="hidden"
-//               animate={controls}
-//               variants={titleVariants}
-//             >
-//               Peer-to-Peer OTC Trades. Beat Market Prices. Instantly.
-//             </motion.h2>
-//           </div>
-
-//           {/* This should be div where icons will move */}
-//           <div
-//             className="relative overflow-hidden z-0"
-//             style={{ height: iconsHeight ? `${iconsHeight}px` : undefined }}
-//           >
-//             <div className="absolute inset-0">
-//               {PAIRS.map((pair, idx) => {
-//                 const count = PAIRS.length
-//                 const pad = 8 // percent side padding
-//                 const left =
-//                   count > 1 ? pad + (idx * (100 - pad * 2)) / (count - 1) : 50
-//                 const isTop = idx % 2 === 1 // alternate: bottom then top
-//                 const anchor = isTop ? 0.22 : 0.6
-//                 return (
-//                   <FloatingPair
-//                     key={pair.id}
-//                     pair={pair}
-//                     wrapperHeight={iconsHeight}
-//                     leftPercent={left}
-//                     anchorPercent={anchor}
-//                     startDown={isTop}
-//                   />
-//                 )
-//               })}
+//             <div className="flex flex-col items-center justify-center gap-2">
+//               <motion.h2
+//                 className="text-3xl md:text-[2.75rem] font-bold text-white text-center leading-none md:leading-[1.2]"
+//                 initial="hidden"
+//                 animate={controls}
+//                 variants={titleVariants}
+//               >
+//                 Execute the Hottest High Market Cap / Low Liquidity Trades.
+//               </motion.h2>
+//               <motion.h2
+//                 className="text-3xl md:text-[2.75rem] font-bold text-white text-center"
+//                 initial="hidden"
+//                 animate={controls}
+//                 variants={titleVariants}
+//               >
+//                 Stream with One Click.
+//               </motion.h2>
 //             </div>
 //           </div>
 
 //           {/* Cards section */}
-//           <div className="w-full md:max-w-6xl mx-auto mt-10">
-//             <motion.div
-//               ref={cardsRef}
-//               className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-28"
-//               initial="hidden"
-//               animate={controls}
-//               variants={sectionVariants}
-//               custom={0}
-//             >
-//               <VolumeSection
-//                 amount={volumeAmount}
-//                 setAmount={setVolumeAmount}
-//                 inValidAmount={false}
-//               />
-//               <WinSection
-//                 amount={winAmount}
-//                 setAmount={setWinAmount}
-//                 inValidAmount={false}
-//               />
-//               <SavingsSection
-//                 amount={savingsAmount}
-//                 setAmount={setSavingsAmount}
-//                 inValidAmount={false}
-//               />
-//             </motion.div>
+//           <motion.div
+//             initial="hidden"
+//             animate={controls}
+//             variants={sectionVariants}
+//             custom={0.2}
+//           >
+//             <TopPairsCarousel
+//               // topHotPairs={topHotPairs}
+//               // isLoading={isLoading}
+//               activeHotPair={activeHotPair}
+//               setActiveHotPair={handleActiveHotPair}
+//             />
+//             {/* <TopPairsCarousel /> */}
+//           </motion.div>
 
-//             <motion.div
-//               initial="hidden"
-//               animate={controls}
-//               variants={sectionVariants}
-//               custom={0.2}
-//             >
-//               <TopPairsCarousel />
-//             </motion.div>
-//             <motion.div
-//               initial="hidden"
-//               animate={controls}
-//               variants={sectionVariants}
-//               custom={0.4}
-//             >
-//               <PairsTable />
-//             </motion.div>
-//           </div>
+//           <motion.div
+//             ref={cardsRef}
+//             className="flex flex-col items-center gap-8 mt-24 md:mt-32"
+//             initial="hidden"
+//             animate={controls}
+//             variants={sectionVariants}
+//             custom={0}
+//           >
+//             <div className="flex justify-center items-center gap-6">
+//               <div className="w-full md:max-w-[25rem] md:min-w-[25rem]">
+//                 <VolumeSection
+//                   amount={volumeAmount}
+//                   setAmount={handleVolumeAmountChange}
+//                   isLoading={volumeLoading}
+//                   inValidAmount={false}
+//                   pair={activeHotPair}
+//                   switchTokens={handleSwitchTokens}
+//                   clearActiveTokenPair={() => {
+//                     console.log('clearActiveTokenPair ==>')
+//                     setVolumeAmount(0)
+//                     // setActiveHotPair(null)
+//                     // setFilteredPairsData([])
+//                     // setWinAmount(0)
+//                     // setVolumeActive(false)
+//                     // setWinActive(false)
+//                     // setSelectedBaseToken(null)
+//                     // setSelectedOtherToken(null)
+//                   }}
+//                   active={volumeActive}
+//                   handleActive={() => {
+//                     setVolumeActive(true)
+//                     setWinActive(false)
+//                   }}
+//                   disabled={!activeHotPair}
+//                 />
+//               </div>
+//               <div className="w-full md:max-w-[25rem] md:min-w-[25rem]">
+//                 <WinSection
+//                   amount={winAmount}
+//                   setAmount={handleWinAmountChange}
+//                   isLoading={winLoading}
+//                   inValidAmount={false}
+//                   active={winActive}
+//                   handleActive={() => {
+//                     setVolumeActive(false)
+//                     setWinActive(true)
+//                   }}
+//                   disabled={!activeHotPair}
+//                 />
+//               </div>
+//             </div>
+//             <Button
+//               text="STREAM NOW"
+//               className="h-12 max-w-14 text-[#40f798]"
+//               disabled={!activeHotPair}
+//               onClick={handleMainStreamClick}
+//             />
+//           </motion.div>
+
+//           <motion.div
+//             initial="hidden"
+//             animate={controls}
+//             variants={sectionVariants}
+//             custom={0.4}
+//             className="mt-24 md:mt-28"
+//           >
+//             <TokenPairsSection
+//               selectedBaseToken={selectedBaseToken}
+//               selectedOtherToken={selectedOtherToken}
+//               setSelectedBaseToken={setSelectedBaseToken}
+//               setSelectedOtherToken={setSelectedOtherToken}
+//               clearAllSelectedTokens={clearAllSelectedTokens}
+//             />
+//           </motion.div>
+
+//           <motion.div
+//             initial="hidden"
+//             animate={controls}
+//             variants={sectionVariants}
+//             custom={0.4}
+//             className="mt-24 md:mt-36"
+//           >
+//             <PairsTable pairsData={filteredPairsData} />
+//           </motion.div>
 //         </div>
 //       </div>
 //     </>

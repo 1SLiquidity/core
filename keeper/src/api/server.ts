@@ -214,27 +214,31 @@ app.get(
 
     const [pairs, total] = await Promise.all([
       dbService.client.liquidityData.findMany({
-        where: {
-          OR: [
-            { tokenAAddress: address.toLowerCase() },
-            { tokenBAddress: address.toLowerCase() },
-          ],
-        },
+        where: { tokenAAddress: address.toLowerCase() },
+        // where: {
+        //   OR: [
+        //     { tokenAAddress: address.toLowerCase() },
+        //     { tokenBAddress: address.toLowerCase() },
+        //   ],
+        // },
         skip,
         take: limit,
-        orderBy: [
-          { reserveAtotaldepth: 'desc' },
-          { reserveBtotaldepth: 'desc' },
-        ],
+        // orderBy: [
+        //   { reserveAtotaldepth: 'desc' },
+        //   { reserveBtotaldepth: 'desc' },
+        // ],
       }),
       dbService.client.liquidityData.count({
-        where: {
-          OR: [
-            { tokenAAddress: address.toLowerCase() },
-            { tokenBAddress: address.toLowerCase() },
-          ],
-        },
+        where: { tokenAAddress: address.toLowerCase() },
       }),
+      // dbService.client.liquidityData.count({
+      //   where: {
+      //     OR: [
+      //       { tokenAAddress: address.toLowerCase() },
+      //       { tokenBAddress: address.toLowerCase() },
+      //     ],
+      //   },
+      // }),
     ])
 
     res.json({
@@ -268,7 +272,9 @@ app.get(
       'reserveAtotaldepth',
       'reserveBtotaldepth',
       'marketCap',
+      'slippageSavings',
     ]
+
     if (!validMetrics.includes(metric)) {
       throw { statusCode: 400, message: 'Invalid metric' }
     }
@@ -289,12 +295,17 @@ app.get(
         tokenAName: true,
         tokenBAddress: true,
         tokenBSymbol: true,
+        tokenADecimals: true,
+        tokenBDecimals: true,
         reserveAtotaldepth: true,
         reserveBtotaldepth: true,
         reserveAtotaldepthWei: true,
         reserveBtotaldepthWei: true,
         marketCap: true,
         timestamp: true,
+        slippageSavings: true,
+        percentageSavings: true,
+        highestLiquidityADex: true,
       },
     })
 

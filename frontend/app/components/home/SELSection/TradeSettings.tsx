@@ -26,18 +26,18 @@ export default function TradingSettings() {
   const [v3PoolsEnabled, setV3PoolsEnabled] = useState(true)
   const [v2PoolsEnabled, setV2PoolsEnabled] = useState(true)
 
-  const { isMobile, isXl, isDesktop } = useScreenSize()
+  const { isMobile, isXl, isDesktop, isTablet } = useScreenSize()
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      setIsOpen(true)
-    }, 400) // 0.4 seconds
+      setIsOpen(isXl)
+    }, 400)
 
-    return () => clearTimeout(timer) // cleanup on unmount
-  }, [])
+    return () => clearTimeout(timer)
+  }, [isXl])
 
   // Close dropdown when clicking outside
   // useEffect(() => {

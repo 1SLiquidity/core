@@ -527,6 +527,7 @@ async function saveToDatabase(
     // Transform data from row-based (one row per DEX) to column-based (one row per token pair)
     const transformedData = await transformToColumnFormat(results, timestamp)
 
+    console.log('transformedData =====>', transformedData)
     console.log(
       `📊 Transformed ${results.length} token summaries into ${transformedData.length} database records`
     )
@@ -687,6 +688,8 @@ async function transformToColumnFormat(
     const highestLiquidityBReserve = highestB.reserve
     const highestLiquidityBDex = highestB.dex
 
+    record.highestLiquidityADex = highestLiquidityADex
+
     console.log('<=======>')
     console.log('record.tokenASymbol =====>', record.tokenASymbol)
     console.log('record.tokenBSymbol =====>', record.tokenBSymbol)
@@ -701,6 +704,14 @@ async function transformToColumnFormat(
     console.log('<=======>')
 
     // ✅ Calculate sweet spot
+    // const sweetSpot = calculateSweetSpot(
+    //   BigInt(record.reserveAtotaldepthWei),
+    //   highestLiquidityAReserve,
+    //   highestLiquidityBReserve,
+    //   record.tokenADecimals,
+    //   record.tokenBDecimals
+    // )
+
     const sweetSpot = calculateSweetSpot(
       BigInt(record.reserveAtotaldepthWei),
       highestLiquidityAReserve,
@@ -719,26 +730,30 @@ async function transformToColumnFormat(
     console.log('feeTier =====>', feeTier)
 
     // ✅ Calculate slippage savings
-    const slippageSavings = sweetSpot
+    const { slippageSavings, percentageSavings } = sweetSpot
       ? await calculateSlippageSavings(
           BigInt(record.reserveAtotaldepthWei),
           highestLiquidityADex,
           feeTier,
-          highestLiquidityAReserve,
-          highestLiquidityBReserve,
+          BigInt(record.reserveAtotaldepthWei),
+          BigInt(record.reserveBtotaldepthWei),
           record.tokenADecimals,
           record.tokenBDecimals,
           record.tokenAAddress,
           record.tokenBAddress,
           sweetSpot
         )
-      : 0
+      : { slippageSavings: 0, percentageSavings: 0 }
 
+    console.log('==========')
     console.log('slippageSavings =====>', slippageSavings)
+    console.log('percentageSavings =====>', percentageSavings)
+    console.log('==========')
 
     // record.highestLiquidityADex = highestLiquidityADex
     // record.highestLiquidityBDex = highestLiquidityBDex
     record.slippageSavings = slippageSavings
+    record.percentageSavings = percentageSavings
 
     transformedRecords.push(record)
   }
@@ -828,7 +843,7 @@ export async function calculateSlippageSavings(
   tokenIn: string,
   tokenOut: string,
   sweetSpot: number
-): Promise<number> {
+): Promise<{ slippageSavings: number; percentageSavings: number }> {
   try {
     console.log('========================================')
     console.log('tradeVolume', tradeVolume)
@@ -899,7 +914,13 @@ export async function calculateSlippageSavings(
         scaledSweetSpotAmountOutInETH
       )
 
-      return scaledSweetSpotAmountOutInETH - amountOutInETH
+      const slippageSavings = scaledSweetSpotAmountOutInETH - amountOutInETH
+      const percentageSavings = (slippageSavings / amountOutInETH) * 100
+
+      console.log('slippageSavings =====>', slippageSavings)
+      console.log('percentageSavings =====>', percentageSavings)
+
+      return { slippageSavings, percentageSavings }
     }
 
     if (dex.startsWith('uniswap-v3')) {
@@ -949,13 +970,20 @@ export async function calculateSlippageSavings(
       const scaledSweetSpotQuoteAmountOutInETH =
         sweetSpotQuoteAmountOutInETH * sweetSpot
 
-      return scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
+      const slippageSavings =
+        scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
+      const percentageSavings = (slippageSavings / dexQuoteAmountOutInETH) * 100
+
+      // console.log('slippageSavings =====>', slippageSavings)
+      // console.log('percentageSavings =====>', percentageSavings)
+
+      return { slippageSavings, percentageSavings }
     }
 
-    return 0
+    return { slippageSavings: 0, percentageSavings: 0 }
   } catch (error) {
     console.error('Error calculating slippage savings:', error)
-    return 0
+    return { slippageSavings: 0, percentageSavings: 0 }
   }
 }
 

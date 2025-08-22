@@ -8,16 +8,33 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel'
 import PairCard from './PairCard'
+import { Loader2 } from 'lucide-react'
+import LoadingPairCard from './LoadingPairCard'
+import { useEnhancedTopTokens } from '@/app/lib/hooks/hotpairs/useEnhancedTokens'
+import { useEffect, useMemo, useState } from 'react'
+
+// Enhanced TopToken interface with icon properties
 
 export default function TopPairsCarousel({
-  topHotPairs,
   activeHotPair,
   setActiveHotPair,
 }: {
-  topHotPairs: any
   activeHotPair: any
   setActiveHotPair: any
 }) {
+  // Fetch top tokens using React Query
+  const {
+    data: topTokensData,
+    isLoading: isLoading,
+    isError: isErrorTopTokens,
+    error: topTokensError,
+    refetch: refetchTopTokens,
+  } = useEnhancedTopTokens({
+    limit: 50,
+    metric: 'slippageSavings', // You can change this based on your needs
+    enabled: true,
+  })
+
   return (
     <div className="dark bg-gray-950 my-20">
       <div
@@ -37,20 +54,34 @@ export default function TopPairsCarousel({
           className="w-full"
         >
           <CarouselContent className="-ml-2 md:-ml-4">
-            {topHotPairs.map((pair: any, index: number) => (
-              <CarouselItem
-                key={index}
-                className="pl-2 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-              >
-                <div className="cursor-pointer">
-                  <PairCard
-                    pair={pair}
-                    onClick={setActiveHotPair}
-                    isActive={activeHotPair?.id === pair.id}
-                  />
-                </div>
-              </CarouselItem>
-            ))}
+            {isLoading
+              ? Array(5)
+                  .fill(0)
+                  .map((_, index) => (
+                    <CarouselItem
+                      key={index}
+                      className="pl-2 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                    >
+                      <LoadingPairCard />
+                    </CarouselItem>
+                  ))
+              : topTokensData?.data.map((pair: any, index: number) => (
+                  <CarouselItem
+                    key={index}
+                    className="pl-2 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                  >
+                    <div className="cursor-pointer">
+                      <PairCard
+                        pair={pair}
+                        onClick={setActiveHotPair}
+                        isActive={
+                          activeHotPair?.tokenAAddress === pair.tokenAAddress &&
+                          activeHotPair?.tokenBAddress === pair.tokenBAddress
+                        }
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
           </CarouselContent>
           <CarouselPrevious className="-left-12 bg-[#0c3526] border-neutral-900 text-white hover:bg-[#40FAAC] hover:text-black z-[55555]" />
           <CarouselNext className="-right-12 bg-[#114532] border-neutral-900 text-white hover:bg-[#40FAAC] hover:text-black z-[55555]" />

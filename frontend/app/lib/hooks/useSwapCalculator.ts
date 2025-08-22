@@ -256,7 +256,7 @@ export const useSwapCalculator = ({
             ? parseInt(reserveData.dex.split('-')[2]) || 3000
             : 3000
 
-          const savings = await calculateSlippageSavings(
+          const { savings, percentageSavings } = await calculateSlippageSavings(
             dexCalculator.getProvider(),
             tradeVolumeBN,
             reserveData.dex,

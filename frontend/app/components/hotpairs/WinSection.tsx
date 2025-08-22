@@ -45,7 +45,7 @@ const VolumeSection: React.FC<Props> = ({
   console.log('WinSection isLoading', isLoading)
   return (
     <div ref={sectionRef} className="md:w-fit w-full h-fit relative">
-      {amount > 0 && (
+      {/* {amount > 0 && (
         <div className="absolute -top-9 right-2 z-[100]">
           <div
             className="flex items-center justify-center rounded-md bg-neutral-700 py-[2px] px-2 hover:bg-neutral-800 cursor-pointer"
@@ -56,13 +56,13 @@ const VolumeSection: React.FC<Props> = ({
             Clear
           </div>
         </div>
-      )}
+      )} */}
 
       <div
         className={`w-full h-[150px] md:h-[171px] md:min-w-[25rem] rounded-[15px] p-[2px] relative
           ${
             amount > 0 && !inValidAmount
-              ? 'bg-primary'
+              ? 'bg-neutral-800'
               : inValidAmount
               ? 'bg-primaryRed'
               : 'bg-neutral-800'

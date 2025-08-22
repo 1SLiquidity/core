@@ -61,6 +61,8 @@ model LiquidityData {
   
   // Slippage savings
   slippageSavings Float?
+  percentageSavings Float?
+  highestLiquidityADex String?
   
   // Metadata
   createdAt DateTime @default(now())

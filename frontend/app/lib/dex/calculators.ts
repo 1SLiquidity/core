@@ -35,7 +35,7 @@ export function createAlchemyProvider(): ethers.providers.JsonRpcProvider {
 }
 
 // Extract fee tier from DEX identifier (e.g., "uniswap-v3-3000" -> 3000)
-const extractFeeTier = (dexType: string): number => {
+export const extractFeeTier = (dexType: string): number => {
   if (dexType.startsWith('uniswap-v3-')) {
     const feeStr = dexType.split('-').pop()
     if (feeStr && !isNaN(parseInt(feeStr))) {

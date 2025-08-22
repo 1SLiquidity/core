@@ -111,8 +111,8 @@ const VolumeSection: React.FC<Props> = ({
               disabled={disabled}
               isInsufficientBalance={isInsufficientBalance}
               setIsInsufficientBalance={setIsInsufficientBalance}
-              icon1={pair?.icon1}
-              icon2={pair?.icon2}
+              icon1={pair?.tokenAIcon}
+              icon2={pair?.tokenBIcon}
               switchTokens={switchTokens}
               isLoading={isLoading}
             />
