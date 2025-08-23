@@ -915,7 +915,15 @@ export async function calculateSlippageSavings(
       )
 
       const slippageSavings = scaledSweetSpotAmountOutInETH - amountOutInETH
-      let percentageSavings = (slippageSavings / amountOutInETH) * 100
+      // let percentageSavings = (slippageSavings / amountOutInETH) * 100
+      // percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+      // // Format to 3 decimals
+      // percentageSavings = Number(percentageSavings.toFixed(3))
+
+      let raw = slippageSavings / amountOutInETH
+      // Instead of raw * 100, do (1 - raw) * 100
+      let percentageSavings = (1 - raw) * 100
+      // Clamp between 0–100
       percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
       // Format to 3 decimals
       percentageSavings = Number(percentageSavings.toFixed(3))
@@ -1249,8 +1257,8 @@ async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
       )
     }
 
-    const actualTokensToProcess = tokensToProcess.length
-    // const actualTokensToProcess = 2
+    // const actualTokensToProcess = tokensToProcess.length
+    const actualTokensToProcess = 6
 
     // Process tokens
     for (let i = 0; i < actualTokensToProcess; i++) {
