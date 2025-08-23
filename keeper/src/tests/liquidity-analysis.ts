@@ -1246,8 +1246,8 @@ async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
       )
     }
 
-    // const actualTokensToProcess = tokensToProcess.length
-    const actualTokensToProcess = 2
+    const actualTokensToProcess = tokensToProcess.length
+    // const actualTokensToProcess = 2
 
     // Process tokens
     for (let i = 0; i < actualTokensToProcess; i++) {
