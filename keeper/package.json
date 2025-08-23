@@ -21,8 +21,8 @@
     "deploy:prod": "serverless deploy --stage prod",
     "api:dev": "ts-node src/api/server.ts",
     "api:build": "tsc",
-    "api:start": "node dist/api/server.js",
-    "api:start:prod": "NODE_ENV=production node dist/api/server.js"
+    "api:start": "node dist/src/api/server.js",
+    "api:start:prod": "NODE_ENV=production node dist/src/api/server.js"
   },
   "dependencies": {
     "@prisma/client": "^6.13.0",
