@@ -117,9 +117,7 @@ const fetchTokenPairs = async ({
     limit: limit.toString(),
   })
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/tokens/${address}/pairs?${params}`
-  )
+  const response = await fetch(`/api/tokens/${address}/pairs?${params}`)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch token pairs: ${response.statusText}`)
@@ -137,9 +135,7 @@ const fetchTopTokens = async ({
     metric,
   })
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/tokens/top?${params}`
-  )
+  const response = await fetch(`/api/tokens/top?${params}`)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch top tokens: ${response.statusText}`)
@@ -155,9 +151,7 @@ export const fetchSpecificPair = async ({
   tokenA: string
   tokenB: string
 }): Promise<SpecificPairResponse> => {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/pairs/${tokenA}/${tokenB}`
-  )
+  const response = await fetch(`/api/pairs/${tokenA}/${tokenB}`)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch specific pair: ${response.statusText}`)

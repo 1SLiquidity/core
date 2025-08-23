@@ -43,9 +43,7 @@ const fetchTopTokens = async ({
     metric,
   })
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/tokens/top?${params}`
-  )
+  const response = await fetch(`/api/tokens/top?${params}`)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch top tokens: ${response.statusText}`)

@@ -49,9 +49,7 @@ const fetchTokenPairs = async ({
     limit: limit.toString(),
   })
 
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/tokens/${address}/pairs?${params}`
-  )
+  const response = await fetch(`/api/tokens/${address}/pairs?${params}`)
 
   if (!response.ok) {
     throw new Error(`Failed to fetch token pairs: ${response.statusText}`)
