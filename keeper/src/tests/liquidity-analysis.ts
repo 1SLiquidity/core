@@ -915,7 +915,10 @@ export async function calculateSlippageSavings(
       )
 
       const slippageSavings = scaledSweetSpotAmountOutInETH - amountOutInETH
-      const percentageSavings = (slippageSavings / amountOutInETH) * 100
+      let percentageSavings = (slippageSavings / amountOutInETH) * 100
+      percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+      // Format to 3 decimals
+      percentageSavings = Number(percentageSavings.toFixed(3))
 
       console.log('slippageSavings =====>', slippageSavings)
       console.log('percentageSavings =====>', percentageSavings)

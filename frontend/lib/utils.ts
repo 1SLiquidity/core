@@ -33,6 +33,7 @@ export function formatNumberAdvanced(
     { value: 1e3, suffix: 'K', decimals: thousandDecimals },
   ]
 
+  // Handle large numbers with suffix
   for (const { value, suffix, decimals } of ranges) {
     if (absNum >= value) {
       const formatted = (absNum / value).toFixed(decimals)
@@ -41,5 +42,6 @@ export function formatNumberAdvanced(
     }
   }
 
-  return absNum < 1 ? num.toString() : Math.round(num).toString()
+  // For numbers less than 1000 → always show up to 3 decimal places
+  return `${sign}${absNum.toFixed(3)}`
 }
