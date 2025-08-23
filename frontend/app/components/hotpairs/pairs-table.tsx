@@ -15,6 +15,7 @@ import { useEnhancedTokenPairs } from '@/app/lib/hooks/hotpairs/useEnhancedToken
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
+import ImageFallback from '@/app/shared/ImageFallback'
 
 export default function PairsTable({
   selectedTokenAddress,
@@ -133,26 +134,26 @@ export default function PairsTable({
                                 )}
                               >
                                 {/* Ethereum icon */}
-                                <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
-                                  <Image
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10 overflow-hidden">
+                                  <ImageFallback
                                     src={pair.tokenAIcon}
                                     alt="eth"
-                                    width={20}
-                                    height={20}
-                                    className="w-full h-full"
+                                    width={100}
+                                    height={100}
+                                    className="w-full h-full object-cover"
                                   />
                                 </div>
                                 <div
                                   className={cn(
-                                    'w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] -ml-3 transition-all duration-300'
+                                    'w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] -ml-3 transition-all duration-300 overflow-hidden'
                                   )}
                                 >
-                                  <Image
+                                  <ImageFallback
                                     src={pair.tokenBIcon}
                                     alt="dai"
-                                    width={20}
-                                    height={20}
-                                    className="w-full h-full"
+                                    width={100}
+                                    height={100}
+                                    className="w-full h-full object-cover"
                                   />
                                 </div>
                               </div>
