@@ -8,12 +8,8 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel'
 import PairCard from './PairCard'
-import { Loader2 } from 'lucide-react'
 import LoadingPairCard from './LoadingPairCard'
 import { useEnhancedTopTokens } from '@/app/lib/hooks/hotpairs/useEnhancedTokens'
-import { useEffect, useMemo, useState } from 'react'
-
-// Enhanced TopToken interface with icon properties
 
 export default function TopPairsCarousel({
   activeHotPair,

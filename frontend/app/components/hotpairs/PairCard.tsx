@@ -1,13 +1,9 @@
 'use client'
+
 import { cn, formatNumberAdvanced } from '@/lib/utils'
 import Image from 'next/image'
 import Button from '../button'
 import { useRouter } from 'next/navigation'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import ImageFallback from '@/app/shared/ImageFallback'
 
 export default function PairCard({
