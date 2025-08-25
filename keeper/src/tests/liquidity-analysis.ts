@@ -925,7 +925,6 @@ export async function calculateSlippageSavings(
       let percentageSavings = (1 - raw) * 100
       // Clamp between 0–100
       percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
-      // Format to 3 decimals
       percentageSavings = Number(percentageSavings.toFixed(3))
 
       console.log('slippageSavings =====>', slippageSavings)
@@ -983,7 +982,13 @@ export async function calculateSlippageSavings(
 
       const slippageSavings =
         scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
-      const percentageSavings = (slippageSavings / dexQuoteAmountOutInETH) * 100
+      // const percentageSavings = (slippageSavings / dexQuoteAmountOutInETH) * 100
+
+      let raw = slippageSavings / dexQuoteAmountOutInETH
+      // Instead of raw * 100, do (1 - raw) * 100
+      let percentageSavings = (1 - raw) * 100
+      percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+      percentageSavings = Number(percentageSavings.toFixed(3))
 
       // console.log('slippageSavings =====>', slippageSavings)
       // console.log('percentageSavings =====>', percentageSavings)

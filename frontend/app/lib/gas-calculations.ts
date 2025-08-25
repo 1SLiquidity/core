@@ -271,7 +271,13 @@ export async function calculateSlippageSavings(
       const scaledSweetSpotAmountOutInETH = sweetSpotAmountOutInETH * sweetSpot
 
       const savings = scaledSweetSpotAmountOutInETH - amountOutInETH
-      const percentageSavings = (savings / amountOutInETH) * 100
+      // const percentageSavings = (savings / amountOutInETH) * 100
+      const raw = savings / amountOutInETH
+      let percentageSavings = (1 - raw) * 100
+      // Clamp between 0–100
+      percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+      // Format to 3 decimals
+      percentageSavings = Number(percentageSavings.toFixed(3))
 
       return { savings, percentageSavings }
     }
@@ -325,7 +331,14 @@ export async function calculateSlippageSavings(
 
       const savings =
         scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
-      const percentageSavings = (savings / dexQuoteAmountOutInETH) * 100
+      // const percentageSavings = (savings / dexQuoteAmountOutInETH) * 100
+
+      const raw = savings / dexQuoteAmountOutInETH
+      let percentageSavings = (1 - raw) * 100
+      // Clamp between 0–100
+      percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+      // Format to 3 decimals
+      percentageSavings = Number(percentageSavings.toFixed(3))
 
       return { savings, percentageSavings }
     }
