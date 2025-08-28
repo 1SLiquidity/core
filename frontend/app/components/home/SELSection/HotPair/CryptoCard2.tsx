@@ -1,24 +1,12 @@
 'use client'
-import { cn } from '@/lib/utils'
+import { cn, formatNumberAdvanced } from '@/lib/utils'
 import Image from 'next/image'
 
 export default function CryptoCard2({
-  icon1,
-  icon2,
   pair,
-  price,
-  vol,
-  win,
   isActive,
 }: {
-  icon1: string
-  icon2: string
-  showBgIcon1?: boolean
-  showBgIcon2?: boolean
-  pair: string
-  price: number
-  vol: number
-  win: number
+  pair: any
   isActive: boolean
 }) {
   return (
@@ -51,7 +39,7 @@ export default function CryptoCard2({
               {/* Ethereum icon */}
               <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
                 <Image
-                  src={icon1}
+                  src={pair.tokenAIcon}
                   alt="eth"
                   width={20}
                   height={20}
@@ -68,7 +56,7 @@ export default function CryptoCard2({
                 )}
               >
                 <Image
-                  src={icon2}
+                  src={pair.tokenBIcon}
                   alt="dai"
                   width={20}
                   height={20}
@@ -76,10 +64,12 @@ export default function CryptoCard2({
                 />
               </div>
             </div>
-            <h2 className="text-white text-xl font-semibold">{pair}</h2>
+            <h2 className="text-white text-xl font-semibold">
+              {pair.tokenASymbol.toUpperCase()} /{' '}
+              {pair.tokenBSymbol.toUpperCase()}
+            </h2>
           </div>
 
-          {/* Data Grid */}
           {/* Data Grid */}
           <div className="grid grid-cols-[1fr_auto_1fr_auto_1fr] gap-x-2 w-full text-center items-center">
             {/* Labels */}
@@ -95,13 +85,22 @@ export default function CryptoCard2({
             </div>
             <p className="text-white text-sm uppercase">SAVE</p>
             {/* Values */}
-            <p className="text-zinc-400 text-lg font-bold">{vol}</p>
+            <p className="text-zinc-400 text-lg font-bold">
+              {formatNumberAdvanced(pair.reserveAtotaldepth)}
+            </p>
             <div className="col-span-1"></div>{' '}
             {/* Empty div to align values under labels */}
-            <p className="text-zinc-400 text-lg font-bold">{win}%</p>
+            <p className="text-zinc-400 text-lg font-bold">
+              {pair.percentageSavings?.toFixed(2) || 0} %
+            </p>
             <div className="col-span-1"></div>{' '}
             {/* Empty div to align values under labels */}
-            <p className="text-[#40FAAC] text-lg font-bold">${price}</p>
+            <p className="text-[#40FAAC] text-lg font-bold">
+              $
+              {formatNumberAdvanced(
+                pair.slippageSavings * (pair.tokenBUsdPrice || 1)
+              )}
+            </p>
           </div>
         </div>
       </div>

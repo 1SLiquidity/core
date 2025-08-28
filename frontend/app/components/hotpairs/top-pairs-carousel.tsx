@@ -26,9 +26,15 @@ export default function TopPairsCarousel({
     error: topTokensError,
     refetch: refetchTopTokens,
   } = useEnhancedTopTokens({
-    limit: 50,
+    limit: 100,
     metric: 'slippageSavings', // You can change this based on your needs
     enabled: true,
+  })
+
+  const sortedPairs = topTokensData?.data.sort((a: any, b: any) => {
+    const valueA = a.slippageSavings * (a.tokenBUsdPrice || 1)
+    const valueB = b.slippageSavings * (b.tokenBUsdPrice || 1)
+    return valueB - valueA // Descending order (b - a)
   })
 
   return (
@@ -61,23 +67,27 @@ export default function TopPairsCarousel({
                       <LoadingPairCard />
                     </CarouselItem>
                   ))
-              : topTokensData?.data.map((pair: any, index: number) => (
-                  <CarouselItem
-                    key={index}
-                    className="pl-2 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
-                  >
-                    <div className="cursor-pointer">
-                      <PairCard
-                        pair={pair}
-                        onClick={setActiveHotPair}
-                        isActive={
-                          activeHotPair?.tokenAAddress === pair.tokenAAddress &&
-                          activeHotPair?.tokenBAddress === pair.tokenBAddress
-                        }
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
+              : sortedPairs?.map((pair: any, index: number) => {
+                  console.log('Pair ==>', pair)
+                  return (
+                    <CarouselItem
+                      key={index}
+                      className="pl-2 md:pl-4 basis-full sm:basis-1/2 md:basis-1/3 lg:basis-1/4"
+                    >
+                      <div className="cursor-pointer">
+                        <PairCard
+                          pair={pair}
+                          onClick={setActiveHotPair}
+                          isActive={
+                            activeHotPair?.tokenAAddress ===
+                              pair.tokenAAddress &&
+                            activeHotPair?.tokenBAddress === pair.tokenBAddress
+                          }
+                        />
+                      </div>
+                    </CarouselItem>
+                  )
+                })}
           </CarouselContent>
           <CarouselPrevious className="-left-12 bg-[#0c3526] border-neutral-900 text-white hover:bg-[#40FAAC] hover:text-black z-[55555]" />
           <CarouselNext className="-right-12 bg-[#114532] border-neutral-900 text-white hover:bg-[#40FAAC] hover:text-black z-[55555]" />

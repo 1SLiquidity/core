@@ -73,38 +73,38 @@ const SELSection = () => {
     }
   )
 
-  useEffect(() => {
-    return () => {
-      // Reset token states when component unmounts
-      setSelectedTokenFrom(null)
-      setSelectedTokenTo(null)
-    }
-  }, [setSelectedTokenFrom, setSelectedTokenTo])
+  // useEffect(() => {
+  //   return () => {
+  //     // Reset token states when component unmounts
+  //     setSelectedTokenFrom(null)
+  //     setSelectedTokenTo(null)
+  //   }
+  // }, [setSelectedTokenFrom, setSelectedTokenTo])
 
   // Set default tokens on mount if no tokens are selected
-  useEffect(() => {
-    if (!selectedTokenFrom && !selectedTokenTo && tokens.length > 0) {
-      const usdt = tokens.find((token) => token.symbol.toLowerCase() === 'usdt')
-      const weth = tokens.find((token) => token.symbol.toLowerCase() === 'weth')
+  // useEffect(() => {
+  //   if (!selectedTokenFrom && !selectedTokenTo && tokens.length > 0) {
+  //     const usdt = tokens.find((token) => token.symbol.toLowerCase() === 'usdt')
+  //     const weth = tokens.find((token) => token.symbol.toLowerCase() === 'weth')
 
-      if (usdt && weth) {
-        console.log('Setting default tokens:', {
-          from: usdt.symbol,
-          to: weth.symbol,
-          chainId,
-        })
-        setSelectedTokenFrom(usdt)
-        setSelectedTokenTo(weth)
-      }
-    }
-  }, [
-    selectedTokenFrom,
-    selectedTokenTo,
-    tokens,
-    chainId,
-    setSelectedTokenFrom,
-    setSelectedTokenTo,
-  ])
+  //     if (usdt && weth) {
+  //       console.log('Setting default tokens:', {
+  //         from: usdt.symbol,
+  //         to: weth.symbol,
+  //         chainId,
+  //       })
+  //       setSelectedTokenFrom(usdt)
+  //       setSelectedTokenTo(weth)
+  //     }
+  //   }
+  // }, [
+  //   selectedTokenFrom,
+  //   selectedTokenTo,
+  //   tokens,
+  //   chainId,
+  //   setSelectedTokenFrom,
+  //   setSelectedTokenTo,
+  // ])
 
   // Handle URL search parameters for token pair selection (higher priority than defaults)
   useEffect(() => {

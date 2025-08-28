@@ -1,5 +1,5 @@
 import * as cron from 'node-cron'
-import { runLiquidityAnalysis } from '../tests/liquidity-analysis'
+import { runLiquidityAnalysisFromJson } from '../tests/liquidity-analysis'
 import * as dotenv from 'dotenv'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -84,7 +84,9 @@ class CronScheduler {
     this.log('INFO', 'Starting liquidity analysis job', jobName)
 
     try {
-      await runLiquidityAnalysis()
+      await runLiquidityAnalysisFromJson(
+        'src/tests/tokens-list-28-08-2025.json'
+      )
       const duration = Date.now() - startTime
       this.log(
         'INFO',

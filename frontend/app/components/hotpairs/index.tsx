@@ -371,6 +371,10 @@ const HotPairs = () => {
               setSelectedBaseToken={setSelectedBaseToken}
               setSelectedOtherToken={setSelectedOtherToken}
               clearAllSelectedTokens={clearAllSelectedTokens}
+              clearBaseAndOtherTokens={() => {
+                setSelectedBaseToken(null)
+                setSelectedOtherToken(null)
+              }}
               // triggerChangeOfTokens={(token: any, otherToken: any) => {
               //   if (
               //     token?.symbol?.toUpperCase() !==
@@ -392,7 +396,13 @@ const HotPairs = () => {
             custom={0.4}
             className="mt-24 md:mt-36"
           >
-            <PairsTable selectedTokenAddress={activeHotPair?.tokenAAddress} />
+            <PairsTable
+              selectedTokenAddress={
+                selectedBaseToken && selectedOtherToken
+                  ? activeHotPair?.tokenAAddress
+                  : ''
+              }
+            />
           </motion.div>
         </div>
       </div>

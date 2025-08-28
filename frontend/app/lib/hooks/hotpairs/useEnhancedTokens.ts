@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTokenList } from '../useTokenList'
 
 // Constants
-const USDT_ADDRESS = '0xdac17f958d2ee523a2206206994597c13d831ec7' // Add your USDT address
+export const USDT_ADDRESS = '0xdac17f958d2ee523a2206206994597c13d831ec7' // Add your USDT address
 
 // Common token pair interface (same as before)
 export interface TokenPair {
@@ -251,6 +251,7 @@ export const useTokenEnhancer = () => {
     enhanceTokenPair,
     isLoadingTokenList,
     tokenListError,
+    coinGeckoTokens, // Expose the tokens for filtering
   }
 }
 
@@ -288,7 +289,7 @@ export const useEnhancedTokenPairs = (params: UseTokenPairsParams) => {
 }
 
 export const useEnhancedTopTokens = (params: UseTopTokensParams = {}) => {
-  const { limit = 50, metric = 'slippageSavings', enabled = true } = params
+  const { limit = 100, metric = 'slippageSavings', enabled = true } = params
   const { enhanceTokenPair, isLoadingTokenList } = useTokenEnhancer()
 
   const baseQuery = useQuery({

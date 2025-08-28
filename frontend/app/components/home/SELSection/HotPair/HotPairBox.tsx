@@ -1,15 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import {
-  ChevronRight,
-  Info,
-  ChevronLeft,
-  Zap,
-  Check,
-  ArrowRight,
-  X,
-} from 'lucide-react'
+import { ArrowRight, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Tooltip,
@@ -26,11 +18,11 @@ import { cn } from '@/lib/utils'
 import HotPairButton from './button'
 import { FireIcon } from './fire-icon'
 import { InfoIcon } from '@/app/lib/icons'
-import CryptoCard from './CryptoCard'
 import CryptoCard2 from './CryptoCard2'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { useModal } from '@/app/lib/context/modalContext'
 import { useRouter } from 'next/navigation'
+import { useEnhancedTopTokens } from '@/app/lib/hooks/hotpairs/useEnhancedTokens'
 
 const hotPairs = [
   {
@@ -82,13 +74,6 @@ const hotPairs = [
 export default function HotPairBox() {
   const [isOpen, setIsOpen] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const [showTradeOptions, setShowTradeOptions] = useState(false)
-  const [defaultSelected, setDefaultSelected] = useState(true)
-  const [uniswapXEnabled, setUniswapXEnabled] = useState(true)
-  const [v4PoolsEnabled, setV4PoolsEnabled] = useState(true)
-  const [v3PoolsEnabled, setV3PoolsEnabled] = useState(true)
-  const [v2PoolsEnabled, setV2PoolsEnabled] = useState(true)
-
   const { isMobile, isXl, isDesktop, isTablet } = useScreenSize()
   const { tokens } = useTokenList()
   const {
@@ -97,12 +82,83 @@ export default function HotPairBox() {
     setSelectedTokenFrom,
     setSelectedTokenTo,
   } = useModal()
-  const [hotPairsState, setHotPairsState] = useState(hotPairs)
+
+  const [hotPairsState, setHotPairsState] = useState([])
 
   const dropdownRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLDivElement>(null)
 
   const router = useRouter()
+
+  const {
+    data: topTokensData,
+    isLoading: isLoading,
+    isError: isErrorTopTokens,
+    error: topTokensError,
+    refetch: refetchTopTokens,
+  } = useEnhancedTopTokens({
+    limit: 3,
+    metric: 'slippageSavings',
+    enabled: true,
+  })
+
+  console.log('topTokensData ==>', topTokensData)
+
+  const sortedPairs = topTokensData?.data.sort((a: any, b: any) => {
+    const valueA = a.slippageSavings * (a.tokenBUsdPrice || 1)
+    const valueB = b.slippageSavings * (b.tokenBUsdPrice || 1)
+    return valueB - valueA // Descending order (b - a)
+  })
+
+  useEffect(() => {
+    return () => {
+      // Reset token states when component unmounts
+      setSelectedTokenFrom(null)
+      setSelectedTokenTo(null)
+    }
+  }, [setSelectedTokenFrom, setSelectedTokenTo])
+
+  useEffect(() => {
+    if (
+      !selectedTokenFrom &&
+      !selectedTokenTo &&
+      tokens.length > 0 &&
+      topTokensData
+    ) {
+      const sortedPairs = topTokensData?.data.sort((a: any, b: any) => {
+        const valueA = a.slippageSavings * (a.tokenBUsdPrice || 1)
+        const valueB = b.slippageSavings * (b.tokenBUsdPrice || 1)
+        return valueB - valueA // Descending order (b - a)
+      })
+
+      const tokenA = tokens.find(
+        (token) =>
+          token.symbol.toLowerCase() ===
+          sortedPairs?.[0]?.tokenASymbol?.toLowerCase()
+      )
+      const tokenB = tokens.find(
+        (token) =>
+          token.symbol.toLowerCase() ===
+          sortedPairs?.[0]?.tokenBSymbol?.toLowerCase()
+      )
+
+      if (tokenA && tokenB) {
+        console.log('Setting default tokens:', {
+          from: tokenA.symbol,
+          to: tokenB.symbol,
+        })
+        setSelectedTokenFrom(tokenA)
+        setSelectedTokenTo(tokenB)
+      }
+    }
+  }, [
+    selectedTokenFrom,
+    selectedTokenTo,
+    tokens,
+    setSelectedTokenFrom,
+    setSelectedTokenTo,
+    topTokensData,
+  ])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -135,46 +191,21 @@ export default function HotPairBox() {
     setIsOpen(!isOpen)
   }
 
-  const handleSelectPair = (pairLabel: string, index: number) => {
-    const [fromRaw, toRaw] = pairLabel.split('/')
-    const fromSymbol = fromRaw?.trim() || ''
-    const toSymbol = toRaw?.trim() || ''
+  const handleSelectPair = (pair: any, index: number) => {
     const fromToken = tokens.find(
-      (t) => t.symbol?.toLowerCase() === fromSymbol.toLowerCase()
+      (t) => t.symbol?.toLowerCase() === pair.tokenASymbol.toLowerCase()
     )
     const toToken = tokens.find(
-      (t) => t.symbol?.toLowerCase() === toSymbol.toLowerCase()
+      (t) => t.symbol?.toLowerCase() === pair.tokenBSymbol.toLowerCase()
     )
+
     if (fromToken && toToken) {
       setSelectedTokenFrom(fromToken)
       setSelectedTokenTo(toToken)
-      setHotPairsState((prev) =>
-        prev.map((p, i) => ({ ...p, isActive: i === index }))
-      )
+
       setIsOpen(false)
     }
   }
-
-  // Sync active hot pair with currently selected tokens
-  useEffect(() => {
-    const currentPairNorm =
-      selectedTokenFrom && selectedTokenTo
-        ? `${selectedTokenFrom.symbol}/${selectedTokenTo.symbol}`
-            .replace(/\s/g, '')
-            .toLowerCase()
-        : null
-
-    setHotPairsState((prev) =>
-      prev.map((p, i) => {
-        if (!currentPairNorm) {
-          // Default to first if nothing selected
-          return { ...p, isActive: i === 0 }
-        }
-        const pNorm = p.pair.replace(/\s/g, '').toLowerCase()
-        return { ...p, isActive: pNorm === currentPairNorm }
-      })
-    )
-  }, [selectedTokenFrom, selectedTokenTo])
 
   return (
     <div className="relative inline-block z-[5555555]">
@@ -249,20 +280,20 @@ export default function HotPairBox() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  {hotPairsState.map((pair, index) => (
+                  {sortedPairs?.map((pair: any, index: number) => (
                     <div
                       key={index}
-                      onClick={() => handleSelectPair(pair.pair, index)}
+                      onClick={() => handleSelectPair(pair, index)}
                       className="cursor-pointer"
                     >
                       <CryptoCard2
-                        icon1={pair.icon1}
-                        icon2={pair.icon2}
-                        pair={pair.pair}
-                        price={pair.price}
-                        vol={pair.vol}
-                        win={pair.win}
-                        isActive={pair.isActive}
+                        pair={pair}
+                        isActive={
+                          selectedTokenFrom?.symbol?.toLowerCase() ===
+                            pair.tokenASymbol?.toLowerCase() &&
+                          selectedTokenTo?.symbol?.toLowerCase() ===
+                            pair.tokenBSymbol?.toLowerCase()
+                        }
                       />
                     </div>
                   ))}

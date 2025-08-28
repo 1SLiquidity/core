@@ -57,7 +57,7 @@ const InputFieldWithTokenPair: React.FC<InputAmountProps> = ({
         {icon1 && icon2 && (
           <div className="flex items-center justify-between gap-2">
             {/* Ethereum icon */}
-            <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10 overflow-hidden">
               <Image
                 src={icon1}
                 alt="eth"
@@ -68,11 +68,11 @@ const InputFieldWithTokenPair: React.FC<InputAmountProps> = ({
             </div>
 
             <ArrowLeftRightIcon
-              className="w-4 h-4 cursor-pointer"
-              onClick={switchTokens}
+              className="w-4 h-4"
+              // onClick={switchTokens}
             />
 
-            <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#827a7a33] transition-all duration-300">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center border-2 border-[#827a7a33] transition-all duration-300 overflow-hidden">
               <Image
                 src={icon2}
                 alt="dai"
