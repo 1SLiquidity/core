@@ -307,7 +307,7 @@ const HotPairs = () => {
             variants={sectionVariants}
             custom={0}
           >
-            <div className="flex justify-center items-center gap-6">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-6">
               <div className="w-full md:max-w-[25rem] md:min-w-[25rem]">
                 <VolumeSection
                   amount={volumeAmount}

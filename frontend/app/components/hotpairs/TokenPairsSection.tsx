@@ -169,9 +169,9 @@ export default function TokenPairsSection({
 
   return (
     <div className="flex flex-col items-center w-full justify-center gap-8">
-      <div className="flex items-center w-full justify-center gap-8 max-w-[45rem]">
+      <div className="flex flex-col md:flex-row items-center w-full justify-center gap-8 max-w-[45rem]">
         {/* Left Section -> Base Tokens: 2x2 Grid */}
-        <div className="grid grid-cols-2 gap-4 min-w-[9rem]">
+        <div className="flex flex-wrap justify-center md:grid md:grid-cols-2 gap-4 md:min-w-[9rem]">
           {tokensList
             .filter((token) =>
               baseTokensSymbol.includes(token.symbol.toUpperCase())
@@ -192,11 +192,11 @@ export default function TokenPairsSection({
         </div>
 
         {/* Vertical Divider */}
-        <div className="w-[1px] h-28 bg-green-500 rounded-full"></div>
+        <div className="w-[80%] h-[1px] md:w-[1px] md:h-28 bg-green-500 rounded-full"></div>
 
         {/* Right Section -> Other Tokens: 4x2 Grid */}
         {filteredOtherTokens.length > 0 ? (
-          <div className="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto py-2 px-2 auto-cols-max min-w-[30rem]">
+          <div className="grid grid-rows-2 grid-flow-col gap-4 overflow-x-auto py-2 px-2 auto-cols-max max-w-[80%] md:min-w-[30rem]">
             {filteredOtherTokens.map((token) => (
               <TokenIcon
                 key={token.id}
@@ -290,7 +290,7 @@ function TokenIcon({
   return (
     <div
       className={cn(
-        'w-16 h-16 rounded-full flex items-center justify-center border-4 border-neutral-700 transition-all duration-300 group hover:scale-110 overflow-hidden',
+        'md:w-16 md:h-16 w-12 h-12 rounded-full flex items-center justify-center border-4 border-neutral-700 transition-all duration-300 group hover:scale-110 overflow-hidden',
         disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
         (selectedBaseToken?.symbol.toUpperCase() ===
           token.symbol.toUpperCase() &&

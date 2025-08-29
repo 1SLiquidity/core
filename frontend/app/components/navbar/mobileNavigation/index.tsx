@@ -6,6 +6,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React from 'react'
+import { FireIcon } from '../../home/SELSection/HotPair/fire-icon'
 
 type MobileNavigationProps = {
   isOpen: boolean
@@ -80,15 +81,17 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
               <a
                 key={link.title}
                 href={link.href}
-                className={`flex gap-[6px] justify-center items-center border-primary py-[10px] px-[9px] rounded-[8px] ${
+                className={cn(
+                  `flex gap-[6px] justify-center items-center border-primary py-[10px] px-[9px] rounded-[8px]`,
                   (
                     link.href === '/'
                       ? pathname === link.href
                       : pathname.startsWith(link.href) && pathname !== '/'
                   )
                     ? ' bg-secondary text-primary'
-                    : ''
-                }`}
+                    : '',
+                  link.title === 'Hot Pairs' && 'gap-[8px]'
+                )}
               >
                 {/* <Image
                   src={
@@ -128,6 +131,16 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                       'w-4.5 h-4.5 text-white',
                       pathname === link.href && 'text-primary'
                     )}
+                  />
+                )}
+
+                {link.title === 'Hot Pairs' && (
+                  <FireIcon
+                    className={cn(
+                      'w-4.5 h-4.5 text-white',
+                      pathname === link.href && 'text-primary'
+                    )}
+                    isActive={pathname === link.href}
                   />
                 )}
                 <span>{link.title}</span>
