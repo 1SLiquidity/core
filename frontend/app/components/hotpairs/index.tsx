@@ -268,7 +268,7 @@ const HotPairs = () => {
             </motion.div>
             <div className="flex flex-col items-center justify-center gap-2">
               <motion.h2
-                className="text-3xl md:text-[2.75rem] font-bold text-white text-center leading-none md:leading-[1.2]"
+                className="text-3xl md:text-[2.75rem] font-bold text-white text-center leading-[1.3] md:leading-[1.2]"
                 initial="hidden"
                 animate={controls}
                 variants={titleVariants}
