@@ -1,29 +1,29 @@
 import { ethers } from 'ethers'
-import { UniswapV2Service, UniswapV3Service, SushiSwapService } from '../dex'
+import { UniswapV2Service, SushiSwapService } from '../dex'
 import { ReserveResult } from '../types/reserves'
 import { TokenInfo } from '../types/token'
 import { TokenService } from './token-service'
 
 export type DexType =
   | 'uniswapV2'
-  | 'uniswapV3_500'
-  | 'uniswapV3_3000'
-  | 'uniswapV3_10000'
+  // | 'uniswapV3_500'
+  // | 'uniswapV3_3000'
+  // | 'uniswapV3_10000'
   | 'sushiswap'
 
 export class ReservesAggregator {
   private uniswapV2: UniswapV2Service
-  private uniswapV3_500: UniswapV3Service
-  private uniswapV3_3000: UniswapV3Service
-  private uniswapV3_10000: UniswapV3Service
+  // private uniswapV3_500: UniswapV3Service
+  // private uniswapV3_3000: UniswapV3Service
+  // private uniswapV3_10000: UniswapV3Service
   private sushiswap: SushiSwapService
   private tokenService: TokenService
 
   constructor(provider: ethers.Provider) {
     this.uniswapV2 = new UniswapV2Service(provider)
-    this.uniswapV3_500 = new UniswapV3Service(provider)
-    this.uniswapV3_3000 = new UniswapV3Service(provider)
-    this.uniswapV3_10000 = new UniswapV3Service(provider)
+    // this.uniswapV3_500 = new UniswapV3Service(provider)
+    // this.uniswapV3_3000 = new UniswapV3Service(provider)
+    // this.uniswapV3_10000 = new UniswapV3Service(provider)
     this.sushiswap = new SushiSwapService(provider)
     this.tokenService = TokenService.getInstance(provider)
   }
@@ -172,24 +172,24 @@ export class ReservesAggregator {
           'Uniswap V2'
         )
         break
-      case 'uniswapV3_500':
-        reserves = await this.fetchWithRetry(
-          () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
-          'Uniswap V3 (500)'
-        )
-        break
-      case 'uniswapV3_3000':
-        reserves = await this.fetchWithRetry(
-          () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
-          'Uniswap V3 (3000)'
-        )
-        break
-      case 'uniswapV3_10000':
-        reserves = await this.fetchWithRetry(
-          () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
-          'Uniswap V3 (10000)'
-        )
-        break
+      // case 'uniswapV3_500':
+      //   reserves = await this.fetchWithRetry(
+      //     () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+      //     'Uniswap V3 (500)'
+      //   )
+      //   break
+      // case 'uniswapV3_3000':
+      //   reserves = await this.fetchWithRetry(
+      //     () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+      //     'Uniswap V3 (3000)'
+      //   )
+      //   break
+      // case 'uniswapV3_10000':
+      //   reserves = await this.fetchWithRetry(
+      //     () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+      //     'Uniswap V3 (10000)'
+      //   )
+      //   break
       case 'sushiswap':
         reserves = await this.fetchWithRetry(
           () => this.sushiswap.getReserves(tokenA, tokenB),
@@ -257,29 +257,40 @@ export class ReservesAggregator {
 
     const results: { result: ReserveResult; meanReserves: bigint }[] = []
 
-    // Fetch from all DEXes in parallel instead of sequential
-    console.log('Fetching all DEX reserves in parallel...')
+    // Fetch from only Uniswap V2 and SushiSwap in parallel
+    console.log('Fetching Uniswap V2 and SushiSwap reserves in parallel...')
     const dexFetchStartTime = Date.now()
 
-    const [
-      uniswapV3_500Reserves,
-      uniswapV3_3000Reserves,
-      uniswapV3_10000Reserves,
-      uniswapV2Reserves,
-      sushiswapReserves,
-    ] = await Promise.allSettled([
-      this.fetchWithRetry(
-        () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
-        'Uniswap V3 (500)'
-      ),
-      this.fetchWithRetry(
-        () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
-        'Uniswap V3 (3000)'
-      ),
-      this.fetchWithRetry(
-        () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
-        'Uniswap V3 (10000)'
-      ),
+    // const [
+    //   uniswapV3_500Reserves,
+    //   uniswapV3_3000Reserves,
+    //   uniswapV3_10000Reserves,
+    //   uniswapV2Reserves,
+    //   sushiswapReserves,
+    // ] = await Promise.allSettled([
+    //   this.fetchWithRetry(
+    //     () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+    //     'Uniswap V3 (500)'
+    //   ),
+    //   this.fetchWithRetry(
+    //     () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+    //     'Uniswap V3 (3000)'
+    //   ),
+    //   this.fetchWithRetry(
+    //     () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+    //     'Uniswap V3 (10000)'
+    //   ),
+    //   this.fetchWithRetry(
+    //     () => this.uniswapV2.getReserves(tokenA, tokenB),
+    //     'Uniswap V2'
+    //   ),
+    //   this.fetchWithRetry(
+    //     () => this.sushiswap.getReserves(tokenA, tokenB),
+    //     'SushiSwap'
+    //   ),
+    // ])
+
+    const [uniswapV2Reserves, sushiswapReserves] = await Promise.allSettled([
       this.fetchWithRetry(
         () => this.uniswapV2.getReserves(tokenA, tokenB),
         'Uniswap V2'
@@ -293,7 +304,10 @@ export class ReservesAggregator {
     const dexFetchEndTime = Date.now()
     console.log(`All DEX fetches took ${dexFetchEndTime - dexFetchStartTime}ms`)
 
-    // Process results
+    // Process results and calculate totals
+    let totalReserveTokenA = 0n
+    let totalReserveTokenB = 0n
+
     const processResults = (
       result: PromiseSettledResult<ReserveResult | null>,
       dexName: string
@@ -310,14 +324,18 @@ export class ReservesAggregator {
           result: result.value,
           meanReserves,
         })
+
+        // Add to total reserves
+        totalReserveTokenA += BigInt(result.value.reserves.token0)
+        totalReserveTokenB += BigInt(result.value.reserves.token1)
       } else {
         console.log(`${dexName} failed or returned null`)
       }
     }
 
-    processResults(uniswapV3_500Reserves, 'Uniswap V3 (500)')
-    processResults(uniswapV3_3000Reserves, 'Uniswap V3 (3000)')
-    processResults(uniswapV3_10000Reserves, 'Uniswap V3 (10000)')
+    // processResults(uniswapV3_500Reserves, 'Uniswap V3 (500)')
+    // processResults(uniswapV3_3000Reserves, 'Uniswap V3 (3000)')
+    // processResults(uniswapV3_10000Reserves, 'Uniswap V3 (10000)')
     processResults(uniswapV2Reserves, 'Uniswap V2')
     processResults(sushiswapReserves, 'SushiSwap')
 
@@ -329,12 +347,18 @@ export class ReservesAggregator {
       return null
     }
 
+    console.log('Results:', results)
+
     // Find the result with highest liquidity
     const deepestPool = results.reduce((prev, current) => {
       return current.meanReserves > prev.meanReserves ? current : prev
     })
 
     console.log('Selected deepest pool with liquidity:', deepestPool.result)
+    console.log('Total reserves across all DEXes:', {
+      totalReserveTokenA: totalReserveTokenA.toString(),
+      totalReserveTokenB: totalReserveTokenB.toString(),
+    })
     console.log(
       `Complete reserves fetch for ${tokenA}-${tokenB} took ${totalTime}ms`
     )
@@ -344,6 +368,10 @@ export class ReservesAggregator {
       decimals: {
         token0: token0Info.decimals,
         token1: token1Info.decimals,
+      },
+      totalReserves: {
+        totalReserveTokenA: totalReserveTokenA.toString(),
+        totalReserveTokenB: totalReserveTokenB.toString(),
       },
     }
   }
