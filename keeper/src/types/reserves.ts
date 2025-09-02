@@ -12,6 +12,8 @@ export interface ReserveResult {
   timestamp: number
   // Optional fields for aggregated data (only present in getAllReserves)
   totalReserves?: {
+    totalReserveTokenAWei: string
+    totalReserveTokenBWei: string
     totalReserveTokenA: string
     totalReserveTokenB: string
   }
