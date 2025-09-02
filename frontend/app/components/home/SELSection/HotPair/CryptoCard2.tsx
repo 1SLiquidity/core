@@ -1,4 +1,5 @@
 'use client'
+import ImageFallback from '@/app/shared/ImageFallback'
 import { cn, formatNumberAdvanced } from '@/lib/utils'
 import Image from 'next/image'
 
@@ -37,29 +38,29 @@ export default function CryptoCard2({
               )}
             >
               {/* Ethereum icon */}
-              <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10">
-                <Image
+              <div className="w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] z-10 overflow-hidden">
+                <ImageFallback
                   src={pair.tokenAIcon}
-                  alt="eth"
-                  width={20}
-                  height={20}
+                  alt="TokenA Icon"
+                  width={100}
+                  height={100}
                   className="w-full h-full"
                 />
               </div>
 
               <div
                 className={cn(
-                  'w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] -ml-3 transition-all duration-300',
+                  'w-8 h-8 rounded-full flex items-center justify-center border-2 border-[#827a7a33] -ml-3 transition-all duration-300 overflow-hidden',
                   isActive
                     ? 'translate-x-0 ml-0'
                     : 'group-hover:translate-x-0 group-hover:ml-0'
                 )}
               >
-                <Image
+                <ImageFallback
                   src={pair.tokenBIcon}
-                  alt="dai"
-                  width={20}
-                  height={20}
+                  alt="TokenB Icon"
+                  width={100}
+                  height={100}
                   className="w-full h-full"
                 />
               </div>
