@@ -89,6 +89,7 @@ export const useDynamicReserveCache = ({
         timestamp: data.timestamp,
         token0Address: tokenA.token_address,
         token1Address: tokenB.token_address,
+        totalReserves: data.totalReserves, // Include totalReserves from API
       } as ReserveData
 
       const calculator = DexCalculatorFactory.createCalculator(

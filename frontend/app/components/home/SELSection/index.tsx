@@ -46,6 +46,7 @@ const SELSection = () => {
   } = useModal()
   const { address, isConnected } = useAppKitAccount()
   const [isInsufficientBalance, setIsInsufficientBalance] = useState(false)
+  const [isInsufficientLiquidity, setIsInsufficientLiquidity] = useState(false)
 
   // const { prefetchedReserves, getPairKey } = usePrefetchReserves()
   // const pairKey = getPairKey('USDC', 'WETH')
@@ -312,6 +313,20 @@ const SELSection = () => {
     setInvalidBuyAmount(!isNumberValid(buyAmount))
   }, [sellAmount, buyAmount])
 
+  // Check for insufficient liquidity (95% threshold)
+  useEffect(() => {
+    console.log('reserveData totalReserves ===>', reserveData?.totalReserves)
+    if (sellAmount > 0 && reserveData?.totalReserves?.totalReserveTokenA) {
+      const totalReserveTokenA = reserveData.totalReserves.totalReserveTokenA
+      const liquidityThreshold = totalReserveTokenA * 0.95
+      console.log('liquidityThreshold ===>', liquidityThreshold)
+      console.log('sellAmount ===>', sellAmount)
+      setIsInsufficientLiquidity(sellAmount >= liquidityThreshold)
+    } else {
+      setIsInsufficientLiquidity(false)
+    }
+  }, [sellAmount, reserveData])
+
   // Reset sell amount when tokens change
   useEffect(() => {
     if (sellAmount > 0) {
@@ -431,6 +446,7 @@ const SELSection = () => {
   console.log('isCalculating ===>', isCalculating)
   console.log('buyAmount ===>', buyAmount)
   console.log('sellAmount ===>', sellAmount)
+  console.log('isInsufficientLiquidity ===>', isInsufficientLiquidity)
 
   return (
     <div className="w-full flex flex-col justify-center items-center">
@@ -596,6 +612,8 @@ const SELSection = () => {
                   ? 'Fetching reserves...'
                   : calculationError
                   ? calculationError
+                  : isInsufficientLiquidity
+                  ? 'Insufficient Liquidity'
                   : 'STREAM'
               }
               theme="gradient"
@@ -605,7 +623,10 @@ const SELSection = () => {
                   : () => {}
               }
               error={
-                invaliSelldAmount || invalidBuyAmount || !!calculationError
+                invaliSelldAmount ||
+                invalidBuyAmount ||
+                !!calculationError ||
+                isInsufficientLiquidity
               }
               disabled={
                 !selectedTokenFrom ||
@@ -625,6 +646,8 @@ const SELSection = () => {
                     ? 'Fetching reserves...'
                     : calculationError
                     ? calculationError
+                    : isInsufficientLiquidity
+                    ? 'Insufficient Liquidity'
                     : 'Get Started'
                   : isFetchingReserves
                   ? 'Fetching reserves...'
@@ -633,7 +656,10 @@ const SELSection = () => {
                   : 'Connect Wallet'
               }
               error={
-                invaliSelldAmount || invalidBuyAmount || !!calculationError
+                invaliSelldAmount ||
+                invalidBuyAmount ||
+                !!calculationError ||
+                isInsufficientLiquidity
               }
               onClick={() => {
                 if (pathname === '/') {
