@@ -27,7 +27,7 @@ const getSharedProvider = (chainId: string): ethers.providers.Provider => {
 }
 
 export function createAlchemyProvider(): ethers.providers.JsonRpcProvider {
-  const ALCHEMY_API_KEY = 'ljQMRkueWKHdEcFEzjatYBrWlLT3KATW' // replace with your actual key
+  const ALCHEMY_API_KEY = 'eqzoGPYFURd6rxyiC_gON9JMZ4J7Wyk6' // replace with your actual key
   const url = `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY}`
   const provider = new ethers.providers.JsonRpcProvider(url)
 
@@ -35,7 +35,7 @@ export function createAlchemyProvider(): ethers.providers.JsonRpcProvider {
 }
 
 // Extract fee tier from DEX identifier (e.g., "uniswap-v3-3000" -> 3000)
-const extractFeeTier = (dexType: string): number => {
+export const extractFeeTier = (dexType: string): number => {
   if (dexType.startsWith('uniswap-v3-')) {
     const feeStr = dexType.split('-').pop()
     if (feeStr && !isNaN(parseInt(feeStr))) {

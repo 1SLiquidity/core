@@ -12,6 +12,23 @@ import { useToast } from '@/app/lib/context/toastProvider'
 import { formatWalletAddress } from '@/app/lib/helper'
 import { useWalletTokens } from '@/app/lib/hooks/useWalletTokens'
 import { ChevronDown } from 'lucide-react'
+import tokensListData from '@/app/lib/utils/tokens-list-28-08-2025.json'
+
+// Types for JSON data
+type TokenResult = {
+  tokenName: string
+  tokenAddress: string
+  success: boolean
+  failureReason: string
+}
+
+type BaseTokenData = {
+  baseToken: string
+  totalTests: number
+  successCount: number
+  failureCount: number
+  results: TokenResult[]
+}
 
 // Chain name mapping for display purposes
 const CHAIN_NAMES: { [key: string]: string } = {
@@ -27,6 +44,95 @@ const CHAIN_ID_TO_MORALIS: { [key: string]: string } = {
   '42161': 'arbitrum',
   '137': 'polygon',
   '56': 'bsc',
+}
+
+// Base tokens that will be shown as popular tokens
+const BASE_TOKENS = ['USDC', 'USDT', 'WBTC', 'WETH']
+
+// Helper function to get all unique tokens from JSON results (only successful ones)
+const getAllTokensFromJson = (): {
+  tokenName: string
+  tokenAddress: string
+}[] => {
+  const allTokens: { tokenName: string; tokenAddress: string }[] = []
+  const seenAddresses = new Set<string>()
+
+  tokensListData.testResults.forEach((baseTokenData: BaseTokenData) => {
+    baseTokenData.results.forEach((token: TokenResult) => {
+      // Only include tokens where success is true
+      if (token.success) {
+        const lowerAddress = token.tokenAddress.toLowerCase()
+        if (!seenAddresses.has(lowerAddress)) {
+          seenAddresses.add(lowerAddress)
+          allTokens.push({
+            tokenName: token.tokenName,
+            tokenAddress: token.tokenAddress,
+          })
+        }
+      }
+    })
+  })
+
+  return allTokens
+}
+
+// Helper function to get tokens for a specific base token (only successful ones)
+const getTokensForBaseToken = (
+  baseToken: string
+): { tokenName: string; tokenAddress: string }[] => {
+  const baseTokenData = tokensListData.testResults.find(
+    (data: BaseTokenData) => data.baseToken === baseToken
+  )
+
+  if (!baseTokenData) return []
+
+  // Only return tokens where success is true
+  return baseTokenData.results
+    .filter((token: TokenResult) => token.success)
+    .map((token: TokenResult) => ({
+      tokenName: token.tokenName,
+      tokenAddress: token.tokenAddress,
+    }))
+}
+
+// Helper function to merge JSON tokens with CoinGecko data
+const mergeTokenData = (
+  jsonTokens: { tokenName: string; tokenAddress: string }[],
+  coingeckoTokens: TOKENS_TYPE[]
+): TOKENS_TYPE[] => {
+  return jsonTokens.map((jsonToken) => {
+    // Find matching CoinGecko token by address
+    const coingeckoToken = coingeckoTokens.find(
+      (cgToken) =>
+        cgToken.token_address.toLowerCase() ===
+        jsonToken.tokenAddress.toLowerCase()
+    )
+
+    if (coingeckoToken) {
+      // Use CoinGecko data if available
+      return coingeckoToken
+    } else {
+      // Create fallback token data for missing CoinGecko tokens
+      return {
+        name:
+          jsonToken.tokenName.charAt(0).toUpperCase() +
+          jsonToken.tokenName.slice(1),
+        symbol: jsonToken.tokenName.toUpperCase(),
+        icon: `/tokens/${jsonToken.tokenName.toLowerCase()}.svg`,
+        popular: false,
+        value: 0,
+        status: 'increase' as const,
+        statusAmount: 0,
+        token_address: jsonToken.tokenAddress,
+        decimals: 18, // Default decimals
+        balance: '0',
+        possible_spam: false,
+        usd_price: 0,
+        market_cap_rank: 999999,
+        usd_value: 0,
+      } as TOKENS_TYPE
+    }
+  })
 }
 
 // Token Skeleton component for loading state
@@ -69,6 +175,9 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
 
   const [searchValue, setSearchValue] = useState('')
   const [tokenFilter, setTokenFilter] = useState<'all' | 'my'>('all')
+  const [selectedBaseToken, setSelectedBaseToken] = useState<string | null>(
+    null
+  )
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const debouncedSearchValue = useDebounce(searchValue, 300)
@@ -101,76 +210,77 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
   console.log('Modal - Available Tokens:', availableTokens)
   console.log('Modal - Wallet Tokens:', walletTokens)
 
-  // useEffect(() => {
-  //   console.log('Modal - Effect triggered')
-  //   // Force refetch when modal opens
-  //   if (isOpen) {
-  //     console.log('Modal opened - Refetching tokens')
-  //     refetch()
-  //   }
-  // }, [isOpen, refetch])
+  // Determine which base token to filter by
+  useEffect(() => {
+    // Check if the other field has a base token selected
+    const otherFieldToken =
+      currentInputField === 'from' ? selectedTokenTo : selectedTokenFrom
 
-  // Default to hardcoded tokens if API tokens aren't available yet
-  const displayTokens =
-    availableTokens.length > 0
-      ? availableTokens.map((token: TOKENS_TYPE) => {
-          // Find matching wallet token to get balance
-          const walletToken = walletTokens.find(
-            (wt) =>
-              wt.token_address.toLowerCase() ===
-              token.token_address.toLowerCase()
-          )
-
-          // Convert balance to proper decimal value
-          const rawBalance = walletToken ? walletToken.balance : '0'
-          const balance = walletToken
-            ? (parseFloat(rawBalance) / Math.pow(10, token.decimals)).toString()
-            : '0'
-
-          // Calculate USD value using the converted balance
-          const usd_value = walletToken
-            ? parseFloat(balance) * token.usd_price
-            : 0
-
-          if (token.symbol.toLowerCase() === 'weth') {
-            console.log('WETH Debug:', {
-              symbol: token.symbol,
-              rawBalance,
-              decimals: token.decimals,
-              balance,
-              usd_price: token.usd_price,
-              usd_value,
-              walletToken,
-            })
-          }
-
-          return {
-            ...token,
-            balance,
-            usd_value,
-          }
-        })
-      : TOKENS.map(
-          (token) =>
-            ({
-              name: token.name,
-              symbol: token.symbol,
-              icon: token.icon,
-              popular: token.popular || false,
-              value: token.value || 0,
-              status: token.status || 'increase',
-              statusAmount: token.statusAmount || 0,
-              token_address: '',
-              decimals: 18,
-              balance: '0',
-              usd_value: 0,
-              possible_spam: false,
-              usd_price: 0,
-            } as TOKENS_TYPE)
+    if (
+      otherFieldToken &&
+      BASE_TOKENS.includes(otherFieldToken.symbol.toUpperCase())
+    ) {
+      setSelectedBaseToken(otherFieldToken.symbol.toUpperCase())
+    } else {
+      // Check if any token from results is selected in the other field
+      if (otherFieldToken) {
+        const allJsonTokens = getAllTokensFromJson()
+        const isJsonToken = allJsonTokens.some(
+          (jsonToken) =>
+            jsonToken.tokenAddress.toLowerCase() ===
+            otherFieldToken.token_address.toLowerCase()
         )
+
+        if (isJsonToken) {
+          // Show all tokens if a non-base token from results is selected
+          setSelectedBaseToken(null)
+        }
+      }
+    }
+  }, [currentInputField, selectedTokenFrom, selectedTokenTo])
+
+  // Get filtered JSON tokens based on selected base token
+  const getFilteredJsonTokens = () => {
+    if (selectedBaseToken) {
+      return getTokensForBaseToken(selectedBaseToken)
+    }
+    return getAllTokensFromJson()
+  }
+
+  // Create display tokens by merging JSON tokens with CoinGecko data
+  const createDisplayTokens = () => {
+    const jsonTokens = getFilteredJsonTokens()
+    const mergedTokens = mergeTokenData(jsonTokens, availableTokens)
+
+    return mergedTokens.map((token: TOKENS_TYPE) => {
+      // Find matching wallet token to get balance
+      const walletToken = walletTokens.find(
+        (wt) =>
+          wt.token_address.toLowerCase() === token.token_address.toLowerCase()
+      )
+
+      // Convert balance to proper decimal value
+      const rawBalance = walletToken ? walletToken.balance : '0'
+      const balance = walletToken
+        ? (parseFloat(rawBalance) / Math.pow(10, token.decimals)).toString()
+        : '0'
+
+      // Calculate USD value using the converted balance
+      const usd_value = walletToken ? parseFloat(balance) * token.usd_price : 0
+
+      return {
+        ...token,
+        balance,
+        usd_value,
+      } as TOKENS_TYPE
+    })
+  }
+
+  const displayTokens = createDisplayTokens()
 
   console.log('Modal - Display Tokens:', displayTokens)
   console.log('Number of Display Tokens:', displayTokens.length)
+  console.log('Selected Base Token:', selectedBaseToken)
   // Log available tokens to check WETH price
   console.log(
     'Available Tokens:',
@@ -387,28 +497,72 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
     })
   }
 
-  // Get popular tokens based on market cap
+  // Get base tokens as popular tokens
   const getPopularTokens = () => {
-    // First, find WETH in the displayTokens array
-    const weth = displayTokens.find(
-      (token: TOKENS_TYPE) => token.symbol.toLowerCase() === 'weth'
-    )
+    const baseTokens: TOKENS_TYPE[] = []
 
-    // Get other popular tokens
-    const otherPopularTokens = displayTokens.filter(
-      (token: TOKENS_TYPE) =>
-        token.popular &&
-        token.symbol.toLowerCase() !== 'weth' &&
-        token.symbol.toLowerCase() !== 'steth'
-    )
+    // Create base tokens with CoinGecko data if available
+    BASE_TOKENS.forEach((baseTokenSymbol) => {
+      // Try to find the base token in our available tokens
+      const foundToken = availableTokens.find(
+        (token: TOKENS_TYPE) => token.symbol.toUpperCase() === baseTokenSymbol
+      )
 
-    // Combine WETH with other popular tokens, ensuring WETH is first if it exists
-    const popularTokens = weth
-      ? [weth, ...otherPopularTokens]
-      : otherPopularTokens
+      if (foundToken) {
+        // Find matching wallet token to get balance
+        const walletToken = walletTokens.find(
+          (wt) =>
+            wt.token_address.toLowerCase() ===
+            foundToken.token_address.toLowerCase()
+        )
 
-    // Only return up to 5 popular tokens
-    return popularTokens.slice(0, 5)
+        const rawBalance = walletToken ? walletToken.balance : '0'
+        const balance = walletToken
+          ? (
+              parseFloat(rawBalance) / Math.pow(10, foundToken.decimals)
+            ).toString()
+          : '0'
+
+        const usd_value = walletToken
+          ? parseFloat(balance) * foundToken.usd_price
+          : 0
+
+        baseTokens.push({
+          ...foundToken,
+          balance,
+          usd_value,
+        } as TOKENS_TYPE)
+      } else {
+        // Create fallback base token if not found in CoinGecko
+        baseTokens.push({
+          name: baseTokenSymbol,
+          symbol: baseTokenSymbol,
+          icon: `/tokens/${baseTokenSymbol.toLowerCase()}.svg`,
+          popular: true,
+          value: 0,
+          status: 'increase' as const,
+          statusAmount: 0,
+          token_address: '', // Will be filled from JSON if available
+          decimals:
+            baseTokenSymbol === 'USDT' || baseTokenSymbol === 'USDC' ? 6 : 18,
+          balance: '0',
+          possible_spam: false,
+          usd_price: 0,
+          market_cap_rank: 999999,
+          usd_value: 0,
+        } as TOKENS_TYPE)
+      }
+    })
+
+    return baseTokens
+  }
+
+  // Handle base token selection from popular tokens
+  const handleBaseTokenSelect = (baseToken: TOKENS_TYPE) => {
+    if (BASE_TOKENS.includes(baseToken.symbol.toUpperCase())) {
+      // If it's a base token, just select it normally
+      handleSelectToken(baseToken)
+    }
   }
 
   // Handle image loading errors
@@ -607,15 +761,25 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                 ) : (
                   getPopularTokens().map((token: TOKENS_TYPE, ind: number) => {
                     const disabled = isTokenDisabled(token)
+                    const isFilteringByThisToken =
+                      selectedBaseToken === token.symbol.toUpperCase()
                     return (
                       <div
                         key={ind}
-                        onClick={() => !disabled && handleSelectToken(token)}
+                        onClick={() =>
+                          !disabled && handleBaseTokenSelect(token)
+                        }
                         className={`min-w-[64px] flex flex-col justify-center items-center w-fit h-[72px] ${
                           disabled
                             ? 'opacity-50 cursor-not-allowed bg-neutral-900'
+                            : isFilteringByThisToken
+                            ? 'bg-primary/20 border-primary hover:bg-primary/30 cursor-pointer'
                             : 'bg-white005 hover:bg-neutral-900 cursor-pointer'
-                        } px-[10px] gap-[6px] border-[2px] border-primary rounded-[15px] transition-colors`}
+                        } px-[10px] gap-[6px] border-[2px] ${
+                          isFilteringByThisToken
+                            ? 'border-primary'
+                            : 'border-primary'
+                        } rounded-[15px] transition-colors`}
                       >
                         <div className="relative mt-1">
                           <Image
@@ -635,8 +799,19 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                               </span>
                             </div>
                           )}
+                          {isFilteringByThisToken && !disabled && (
+                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full flex items-center justify-center">
+                              <span className="text-[8px] text-white">✓</span>
+                            </div>
+                          )}
                         </div>
-                        <p className="">{token.symbol}</p>
+                        <p
+                          className={`${
+                            isFilteringByThisToken ? 'text-primary' : ''
+                          }`}
+                        >
+                          {token.symbol}
+                        </p>
                       </div>
                     )
                   })
@@ -644,7 +819,24 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
               </div>
 
               <div className="flex items-center justify-between">
-                <p className="text-[20px] text-white">Tokens</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[20px] text-white">Tokens</p>
+                  {selectedBaseToken && (
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-gray">filtered by</span>
+                      <span className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+                        {selectedBaseToken}
+                      </span>
+                      <button
+                        onClick={() => setSelectedBaseToken(null)}
+                        className="text-sm text-gray hover:text-white ml-1"
+                        title="Clear filter"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {address && (
                   <div className="relative" ref={dropdownRef}>
                     <button

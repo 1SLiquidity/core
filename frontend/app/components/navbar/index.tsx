@@ -19,6 +19,7 @@ import Searchbar from '../searchbar'
 import WalletButton from '../walletButton'
 import MobileNavigation from './mobileNavigation'
 import { cn } from '@/lib/utils'
+import { FireIcon } from '../home/SELSection/HotPair/fire-icon'
 
 type Props = {
   isBack?: boolean
@@ -165,6 +166,15 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                         'w-4.5 h-4.5 text-white',
                         pathname === link.href && 'text-primary'
                       )}
+                    />
+                  )}
+                  {link.title === 'Hot Pairs' && (
+                    <FireIcon
+                      className={cn(
+                        'w-4.5 h-4.5 text-white',
+                        pathname === link.href && 'text-primary'
+                      )}
+                      isActive={pathname === link.href}
                     />
                   )}
                   <span>{link.title}</span>

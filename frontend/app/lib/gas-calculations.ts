@@ -24,13 +24,13 @@ interface ReservesResponse {
 }
 
 // Utility to normalize amount based on decimals
-function normalizeAmount(amount: string, decimals: number): bigint {
+export function normalizeAmount(amount: string, decimals: number): bigint {
   const [whole, fraction = ''] = amount.split('.')
   const paddedFraction = fraction.padEnd(decimals, '0')
   return BigInt(whole + paddedFraction)
 }
 
-function calculateSweetSpot(
+export function calculateSweetSpot(
   tradeVolume: bigint,
   reserveA: bigint,
   reserveB: bigint,
@@ -239,7 +239,7 @@ export async function calculateSlippageSavings(
   tokenIn: string,
   tokenOut: string,
   sweetSpot: number
-): Promise<number> {
+): Promise<{ savings: number; percentageSavings: number }> {
   try {
     if (dex === 'uniswap-v2' || dex === 'sushiswap') {
       // Calculate getAmountsOut from UniswapV2Router
@@ -270,7 +270,16 @@ export async function calculateSlippageSavings(
       // Scale up the sweet spot quote
       const scaledSweetSpotAmountOutInETH = sweetSpotAmountOutInETH * sweetSpot
 
-      return scaledSweetSpotAmountOutInETH - amountOutInETH
+      const savings = scaledSweetSpotAmountOutInETH - amountOutInETH
+      // const percentageSavings = (savings / amountOutInETH) * 100
+      const raw = savings / amountOutInETH
+      let percentageSavings = (1 - raw) * 100
+      // Clamp between 0–100
+      percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+      // Format to 3 decimals
+      percentageSavings = Number(percentageSavings.toFixed(3))
+
+      return { savings, percentageSavings }
     }
 
     if (dex.startsWith('uniswap-v3')) {
@@ -320,12 +329,23 @@ export async function calculateSlippageSavings(
       const scaledSweetSpotQuoteAmountOutInETH =
         sweetSpotQuoteAmountOutInETH * sweetSpot
 
-      return scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
+      const savings =
+        scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
+      // const percentageSavings = (savings / dexQuoteAmountOutInETH) * 100
+
+      const raw = savings / dexQuoteAmountOutInETH
+      let percentageSavings = (1 - raw) * 100
+      // Clamp between 0–100
+      percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+      // Format to 3 decimals
+      percentageSavings = Number(percentageSavings.toFixed(3))
+
+      return { savings, percentageSavings }
     }
 
-    return 0
+    return { savings: 0, percentageSavings: 0 }
   } catch (error) {
     console.error('Error calculating slippage savings:', error)
-    return 0
+    return { savings: 0, percentageSavings: 0 }
   }
 }

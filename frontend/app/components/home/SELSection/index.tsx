@@ -3,7 +3,7 @@
 import { SEL_SECTION_TABS } from '@/app/lib/constants'
 import { useToast } from '@/app/lib/context/toastProvider'
 import { isNumberValid } from '@/app/lib/helper'
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import Button from '../../button'
 import NotifiSwapStream from '../../toasts/notifiSwapStream'
 import DetailSection from '../detailSection'
@@ -14,12 +14,13 @@ import { useModal } from '@/app/lib/context/modalContext'
 import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
 import { motion, useAnimation, Variants } from 'framer-motion'
 import { ChevronDown, RefreshCcw } from 'lucide-react'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import TradingSettings from './TradeSettings'
 import { useReserves } from '@/app/lib/hooks/useReserves'
 import { useRefreshTimer } from '@/app/lib/hooks/useRefreshTimer'
 import { useSwapCalculator } from '@/app/lib/hooks/useSwapCalculator'
 import HotPairBox from './HotPair/HotPairBox'
+import { useTokenList } from '@/app/lib/hooks/useTokenList'
 
 const TIMER_DURATION = 10 // 10 seconds
 
@@ -58,8 +59,12 @@ const SELSection = () => {
   const stateData = useAppKitState()
   const chainIdWithPrefix = stateData?.selectedNetworkId || 'eip155:1'
   const chainId = chainIdWithPrefix.split(':')[1]
+
+  // Get token list for setting defaults
+  const { tokens } = useTokenList()
   const pathname = usePathname()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const lastTokenChangeRef = useRef<{ from: string | null; to: string | null }>(
     {
@@ -68,13 +73,123 @@ const SELSection = () => {
     }
   )
 
+  // useEffect(() => {
+  //   return () => {
+  //     // Reset token states when component unmounts
+  //     setSelectedTokenFrom(null)
+  //     setSelectedTokenTo(null)
+  //   }
+  // }, [setSelectedTokenFrom, setSelectedTokenTo])
+
+  // Set default tokens on mount if no tokens are selected
+  // useEffect(() => {
+  //   if (!selectedTokenFrom && !selectedTokenTo && tokens.length > 0) {
+  //     const usdt = tokens.find((token) => token.symbol.toLowerCase() === 'usdt')
+  //     const weth = tokens.find((token) => token.symbol.toLowerCase() === 'weth')
+
+  //     if (usdt && weth) {
+  //       console.log('Setting default tokens:', {
+  //         from: usdt.symbol,
+  //         to: weth.symbol,
+  //         chainId,
+  //       })
+  //       setSelectedTokenFrom(usdt)
+  //       setSelectedTokenTo(weth)
+  //     }
+  //   }
+  // }, [
+  //   selectedTokenFrom,
+  //   selectedTokenTo,
+  //   tokens,
+  //   chainId,
+  //   setSelectedTokenFrom,
+  //   setSelectedTokenTo,
+  // ])
+
+  // Handle URL search parameters for token pair selection (higher priority than defaults)
   useEffect(() => {
-    return () => {
-      // Reset token states when component unmounts
-      setSelectedTokenFrom(null)
-      setSelectedTokenTo(null)
+    const fromSymbol = searchParams.get('from')
+    const toSymbol = searchParams.get('to')
+
+    if ((fromSymbol || toSymbol) && tokens.length > 0) {
+      let fromToken = null
+      let toToken = null
+
+      if (fromSymbol) {
+        fromToken = tokens.find(
+          (token) => token.symbol.toLowerCase() === fromSymbol.toLowerCase()
+        )
+      }
+
+      if (toSymbol) {
+        toToken = tokens.find(
+          (token) => token.symbol.toLowerCase() === toSymbol.toLowerCase()
+        )
+      }
+
+      // Only set tokens if we found valid matches and they're different
+      if (
+        fromToken &&
+        toToken &&
+        fromToken.token_address !== toToken.token_address
+      ) {
+        console.log('Setting tokens from URL params:', {
+          from: fromToken.symbol,
+          to: toToken.symbol,
+        })
+        setSelectedTokenFrom(fromToken)
+        setSelectedTokenTo(toToken)
+
+        // Clean up URL parameters after setting tokens to avoid conflicts
+        const url = new URL(window.location.href)
+        url.searchParams.delete('from')
+        url.searchParams.delete('to')
+        router.replace(url.pathname, { scroll: false })
+      } else if (fromToken && !toToken) {
+        // If only 'from' token is valid, set it and keep existing 'to' token or set default
+        setSelectedTokenFrom(fromToken)
+        if (!selectedTokenTo) {
+          const defaultTo = tokens.find(
+            (token) =>
+              token.symbol.toLowerCase() === 'weth' &&
+              token.token_address !== fromToken.token_address
+          )
+          if (defaultTo) setSelectedTokenTo(defaultTo)
+        }
+
+        // Clean up URL parameters
+        const url = new URL(window.location.href)
+        url.searchParams.delete('from')
+        url.searchParams.delete('to')
+        router.replace(url.pathname, { scroll: false })
+      } else if (!fromToken && toToken) {
+        // If only 'to' token is valid, set it and keep existing 'from' token or set default
+        setSelectedTokenTo(toToken)
+        if (!selectedTokenFrom) {
+          const defaultFrom = tokens.find(
+            (token) =>
+              token.symbol.toLowerCase() === 'usdt' &&
+              token.token_address !== toToken.token_address
+          )
+          if (defaultFrom) setSelectedTokenFrom(defaultFrom)
+        }
+
+        // Clean up URL parameters
+        const url = new URL(window.location.href)
+        url.searchParams.delete('from')
+        url.searchParams.delete('to')
+        router.replace(url.pathname, { scroll: false })
+      }
     }
-  }, [setSelectedTokenFrom, setSelectedTokenTo])
+  }, [
+    searchParams,
+    tokens,
+    setSelectedTokenFrom,
+    setSelectedTokenTo,
+    router,
+    selectedTokenFrom,
+    selectedTokenTo,
+  ])
 
   // Get our reserves hook functionality
   const {
@@ -312,6 +427,10 @@ const SELSection = () => {
       },
     },
   }
+
+  console.log('isCalculating ===>', isCalculating)
+  console.log('buyAmount ===>', buyAmount)
+  console.log('sellAmount ===>', sellAmount)
 
   return (
     <div className="w-full flex flex-col justify-center items-center">
