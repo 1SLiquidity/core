@@ -149,6 +149,13 @@ export interface ReserveData {
     token0: number
     token1: number
   }
+  // Total reserves from API
+  totalReserves?: {
+    totalReserveTokenAWei: string
+    totalReserveTokenBWei: string
+    totalReserveTokenA: number
+    totalReserveTokenB: number
+  }
 }
 
 // DEX calculator interface following the Strategy pattern
