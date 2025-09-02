@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useCallback } from 'react'
 import {
   DexCalculator,
   DexCalculatorFactory,
@@ -64,11 +65,16 @@ export const useDynamicReserveCache = ({
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${tokenA.token_address}&tokenB=${tokenB.token_address}`
       )
 
+      const data = await response.json()
+
+      // Handle "No liquidity" error response from API
+      if (data.error) {
+        throw new Error(data.message || data.error)
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch reserves')
       }
-
-      const data = await response.json()
 
       if (!data || !data.reserves || !data.decimals) {
         throw new Error('No liquidity data received')
@@ -133,77 +139,83 @@ export const useDynamicReserveCache = ({
   })
 
   // Function to add or update a pair in the cache
-  const updateCache = async (tokenA: Token, tokenB: Token) => {
-    const pairKey = getPairKey(tokenA, tokenB)
-    if (!pairKey) return null
+  const updateCache = useCallback(
+    async (tokenA: Token, tokenB: Token) => {
+      const pairKey = getPairKey(tokenA, tokenB)
+      if (!pairKey) return null
 
-    // First check if we have fresh data in the cache
-    const existingData = queryClient.getQueryData([
-      'token-pair',
-      chainId,
-      pairKey,
-    ]) as DynamicReservesCache[string]
+      // First check if we have fresh data in the cache
+      const existingData = queryClient.getQueryData([
+        'token-pair',
+        chainId,
+        pairKey,
+      ]) as DynamicReservesCache[string]
 
-    const now = Date.now()
-    if (
-      existingData?.lastUpdated &&
-      now - existingData.lastUpdated < CACHE_CONFIG.REFETCH_INTERVAL
-    ) {
-      return existingData
-    }
+      const now = Date.now()
+      if (
+        existingData?.lastUpdated &&
+        now - existingData.lastUpdated < CACHE_CONFIG.REFETCH_INTERVAL
+      ) {
+        return existingData
+      }
 
-    // If no fresh data, fetch new data
-    const newData = await fetchReserves(tokenA, tokenB)
+      // If no fresh data, fetch new data
+      const newData = await fetchReserves(tokenA, tokenB)
 
-    // Update the cache
-    queryClient.setQueryData(['token-pair', chainId, pairKey], newData)
+      // Update the cache
+      queryClient.setQueryData(['token-pair', chainId, pairKey], newData)
 
-    return newData
-  }
+      return newData
+    },
+    [chainId, queryClient]
+  )
 
   // Function to get cached data for a pair
-  const getCachedReserves = (tokenA: Token | null, tokenB: Token | null) => {
-    const pairKey = getPairKey(tokenA, tokenB)
-    if (!pairKey) return null
+  const getCachedReserves = useCallback(
+    (tokenA: Token | null, tokenB: Token | null) => {
+      const pairKey = getPairKey(tokenA, tokenB)
+      if (!pairKey) return null
 
-    // Try to get data from the query cache
-    const cachedData = queryClient.getQueryData([
-      'token-pair',
-      chainId,
-      pairKey,
-    ]) as DynamicReservesCache[string]
+      // Try to get data from the query cache
+      const cachedData = queryClient.getQueryData([
+        'token-pair',
+        chainId,
+        pairKey,
+      ]) as DynamicReservesCache[string]
 
-    if (!cachedData) {
-      console.log('Dynamic - Cache miss:', {
+      if (!cachedData) {
+        console.log('Dynamic - Cache miss:', {
+          fromSymbol: tokenA?.symbol,
+          toSymbol: tokenB?.symbol,
+          key: pairKey,
+        })
+        return null
+      }
+
+      // Check if cache is still fresh
+      const now = Date.now()
+      if (now - cachedData.lastUpdated > CACHE_CONFIG.STALE_TIME) {
+        console.log('Dynamic - Cache stale:', {
+          fromSymbol: tokenA?.symbol,
+          toSymbol: tokenB?.symbol,
+          key: pairKey,
+          age: now - cachedData.lastUpdated,
+        })
+        return null
+      }
+
+      console.log('Dynamic - Cache hit:', {
         fromSymbol: tokenA?.symbol,
         toSymbol: tokenB?.symbol,
         key: pairKey,
+        reserves: cachedData.reserveData?.reserves,
+        decimals: cachedData.reserveData?.decimals,
       })
-      return null
-    }
 
-    // Check if cache is still fresh
-    const now = Date.now()
-    if (now - cachedData.lastUpdated > CACHE_CONFIG.STALE_TIME) {
-      console.log('Dynamic - Cache stale:', {
-        fromSymbol: tokenA?.symbol,
-        toSymbol: tokenB?.symbol,
-        key: pairKey,
-        age: now - cachedData.lastUpdated,
-      })
-      return null
-    }
-
-    console.log('Dynamic - Cache hit:', {
-      fromSymbol: tokenA?.symbol,
-      toSymbol: tokenB?.symbol,
-      key: pairKey,
-      reserves: cachedData.reserveData?.reserves,
-      decimals: cachedData.reserveData?.decimals,
-    })
-
-    return cachedData
-  }
+      return cachedData
+    },
+    [chainId, queryClient]
+  )
 
   // Set up background refetching for active pairs
   useQuery({
