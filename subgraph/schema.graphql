@@ -10,14 +10,14 @@ type Trade @entity {
   realisedAmountOut: BigInt!
   isInstasettlable: Boolean!
   instasettleBps: BigInt!
-  botGasAllowance: BigInt!
-  cumulativeGasEntailed: BigInt!
   lastSweetSpot: BigInt!
+  usePriceBased: Boolean!
   createdAt: BigInt!
   executions: [TradeExecution!]! @derivedFrom(field: "trade")
   cancellations: [TradeCancellation!]! @derivedFrom(field: "trade")
   settlements: [TradeSettlement!]! @derivedFrom(field: "trade")
-  instaSettleConfigs: [InstaSettleConfig!]! @derivedFrom(field: "trade")
+  streamFees: [StreamFee!]! @derivedFrom(field: "trade")
+  instasettleFees: [InstasettleFee!]! @derivedFrom(field: "trade")
 }
 
 type TradeExecution @entity {
@@ -25,7 +25,6 @@ type TradeExecution @entity {
   trade: Trade!
   amountIn: BigInt!
   realisedAmountOut: BigInt!
-  cumulativeGasEntailed: BigInt!
   lastSweetSpot: BigInt!
   timestamp: BigInt!
 }
@@ -48,11 +47,24 @@ type TradeSettlement @entity {
   timestamp: BigInt!
 }
 
-type InstaSettleConfig @entity {
+# InstaSettleConfig entity removed - InstaSettleConfigured event no longer exists
+
+type StreamFee @entity {
   id: ID!
   trade: Trade!
-  enabled: Boolean!
-  instasettleBps: BigInt!
+  bot: Bytes!
+  token: Bytes!
+  protocolFee: BigInt!
+  botFee: BigInt!
+  timestamp: BigInt!
+}
+
+type InstasettleFee @entity {
+  id: ID!
+  trade: Trade!
+  settler: Bytes!
+  token: Bytes!
+  protocolFee: BigInt!
   timestamp: BigInt!
 }
 
@@ -66,8 +78,17 @@ type DEXRoute @entity {
 
 type FeeClaim @entity {
   id: ID!
-  bot: Bytes!
-  feeToken: Bytes!
+  recipient: Bytes!
+  token: Bytes!
   amount: BigInt!
+  isProtocol: Boolean!
+  timestamp: BigInt!
+}
+
+type FeeRateUpdate @entity {
+  id: ID!
+  streamProtocolFeeBps: Int!
+  streamBotFeeBps: Int!
+  instasettleProtocolFeeBps: Int!
   timestamp: BigInt!
 } 

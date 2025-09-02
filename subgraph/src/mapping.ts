@@ -2,26 +2,26 @@ import {
   TradeCreated,
   TradeStreamExecuted,
   TradeCancelled,
-  TradeSettled
+  TradeSettled,
+  StreamFeesTaken,
+  InstasettleFeeTaken,
+  FeesClaimed,
+  FeeRatesUpdated
 } from '../generated/Core/Core'
-import {
-  InstaSettleConfigured
-} from '../generated/Router/Router'
 import {
   DEXRouteAdded,
   DEXRouteRemoved
 } from '../generated/StreamDaemon/StreamDaemon'
 import {
-  FeesClaimed
-} from '../generated/Fees/Fees'
-import {
   Trade,
   TradeExecution,
   TradeCancellation,
   TradeSettlement,
-  InstaSettleConfig,
+  StreamFee,
+  InstasettleFee,
   DEXRoute,
-  FeeClaim
+  FeeClaim,
+  FeeRateUpdate
 } from '../generated/schema'
 import { BigInt, Bytes } from '@graphprotocol/graph-ts'
 
@@ -37,9 +37,8 @@ export function handleTradeCreated(event: TradeCreated): void {
   trade.realisedAmountOut = event.params.realisedAmountOut
   trade.isInstasettlable = event.params.isInstasettlable
   trade.instasettleBps = event.params.instasettleBps
-  trade.botGasAllowance = event.params.botGasAllowance
-  trade.cumulativeGasEntailed = event.params.cumulativeGasEntailed
   trade.lastSweetSpot = event.params.lastSweetSpot
+  trade.usePriceBased = event.params.usePriceBased
   trade.createdAt = event.block.timestamp
   trade.save()
 }
@@ -52,7 +51,6 @@ export function handleTradeStreamExecuted(event: TradeStreamExecuted): void {
   execution.trade = trade.id
   execution.amountIn = event.params.amountIn
   execution.realisedAmountOut = event.params.realisedAmountOut
-  execution.cumulativeGasEntailed = event.params.cumulativeGasEntailed
   execution.lastSweetSpot = event.params.lastSweetSpot
   execution.timestamp = event.block.timestamp
   execution.save()
@@ -60,7 +58,6 @@ export function handleTradeStreamExecuted(event: TradeStreamExecuted): void {
   // Update trade state
   trade.amountRemaining = trade.amountRemaining.minus(event.params.amountIn)
   trade.realisedAmountOut = trade.realisedAmountOut.plus(event.params.realisedAmountOut)
-  trade.cumulativeGasEntailed = event.params.cumulativeGasEntailed
   trade.lastSweetSpot = event.params.lastSweetSpot
   trade.save()
 }
@@ -101,21 +98,33 @@ export function handleTradeSettled(event: TradeSettled): void {
   trade.save()
 }
 
-export function handleInstaSettleConfigured(event: InstaSettleConfigured): void {
+// InstaSettleConfigured handler removed - event no longer exists
+
+export function handleStreamFeesTaken(event: StreamFeesTaken): void {
   let trade = Trade.load(event.params.tradeId.toString())
   if (trade == null) return
 
-  let config = new InstaSettleConfig(event.transaction.hash.toHexString() + '-' + event.logIndex.toString())
-  config.trade = trade.id
-  config.enabled = event.params.enabled
-  config.instasettleBps = event.params.instasettleBps
-  config.timestamp = event.block.timestamp
-  config.save()
+  let streamFee = new StreamFee(event.transaction.hash.toHexString() + '-' + event.logIndex.toString())
+  streamFee.trade = trade.id
+  streamFee.bot = event.params.bot
+  streamFee.token = event.params.token
+  streamFee.protocolFee = event.params.protocolFee
+  streamFee.botFee = event.params.botFee
+  streamFee.timestamp = event.block.timestamp
+  streamFee.save()
+}
 
-  // Update trade state
-  trade.isInstasettlable = event.params.enabled
-  trade.instasettleBps = event.params.instasettleBps
-  trade.save()
+export function handleInstasettleFeeTaken(event: InstasettleFeeTaken): void {
+  let trade = Trade.load(event.params.tradeId.toString())
+  if (trade == null) return
+
+  let instasettleFee = new InstasettleFee(event.transaction.hash.toHexString() + '-' + event.logIndex.toString())
+  instasettleFee.trade = trade.id
+  instasettleFee.settler = event.params.settler
+  instasettleFee.token = event.params.token
+  instasettleFee.protocolFee = event.params.protocolFee
+  instasettleFee.timestamp = event.block.timestamp
+  instasettleFee.save()
 }
 
 export function handleDEXRouteAdded(event: DEXRouteAdded): void {
@@ -138,9 +147,19 @@ export function handleDEXRouteRemoved(event: DEXRouteRemoved): void {
 
 export function handleFeesClaimed(event: FeesClaimed): void {
   let feeClaim = new FeeClaim(event.transaction.hash.toHexString() + '-' + event.logIndex.toString())
-  feeClaim.bot = event.params.bot
-  feeClaim.feeToken = event.params.feeToken
+  feeClaim.recipient = event.params.recipient
+  feeClaim.token = event.params.token
   feeClaim.amount = event.params.amount
+  feeClaim.isProtocol = event.params.isProtocol
   feeClaim.timestamp = event.block.timestamp
   feeClaim.save()
+}
+
+export function handleFeeRatesUpdated(event: FeeRatesUpdated): void {
+  let feeRateUpdate = new FeeRateUpdate(event.transaction.hash.toHexString() + '-' + event.logIndex.toString())
+  feeRateUpdate.streamProtocolFeeBps = event.params.streamProtocolFeeBps
+  feeRateUpdate.streamBotFeeBps = event.params.streamBotFeeBps
+  feeRateUpdate.instasettleProtocolFeeBps = event.params.instasettleProtocolFeeBps
+  feeRateUpdate.timestamp = event.block.timestamp
+  feeRateUpdate.save()
 } 

@@ -7,8 +7,94 @@ import {
   Entity,
   Bytes,
   Address,
-  BigInt
+  BigInt,
 } from "@graphprotocol/graph-ts";
+
+export class FeeRatesUpdated extends ethereum.Event {
+  get params(): FeeRatesUpdated__Params {
+    return new FeeRatesUpdated__Params(this);
+  }
+}
+
+export class FeeRatesUpdated__Params {
+  _event: FeeRatesUpdated;
+
+  constructor(event: FeeRatesUpdated) {
+    this._event = event;
+  }
+
+  get streamProtocolFeeBps(): i32 {
+    return this._event.parameters[0].value.toI32();
+  }
+
+  get streamBotFeeBps(): i32 {
+    return this._event.parameters[1].value.toI32();
+  }
+
+  get instasettleProtocolFeeBps(): i32 {
+    return this._event.parameters[2].value.toI32();
+  }
+}
+
+export class FeesClaimed extends ethereum.Event {
+  get params(): FeesClaimed__Params {
+    return new FeesClaimed__Params(this);
+  }
+}
+
+export class FeesClaimed__Params {
+  _event: FeesClaimed;
+
+  constructor(event: FeesClaimed) {
+    this._event = event;
+  }
+
+  get recipient(): Address {
+    return this._event.parameters[0].value.toAddress();
+  }
+
+  get token(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get amount(): BigInt {
+    return this._event.parameters[2].value.toBigInt();
+  }
+
+  get isProtocol(): boolean {
+    return this._event.parameters[3].value.toBoolean();
+  }
+}
+
+export class InstasettleFeeTaken extends ethereum.Event {
+  get params(): InstasettleFeeTaken__Params {
+    return new InstasettleFeeTaken__Params(this);
+  }
+}
+
+export class InstasettleFeeTaken__Params {
+  _event: InstasettleFeeTaken;
+
+  constructor(event: InstasettleFeeTaken) {
+    this._event = event;
+  }
+
+  get tradeId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get settler(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get token(): Address {
+    return this._event.parameters[2].value.toAddress();
+  }
+
+  get protocolFee(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
+}
 
 export class OwnershipTransferred extends ethereum.Event {
   get params(): OwnershipTransferred__Params {
@@ -29,6 +115,40 @@ export class OwnershipTransferred__Params {
 
   get newOwner(): Address {
     return this._event.parameters[1].value.toAddress();
+  }
+}
+
+export class StreamFeesTaken extends ethereum.Event {
+  get params(): StreamFeesTaken__Params {
+    return new StreamFeesTaken__Params(this);
+  }
+}
+
+export class StreamFeesTaken__Params {
+  _event: StreamFeesTaken;
+
+  constructor(event: StreamFeesTaken) {
+    this._event = event;
+  }
+
+  get tradeId(): BigInt {
+    return this._event.parameters[0].value.toBigInt();
+  }
+
+  get bot(): Address {
+    return this._event.parameters[1].value.toAddress();
+  }
+
+  get token(): Address {
+    return this._event.parameters[2].value.toAddress();
+  }
+
+  get protocolFee(): BigInt {
+    return this._event.parameters[3].value.toBigInt();
+  }
+
+  get botFee(): BigInt {
+    return this._event.parameters[4].value.toBigInt();
   }
 }
 
@@ -111,16 +231,12 @@ export class TradeCreated__Params {
     return this._event.parameters[9].value.toBigInt();
   }
 
-  get botGasAllowance(): BigInt {
+  get lastSweetSpot(): BigInt {
     return this._event.parameters[10].value.toBigInt();
   }
 
-  get cumulativeGasEntailed(): BigInt {
-    return this._event.parameters[11].value.toBigInt();
-  }
-
-  get lastSweetSpot(): BigInt {
-    return this._event.parameters[12].value.toBigInt();
+  get usePriceBased(): boolean {
+    return this._event.parameters[11].value.toBoolean();
   }
 }
 
@@ -183,12 +299,8 @@ export class TradeStreamExecuted__Params {
     return this._event.parameters[2].value.toBigInt();
   }
 
-  get cumulativeGasEntailed(): BigInt {
-    return this._event.parameters[3].value.toBigInt();
-  }
-
   get lastSweetSpot(): BigInt {
-    return this._event.parameters[4].value.toBigInt();
+    return this._event.parameters[3].value.toBigInt();
   }
 }
 
@@ -197,56 +309,52 @@ export class Core___executeStreamResultUpdatedTradeStruct extends ethereum.Tuple
     return this[0].toAddress();
   }
 
-  get cumulativeGasEntailed(): BigInt {
-    return this[1].toBigInt();
-  }
-
   get attempts(): i32 {
-    return this[2].toI32();
+    return this[1].toI32();
   }
 
   get tokenIn(): Address {
-    return this[3].toAddress();
+    return this[2].toAddress();
   }
 
   get tokenOut(): Address {
-    return this[4].toAddress();
+    return this[3].toAddress();
   }
 
   get amountIn(): BigInt {
-    return this[5].toBigInt();
+    return this[4].toBigInt();
   }
 
   get amountRemaining(): BigInt {
-    return this[6].toBigInt();
+    return this[5].toBigInt();
   }
 
   get targetAmountOut(): BigInt {
-    return this[7].toBigInt();
+    return this[6].toBigInt();
   }
 
   get realisedAmountOut(): BigInt {
-    return this[8].toBigInt();
+    return this[7].toBigInt();
   }
 
   get tradeId(): BigInt {
-    return this[9].toBigInt();
+    return this[8].toBigInt();
   }
 
   get instasettleBps(): BigInt {
-    return this[10].toBigInt();
-  }
-
-  get botGasAllowance(): BigInt {
-    return this[11].toBigInt();
+    return this[9].toBigInt();
   }
 
   get lastSweetSpot(): BigInt {
-    return this[12].toBigInt();
+    return this[10].toBigInt();
   }
 
   get isInstasettlable(): boolean {
-    return this[13].toBoolean();
+    return this[11].toBoolean();
+  }
+
+  get usePriceBased(): boolean {
+    return this[12].toBoolean();
   }
 }
 
@@ -255,90 +363,138 @@ export class Core___executeStreamInputTradeStruct extends ethereum.Tuple {
     return this[0].toAddress();
   }
 
-  get cumulativeGasEntailed(): BigInt {
-    return this[1].toBigInt();
-  }
-
   get attempts(): i32 {
-    return this[2].toI32();
+    return this[1].toI32();
   }
 
   get tokenIn(): Address {
-    return this[3].toAddress();
+    return this[2].toAddress();
   }
 
   get tokenOut(): Address {
-    return this[4].toAddress();
+    return this[3].toAddress();
   }
 
   get amountIn(): BigInt {
-    return this[5].toBigInt();
+    return this[4].toBigInt();
   }
 
   get amountRemaining(): BigInt {
-    return this[6].toBigInt();
+    return this[5].toBigInt();
   }
 
   get targetAmountOut(): BigInt {
-    return this[7].toBigInt();
+    return this[6].toBigInt();
   }
 
   get realisedAmountOut(): BigInt {
-    return this[8].toBigInt();
+    return this[7].toBigInt();
   }
 
   get tradeId(): BigInt {
-    return this[9].toBigInt();
+    return this[8].toBigInt();
   }
 
   get instasettleBps(): BigInt {
-    return this[10].toBigInt();
-  }
-
-  get botGasAllowance(): BigInt {
-    return this[11].toBigInt();
+    return this[9].toBigInt();
   }
 
   get lastSweetSpot(): BigInt {
-    return this[12].toBigInt();
+    return this[10].toBigInt();
   }
 
   get isInstasettlable(): boolean {
-    return this[13].toBoolean();
+    return this[11].toBoolean();
+  }
+
+  get usePriceBased(): boolean {
+    return this[12].toBoolean();
+  }
+}
+
+export class Core__getTradeResultValue0Struct extends ethereum.Tuple {
+  get owner(): Address {
+    return this[0].toAddress();
+  }
+
+  get attempts(): i32 {
+    return this[1].toI32();
+  }
+
+  get tokenIn(): Address {
+    return this[2].toAddress();
+  }
+
+  get tokenOut(): Address {
+    return this[3].toAddress();
+  }
+
+  get amountIn(): BigInt {
+    return this[4].toBigInt();
+  }
+
+  get amountRemaining(): BigInt {
+    return this[5].toBigInt();
+  }
+
+  get targetAmountOut(): BigInt {
+    return this[6].toBigInt();
+  }
+
+  get realisedAmountOut(): BigInt {
+    return this[7].toBigInt();
+  }
+
+  get tradeId(): BigInt {
+    return this[8].toBigInt();
+  }
+
+  get instasettleBps(): BigInt {
+    return this[9].toBigInt();
+  }
+
+  get lastSweetSpot(): BigInt {
+    return this[10].toBigInt();
+  }
+
+  get isInstasettlable(): boolean {
+    return this[11].toBoolean();
+  }
+
+  get usePriceBased(): boolean {
+    return this[12].toBoolean();
   }
 }
 
 export class Core__tradesResult {
   value0: Address;
-  value1: BigInt;
-  value2: i32;
+  value1: i32;
+  value2: Address;
   value3: Address;
-  value4: Address;
+  value4: BigInt;
   value5: BigInt;
   value6: BigInt;
   value7: BigInt;
   value8: BigInt;
   value9: BigInt;
   value10: BigInt;
-  value11: BigInt;
-  value12: BigInt;
-  value13: boolean;
+  value11: boolean;
+  value12: boolean;
 
   constructor(
     value0: Address,
-    value1: BigInt,
-    value2: i32,
+    value1: i32,
+    value2: Address,
     value3: Address,
-    value4: Address,
+    value4: BigInt,
     value5: BigInt,
     value6: BigInt,
     value7: BigInt,
     value8: BigInt,
     value9: BigInt,
     value10: BigInt,
-    value11: BigInt,
-    value12: BigInt,
-    value13: boolean
+    value11: boolean,
+    value12: boolean,
   ) {
     this.value0 = value0;
     this.value1 = value1;
@@ -353,28 +509,26 @@ export class Core__tradesResult {
     this.value10 = value10;
     this.value11 = value11;
     this.value12 = value12;
-    this.value13 = value13;
   }
 
   toMap(): TypedMap<string, ethereum.Value> {
     let map = new TypedMap<string, ethereum.Value>();
     map.set("value0", ethereum.Value.fromAddress(this.value0));
-    map.set("value1", ethereum.Value.fromUnsignedBigInt(this.value1));
     map.set(
-      "value2",
-      ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(this.value2))
+      "value1",
+      ethereum.Value.fromUnsignedBigInt(BigInt.fromI32(this.value1)),
     );
+    map.set("value2", ethereum.Value.fromAddress(this.value2));
     map.set("value3", ethereum.Value.fromAddress(this.value3));
-    map.set("value4", ethereum.Value.fromAddress(this.value4));
+    map.set("value4", ethereum.Value.fromUnsignedBigInt(this.value4));
     map.set("value5", ethereum.Value.fromUnsignedBigInt(this.value5));
     map.set("value6", ethereum.Value.fromUnsignedBigInt(this.value6));
     map.set("value7", ethereum.Value.fromUnsignedBigInt(this.value7));
     map.set("value8", ethereum.Value.fromUnsignedBigInt(this.value8));
     map.set("value9", ethereum.Value.fromUnsignedBigInt(this.value9));
     map.set("value10", ethereum.Value.fromUnsignedBigInt(this.value10));
-    map.set("value11", ethereum.Value.fromUnsignedBigInt(this.value11));
-    map.set("value12", ethereum.Value.fromUnsignedBigInt(this.value12));
-    map.set("value13", ethereum.Value.fromBoolean(this.value13));
+    map.set("value11", ethereum.Value.fromBoolean(this.value11));
+    map.set("value12", ethereum.Value.fromBoolean(this.value12));
     return map;
   }
 
@@ -382,56 +536,52 @@ export class Core__tradesResult {
     return this.value0;
   }
 
-  getCumulativeGasEntailed(): BigInt {
+  getAttempts(): i32 {
     return this.value1;
   }
 
-  getAttempts(): i32 {
+  getTokenIn(): Address {
     return this.value2;
   }
 
-  getTokenIn(): Address {
+  getTokenOut(): Address {
     return this.value3;
   }
 
-  getTokenOut(): Address {
+  getAmountIn(): BigInt {
     return this.value4;
   }
 
-  getAmountIn(): BigInt {
+  getAmountRemaining(): BigInt {
     return this.value5;
   }
 
-  getAmountRemaining(): BigInt {
+  getTargetAmountOut(): BigInt {
     return this.value6;
   }
 
-  getTargetAmountOut(): BigInt {
+  getRealisedAmountOut(): BigInt {
     return this.value7;
   }
 
-  getRealisedAmountOut(): BigInt {
+  getTradeId(): BigInt {
     return this.value8;
   }
 
-  getTradeId(): BigInt {
+  getInstasettleBps(): BigInt {
     return this.value9;
   }
 
-  getInstasettleBps(): BigInt {
+  getLastSweetSpot(): BigInt {
     return this.value10;
   }
 
-  getBotGasAllowance(): BigInt {
+  getIsInstasettlable(): boolean {
     return this.value11;
   }
 
-  getLastSweetSpot(): BigInt {
+  getUsePriceBased(): boolean {
     return this.value12;
-  }
-
-  getIsInstasettlable(): boolean {
-    return this.value13;
   }
 }
 
@@ -440,32 +590,47 @@ export class Core extends ethereum.SmartContract {
     return new Core("Core", address);
   }
 
-  TWAP_GAS_COST(param0: BigInt): BigInt {
-    let result = super.call(
-      "TWAP_GAS_COST",
-      "TWAP_GAS_COST(uint256):(uint256)",
-      [ethereum.Value.fromUnsignedBigInt(param0)]
-    );
+  MAX_BPS(): i32 {
+    let result = super.call("MAX_BPS", "MAX_BPS():(uint16)", []);
 
-    return result[0].toBigInt();
+    return result[0].toI32();
   }
 
-  try_TWAP_GAS_COST(param0: BigInt): ethereum.CallResult<BigInt> {
+  try_MAX_BPS(): ethereum.CallResult<i32> {
+    let result = super.tryCall("MAX_BPS", "MAX_BPS():(uint16)", []);
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toI32());
+  }
+
+  MAX_FEE_CAP_BPS(): i32 {
+    let result = super.call(
+      "MAX_FEE_CAP_BPS",
+      "MAX_FEE_CAP_BPS():(uint16)",
+      [],
+    );
+
+    return result[0].toI32();
+  }
+
+  try_MAX_FEE_CAP_BPS(): ethereum.CallResult<i32> {
     let result = super.tryCall(
-      "TWAP_GAS_COST",
-      "TWAP_GAS_COST(uint256):(uint256)",
-      [ethereum.Value.fromUnsignedBigInt(param0)]
+      "MAX_FEE_CAP_BPS",
+      "MAX_FEE_CAP_BPS():(uint16)",
+      [],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
     }
     let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    return ethereum.CallResult.fromValue(value[0].toI32());
   }
 
   _cancelTrade(tradeId: BigInt): boolean {
     let result = super.call("_cancelTrade", "_cancelTrade(uint256):(bool)", [
-      ethereum.Value.fromUnsignedBigInt(tradeId)
+      ethereum.Value.fromUnsignedBigInt(tradeId),
     ]);
 
     return result[0].toBoolean();
@@ -473,7 +638,7 @@ export class Core extends ethereum.SmartContract {
 
   try__cancelTrade(tradeId: BigInt): ethereum.CallResult<boolean> {
     let result = super.tryCall("_cancelTrade", "_cancelTrade(uint256):(bool)", [
-      ethereum.Value.fromUnsignedBigInt(tradeId)
+      ethereum.Value.fromUnsignedBigInt(tradeId),
     ]);
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -483,26 +648,26 @@ export class Core extends ethereum.SmartContract {
   }
 
   _executeStream(
-    trade: Core___executeStreamInputTradeStruct
+    trade: Core___executeStreamInputTradeStruct,
   ): Core___executeStreamResultUpdatedTradeStruct {
     let result = super.call(
       "_executeStream",
-      "_executeStream((address,uint96,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool)):((address,uint96,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool))",
-      [ethereum.Value.fromTuple(trade)]
+      "_executeStream((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool)):((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool))",
+      [ethereum.Value.fromTuple(trade)],
     );
 
     return changetype<Core___executeStreamResultUpdatedTradeStruct>(
-      result[0].toTuple()
+      result[0].toTuple(),
     );
   }
 
   try__executeStream(
-    trade: Core___executeStreamInputTradeStruct
+    trade: Core___executeStreamInputTradeStruct,
   ): ethereum.CallResult<Core___executeStreamResultUpdatedTradeStruct> {
     let result = super.tryCall(
       "_executeStream",
-      "_executeStream((address,uint96,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool)):((address,uint96,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool))",
-      [ethereum.Value.fromTuple(trade)]
+      "_executeStream((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool)):((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool))",
+      [ethereum.Value.fromTuple(trade)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -510,8 +675,8 @@ export class Core extends ethereum.SmartContract {
     let value = result.value;
     return ethereum.CallResult.fromValue(
       changetype<Core___executeStreamResultUpdatedTradeStruct>(
-        value[0].toTuple()
-      )
+        value[0].toTuple(),
+      ),
     );
   }
 
@@ -519,7 +684,7 @@ export class Core extends ethereum.SmartContract {
     let result = super.call(
       "eoaTokenBalance",
       "eoaTokenBalance(address,address):(uint256)",
-      [ethereum.Value.fromAddress(param0), ethereum.Value.fromAddress(param1)]
+      [ethereum.Value.fromAddress(param0), ethereum.Value.fromAddress(param1)],
     );
 
     return result[0].toBigInt();
@@ -527,12 +692,12 @@ export class Core extends ethereum.SmartContract {
 
   try_eoaTokenBalance(
     param0: Address,
-    param1: Address
+    param1: Address,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "eoaTokenBalance",
       "eoaTokenBalance(address,address):(uint256)",
-      [ethereum.Value.fromAddress(param0), ethereum.Value.fromAddress(param1)]
+      [ethereum.Value.fromAddress(param0), ethereum.Value.fromAddress(param1)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -560,7 +725,7 @@ export class Core extends ethereum.SmartContract {
     let result = super.call(
       "getPairIdTradeIds",
       "getPairIdTradeIds(bytes32):(uint256[])",
-      [ethereum.Value.fromFixedBytes(pairId)]
+      [ethereum.Value.fromFixedBytes(pairId)],
     );
 
     return result[0].toBigIntArray();
@@ -570,7 +735,7 @@ export class Core extends ethereum.SmartContract {
     let result = super.tryCall(
       "getPairIdTradeIds",
       "getPairIdTradeIds(bytes32):(uint256[])",
-      [ethereum.Value.fromFixedBytes(pairId)]
+      [ethereum.Value.fromFixedBytes(pairId)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -579,49 +744,54 @@ export class Core extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigIntArray());
   }
 
-  lastGasCost(): BigInt {
-    let result = super.call("lastGasCost", "lastGasCost():(uint256)", []);
+  getTrade(tradeId: BigInt): Core__getTradeResultValue0Struct {
+    let result = super.call(
+      "getTrade",
+      "getTrade(uint256):((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool))",
+      [ethereum.Value.fromUnsignedBigInt(tradeId)],
+    );
 
-    return result[0].toBigInt();
+    return changetype<Core__getTradeResultValue0Struct>(result[0].toTuple());
   }
 
-  try_lastGasCost(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall("lastGasCost", "lastGasCost():(uint256)", []);
+  try_getTrade(
+    tradeId: BigInt,
+  ): ethereum.CallResult<Core__getTradeResultValue0Struct> {
+    let result = super.tryCall(
+      "getTrade",
+      "getTrade(uint256):((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool))",
+      [ethereum.Value.fromUnsignedBigInt(tradeId)],
+    );
     if (result.reverted) {
       return new ethereum.CallResult();
     }
     let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    return ethereum.CallResult.fromValue(
+      changetype<Core__getTradeResultValue0Struct>(value[0].toTuple()),
+    );
   }
 
-  lastGasPrice(): BigInt {
-    let result = super.call("lastGasPrice", "lastGasPrice():(uint256)", []);
+  instasettleProtocolFeeBps(): i32 {
+    let result = super.call(
+      "instasettleProtocolFeeBps",
+      "instasettleProtocolFeeBps():(uint16)",
+      [],
+    );
 
-    return result[0].toBigInt();
+    return result[0].toI32();
   }
 
-  try_lastGasPrice(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall("lastGasPrice", "lastGasPrice():(uint256)", []);
+  try_instasettleProtocolFeeBps(): ethereum.CallResult<i32> {
+    let result = super.tryCall(
+      "instasettleProtocolFeeBps",
+      "instasettleProtocolFeeBps():(uint16)",
+      [],
+    );
     if (result.reverted) {
       return new ethereum.CallResult();
     }
     let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
-  }
-
-  lastGasUsed(): BigInt {
-    let result = super.call("lastGasUsed", "lastGasUsed():(uint256)", []);
-
-    return result[0].toBigInt();
-  }
-
-  try_lastGasUsed(): ethereum.CallResult<BigInt> {
-    let result = super.tryCall("lastGasUsed", "lastGasUsed():(uint256)", []);
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
+    return ethereum.CallResult.fromValue(value[0].toI32());
   }
 
   lastTradeId(): BigInt {
@@ -643,7 +813,7 @@ export class Core extends ethereum.SmartContract {
     let result = super.call(
       "modulusResiduals",
       "modulusResiduals(address):(uint256)",
-      [ethereum.Value.fromAddress(param0)]
+      [ethereum.Value.fromAddress(param0)],
     );
 
     return result[0].toBigInt();
@@ -653,7 +823,7 @@ export class Core extends ethereum.SmartContract {
     let result = super.tryCall(
       "modulusResiduals",
       "modulusResiduals(address):(uint256)",
-      [ethereum.Value.fromAddress(param0)]
+      [ethereum.Value.fromAddress(param0)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -683,8 +853,8 @@ export class Core extends ethereum.SmartContract {
       "pairIdTradeIds(bytes32,uint256):(uint256)",
       [
         ethereum.Value.fromFixedBytes(param0),
-        ethereum.Value.fromUnsignedBigInt(param1)
-      ]
+        ethereum.Value.fromUnsignedBigInt(param1),
+      ],
     );
 
     return result[0].toBigInt();
@@ -692,15 +862,15 @@ export class Core extends ethereum.SmartContract {
 
   try_pairIdTradeIds(
     param0: Bytes,
-    param1: BigInt
+    param1: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "pairIdTradeIds",
       "pairIdTradeIds(bytes32,uint256):(uint256)",
       [
         ethereum.Value.fromFixedBytes(param0),
-        ethereum.Value.fromUnsignedBigInt(param1)
-      ]
+        ethereum.Value.fromUnsignedBigInt(param1),
+      ],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -709,21 +879,19 @@ export class Core extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
-  readTWAPGasCost(delta: BigInt): BigInt {
-    let result = super.call(
-      "readTWAPGasCost",
-      "readTWAPGasCost(uint256):(uint256)",
-      [ethereum.Value.fromUnsignedBigInt(delta)]
-    );
+  protocolFees(param0: Address): BigInt {
+    let result = super.call("protocolFees", "protocolFees(address):(uint256)", [
+      ethereum.Value.fromAddress(param0),
+    ]);
 
     return result[0].toBigInt();
   }
 
-  try_readTWAPGasCost(delta: BigInt): ethereum.CallResult<BigInt> {
+  try_protocolFees(param0: Address): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
-      "readTWAPGasCost",
-      "readTWAPGasCost(uint256):(uint256)",
-      [ethereum.Value.fromUnsignedBigInt(delta)]
+      "protocolFees",
+      "protocolFees(address):(uint256)",
+      [ethereum.Value.fromAddress(param0)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -747,6 +915,29 @@ export class Core extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
+  streamBotFeeBps(): i32 {
+    let result = super.call(
+      "streamBotFeeBps",
+      "streamBotFeeBps():(uint16)",
+      [],
+    );
+
+    return result[0].toI32();
+  }
+
+  try_streamBotFeeBps(): ethereum.CallResult<i32> {
+    let result = super.tryCall(
+      "streamBotFeeBps",
+      "streamBotFeeBps():(uint16)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toI32());
+  }
+
   streamDaemon(): Address {
     let result = super.call("streamDaemon", "streamDaemon():(address)", []);
 
@@ -762,36 +953,58 @@ export class Core extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toAddress());
   }
 
+  streamProtocolFeeBps(): i32 {
+    let result = super.call(
+      "streamProtocolFeeBps",
+      "streamProtocolFeeBps():(uint16)",
+      [],
+    );
+
+    return result[0].toI32();
+  }
+
+  try_streamProtocolFeeBps(): ethereum.CallResult<i32> {
+    let result = super.tryCall(
+      "streamProtocolFeeBps",
+      "streamProtocolFeeBps():(uint16)",
+      [],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toI32());
+  }
+
   trades(param0: BigInt): Core__tradesResult {
     let result = super.call(
       "trades",
-      "trades(uint256):(address,uint96,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool)",
-      [ethereum.Value.fromUnsignedBigInt(param0)]
+      "trades(uint256):(address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
     );
 
     return new Core__tradesResult(
       result[0].toAddress(),
-      result[1].toBigInt(),
-      result[2].toI32(),
+      result[1].toI32(),
+      result[2].toAddress(),
       result[3].toAddress(),
-      result[4].toAddress(),
+      result[4].toBigInt(),
       result[5].toBigInt(),
       result[6].toBigInt(),
       result[7].toBigInt(),
       result[8].toBigInt(),
       result[9].toBigInt(),
       result[10].toBigInt(),
-      result[11].toBigInt(),
-      result[12].toBigInt(),
-      result[13].toBoolean()
+      result[11].toBoolean(),
+      result[12].toBoolean(),
     );
   }
 
   try_trades(param0: BigInt): ethereum.CallResult<Core__tradesResult> {
     let result = super.tryCall(
       "trades",
-      "trades(uint256):(address,uint96,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool)",
-      [ethereum.Value.fromUnsignedBigInt(param0)]
+      "trades(uint256):(address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool)",
+      [ethereum.Value.fromUnsignedBigInt(param0)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -800,20 +1013,19 @@ export class Core extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(
       new Core__tradesResult(
         value[0].toAddress(),
-        value[1].toBigInt(),
-        value[2].toI32(),
+        value[1].toI32(),
+        value[2].toAddress(),
         value[3].toAddress(),
-        value[4].toAddress(),
+        value[4].toBigInt(),
         value[5].toBigInt(),
         value[6].toBigInt(),
         value[7].toBigInt(),
         value[8].toBigInt(),
         value[9].toBigInt(),
         value[10].toBigInt(),
-        value[11].toBigInt(),
-        value[12].toBigInt(),
-        value[13].toBoolean()
-      )
+        value[11].toBoolean(),
+        value[12].toBoolean(),
+      ),
     );
   }
 }
@@ -845,10 +1057,6 @@ export class ConstructorCall__Inputs {
 
   get _registry(): Address {
     return this._call.inputValues[2].value.toAddress();
-  }
-
-  get _lastGasUsed(): BigInt {
-    return this._call.inputValues[3].value.toBigInt();
   }
 }
 
@@ -913,7 +1121,7 @@ export class _executeStreamCall__Inputs {
 
   get trade(): _executeStreamCallTradeStruct {
     return changetype<_executeStreamCallTradeStruct>(
-      this._call.inputValues[0].value.toTuple()
+      this._call.inputValues[0].value.toTuple(),
     );
   }
 }
@@ -927,7 +1135,7 @@ export class _executeStreamCall__Outputs {
 
   get updatedTrade(): _executeStreamCallUpdatedTradeStruct {
     return changetype<_executeStreamCallUpdatedTradeStruct>(
-      this._call.outputValues[0].value.toTuple()
+      this._call.outputValues[0].value.toTuple(),
     );
   }
 }
@@ -937,56 +1145,52 @@ export class _executeStreamCallTradeStruct extends ethereum.Tuple {
     return this[0].toAddress();
   }
 
-  get cumulativeGasEntailed(): BigInt {
-    return this[1].toBigInt();
-  }
-
   get attempts(): i32 {
-    return this[2].toI32();
+    return this[1].toI32();
   }
 
   get tokenIn(): Address {
-    return this[3].toAddress();
+    return this[2].toAddress();
   }
 
   get tokenOut(): Address {
-    return this[4].toAddress();
+    return this[3].toAddress();
   }
 
   get amountIn(): BigInt {
-    return this[5].toBigInt();
+    return this[4].toBigInt();
   }
 
   get amountRemaining(): BigInt {
-    return this[6].toBigInt();
+    return this[5].toBigInt();
   }
 
   get targetAmountOut(): BigInt {
-    return this[7].toBigInt();
+    return this[6].toBigInt();
   }
 
   get realisedAmountOut(): BigInt {
-    return this[8].toBigInt();
+    return this[7].toBigInt();
   }
 
   get tradeId(): BigInt {
-    return this[9].toBigInt();
+    return this[8].toBigInt();
   }
 
   get instasettleBps(): BigInt {
-    return this[10].toBigInt();
-  }
-
-  get botGasAllowance(): BigInt {
-    return this[11].toBigInt();
+    return this[9].toBigInt();
   }
 
   get lastSweetSpot(): BigInt {
-    return this[12].toBigInt();
+    return this[10].toBigInt();
   }
 
   get isInstasettlable(): boolean {
-    return this[13].toBoolean();
+    return this[11].toBoolean();
+  }
+
+  get usePriceBased(): boolean {
+    return this[12].toBoolean();
   }
 }
 
@@ -995,81 +1199,81 @@ export class _executeStreamCallUpdatedTradeStruct extends ethereum.Tuple {
     return this[0].toAddress();
   }
 
-  get cumulativeGasEntailed(): BigInt {
-    return this[1].toBigInt();
-  }
-
   get attempts(): i32 {
-    return this[2].toI32();
+    return this[1].toI32();
   }
 
   get tokenIn(): Address {
-    return this[3].toAddress();
+    return this[2].toAddress();
   }
 
   get tokenOut(): Address {
-    return this[4].toAddress();
+    return this[3].toAddress();
   }
 
   get amountIn(): BigInt {
-    return this[5].toBigInt();
+    return this[4].toBigInt();
   }
 
   get amountRemaining(): BigInt {
-    return this[6].toBigInt();
+    return this[5].toBigInt();
   }
 
   get targetAmountOut(): BigInt {
-    return this[7].toBigInt();
+    return this[6].toBigInt();
   }
 
   get realisedAmountOut(): BigInt {
-    return this[8].toBigInt();
+    return this[7].toBigInt();
   }
 
   get tradeId(): BigInt {
-    return this[9].toBigInt();
+    return this[8].toBigInt();
   }
 
   get instasettleBps(): BigInt {
-    return this[10].toBigInt();
-  }
-
-  get botGasAllowance(): BigInt {
-    return this[11].toBigInt();
+    return this[9].toBigInt();
   }
 
   get lastSweetSpot(): BigInt {
-    return this[12].toBigInt();
+    return this[10].toBigInt();
   }
 
   get isInstasettlable(): boolean {
-    return this[13].toBoolean();
+    return this[11].toBoolean();
+  }
+
+  get usePriceBased(): boolean {
+    return this[12].toBoolean();
   }
 }
 
-export class CloseGasRecordCall extends ethereum.Call {
-  get inputs(): CloseGasRecordCall__Inputs {
-    return new CloseGasRecordCall__Inputs(this);
+export class ClaimProtocolFeesCall extends ethereum.Call {
+  get inputs(): ClaimProtocolFeesCall__Inputs {
+    return new ClaimProtocolFeesCall__Inputs(this);
   }
 
-  get outputs(): CloseGasRecordCall__Outputs {
-    return new CloseGasRecordCall__Outputs(this);
+  get outputs(): ClaimProtocolFeesCall__Outputs {
+    return new ClaimProtocolFeesCall__Outputs(this);
   }
 }
 
-export class CloseGasRecordCall__Inputs {
-  _call: CloseGasRecordCall;
+export class ClaimProtocolFeesCall__Inputs {
+  _call: ClaimProtocolFeesCall;
 
-  constructor(call: CloseGasRecordCall) {
+  constructor(call: ClaimProtocolFeesCall) {
     this._call = call;
   }
+
+  get token(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
 }
 
-export class CloseGasRecordCall__Outputs {
-  _call: CloseGasRecordCall;
+export class ClaimProtocolFeesCall__Outputs {
+  _call: ClaimProtocolFeesCall;
 
-  constructor(call: CloseGasRecordCall) {
+  constructor(call: ClaimProtocolFeesCall) {
     this._call = call;
   }
 }
@@ -1100,32 +1304,6 @@ export class ExecuteTradesCall__Outputs {
   _call: ExecuteTradesCall;
 
   constructor(call: ExecuteTradesCall) {
-    this._call = call;
-  }
-}
-
-export class InitiateGasRecordCall extends ethereum.Call {
-  get inputs(): InitiateGasRecordCall__Inputs {
-    return new InitiateGasRecordCall__Inputs(this);
-  }
-
-  get outputs(): InitiateGasRecordCall__Outputs {
-    return new InitiateGasRecordCall__Outputs(this);
-  }
-}
-
-export class InitiateGasRecordCall__Inputs {
-  _call: InitiateGasRecordCall;
-
-  constructor(call: InitiateGasRecordCall) {
-    this._call = call;
-  }
-}
-
-export class InitiateGasRecordCall__Outputs {
-  _call: InitiateGasRecordCall;
-
-  constructor(call: InitiateGasRecordCall) {
     this._call = call;
   }
 }
@@ -1212,6 +1390,186 @@ export class RenounceOwnershipCall__Outputs {
   _call: RenounceOwnershipCall;
 
   constructor(call: RenounceOwnershipCall) {
+    this._call = call;
+  }
+}
+
+export class SetExecutorCall extends ethereum.Call {
+  get inputs(): SetExecutorCall__Inputs {
+    return new SetExecutorCall__Inputs(this);
+  }
+
+  get outputs(): SetExecutorCall__Outputs {
+    return new SetExecutorCall__Outputs(this);
+  }
+}
+
+export class SetExecutorCall__Inputs {
+  _call: SetExecutorCall;
+
+  constructor(call: SetExecutorCall) {
+    this._call = call;
+  }
+
+  get _executor(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class SetExecutorCall__Outputs {
+  _call: SetExecutorCall;
+
+  constructor(call: SetExecutorCall) {
+    this._call = call;
+  }
+}
+
+export class SetInstasettleProtocolFeeBpsCall extends ethereum.Call {
+  get inputs(): SetInstasettleProtocolFeeBpsCall__Inputs {
+    return new SetInstasettleProtocolFeeBpsCall__Inputs(this);
+  }
+
+  get outputs(): SetInstasettleProtocolFeeBpsCall__Outputs {
+    return new SetInstasettleProtocolFeeBpsCall__Outputs(this);
+  }
+}
+
+export class SetInstasettleProtocolFeeBpsCall__Inputs {
+  _call: SetInstasettleProtocolFeeBpsCall;
+
+  constructor(call: SetInstasettleProtocolFeeBpsCall) {
+    this._call = call;
+  }
+
+  get bps(): i32 {
+    return this._call.inputValues[0].value.toI32();
+  }
+}
+
+export class SetInstasettleProtocolFeeBpsCall__Outputs {
+  _call: SetInstasettleProtocolFeeBpsCall;
+
+  constructor(call: SetInstasettleProtocolFeeBpsCall) {
+    this._call = call;
+  }
+}
+
+export class SetRegistryCall extends ethereum.Call {
+  get inputs(): SetRegistryCall__Inputs {
+    return new SetRegistryCall__Inputs(this);
+  }
+
+  get outputs(): SetRegistryCall__Outputs {
+    return new SetRegistryCall__Outputs(this);
+  }
+}
+
+export class SetRegistryCall__Inputs {
+  _call: SetRegistryCall;
+
+  constructor(call: SetRegistryCall) {
+    this._call = call;
+  }
+
+  get _registry(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class SetRegistryCall__Outputs {
+  _call: SetRegistryCall;
+
+  constructor(call: SetRegistryCall) {
+    this._call = call;
+  }
+}
+
+export class SetStreamBotFeeBpsCall extends ethereum.Call {
+  get inputs(): SetStreamBotFeeBpsCall__Inputs {
+    return new SetStreamBotFeeBpsCall__Inputs(this);
+  }
+
+  get outputs(): SetStreamBotFeeBpsCall__Outputs {
+    return new SetStreamBotFeeBpsCall__Outputs(this);
+  }
+}
+
+export class SetStreamBotFeeBpsCall__Inputs {
+  _call: SetStreamBotFeeBpsCall;
+
+  constructor(call: SetStreamBotFeeBpsCall) {
+    this._call = call;
+  }
+
+  get bps(): i32 {
+    return this._call.inputValues[0].value.toI32();
+  }
+}
+
+export class SetStreamBotFeeBpsCall__Outputs {
+  _call: SetStreamBotFeeBpsCall;
+
+  constructor(call: SetStreamBotFeeBpsCall) {
+    this._call = call;
+  }
+}
+
+export class SetStreamDaemonCall extends ethereum.Call {
+  get inputs(): SetStreamDaemonCall__Inputs {
+    return new SetStreamDaemonCall__Inputs(this);
+  }
+
+  get outputs(): SetStreamDaemonCall__Outputs {
+    return new SetStreamDaemonCall__Outputs(this);
+  }
+}
+
+export class SetStreamDaemonCall__Inputs {
+  _call: SetStreamDaemonCall;
+
+  constructor(call: SetStreamDaemonCall) {
+    this._call = call;
+  }
+
+  get _streamDaemon(): Address {
+    return this._call.inputValues[0].value.toAddress();
+  }
+}
+
+export class SetStreamDaemonCall__Outputs {
+  _call: SetStreamDaemonCall;
+
+  constructor(call: SetStreamDaemonCall) {
+    this._call = call;
+  }
+}
+
+export class SetStreamProtocolFeeBpsCall extends ethereum.Call {
+  get inputs(): SetStreamProtocolFeeBpsCall__Inputs {
+    return new SetStreamProtocolFeeBpsCall__Inputs(this);
+  }
+
+  get outputs(): SetStreamProtocolFeeBpsCall__Outputs {
+    return new SetStreamProtocolFeeBpsCall__Outputs(this);
+  }
+}
+
+export class SetStreamProtocolFeeBpsCall__Inputs {
+  _call: SetStreamProtocolFeeBpsCall;
+
+  constructor(call: SetStreamProtocolFeeBpsCall) {
+    this._call = call;
+  }
+
+  get bps(): i32 {
+    return this._call.inputValues[0].value.toI32();
+  }
+}
+
+export class SetStreamProtocolFeeBpsCall__Outputs {
+  _call: SetStreamProtocolFeeBpsCall;
+
+  constructor(call: SetStreamProtocolFeeBpsCall) {
     this._call = call;
   }
 }

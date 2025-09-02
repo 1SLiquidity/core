@@ -4,11 +4,11 @@ schema:
 dataSources:
   - kind: ethereum/contract
     name: Core
-    network: local
+    network: mainnet
     source:
-      address: "0x2451c39ED4f33D0a9A786445C41e68396f7cd80c"
+      address: "0xE880C65331FBfb15fdBCB89cd43F31670a969023"
       abi: Core
-      startBlock: 22776838
+      startBlock: 23234873
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -18,47 +18,39 @@ dataSources:
         - TradeExecution
         - TradeCancellation
         - TradeSettlement
+        - StreamFee
+        - InstasettleFee
+        - FeeClaim
+        - FeeRateUpdate
       abis:
         - name: Core
-          file: Core\abis\Core.json
+          file: Core\Core.json
       eventHandlers:
         - event: TradeCreated(indexed uint256,indexed
-            address,address,address,uint256,uint256,uint256,uint256,bool,uint256,uint256,uint96,uint256)
+            address,address,address,uint256,uint256,uint256,uint256,bool,uint256,uint256,bool)
           handler: handleTradeCreated
-        - event: TradeStreamExecuted(indexed uint256,uint256,uint256,uint256,uint256)
+        - event: TradeStreamExecuted(indexed uint256,uint256,uint256,uint256)
           handler: handleTradeStreamExecuted
         - event: TradeCancelled(indexed uint256,uint256,uint256)
           handler: handleTradeCancelled
         - event: TradeSettled(indexed uint256,indexed address,uint256,uint256,uint256)
           handler: handleTradeSettled
-      file: Core\Core.wasm
-  - kind: ethereum/contract
-    name: Router
-    network: local
-    source:
-      address: "0x1D7509613056c3d6D319C599aBaB85A57E731FB3"
-      abi: Router
-      startBlock: 22776838
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - InstaSettleConfig
-      abis:
-        - name: Router
-          file: Router\abis\Router.json
-      eventHandlers:
-        - event: InstaSettleConfigured(indexed uint256,bool,uint256)
-          handler: handleInstaSettleConfigured
+        - event: StreamFeesTaken(indexed uint256,indexed address,indexed address,uint256,uint256)
+          handler: handleStreamFeesTaken
+        - event: InstasettleFeeTaken(indexed uint256,indexed address,indexed address,uint256)
+          handler: handleInstasettleFeeTaken
+        - event: FeesClaimed(indexed address,indexed address,uint256,bool)
+          handler: handleFeesClaimed
+        - event: FeeRatesUpdated(uint16,uint16,uint16)
+          handler: handleFeeRatesUpdated
       file: Core\Core.wasm
   - kind: ethereum/contract
     name: StreamDaemon
-    network: local
+    network: mainnet
     source:
-      address: "0x28E2E3a25de36e4Cd542D0c87aC1FC42dC5db8C4"
+      address: "0x8Db74170e4D0080f5E9e394699A1d9b8623b2873"
       abi: StreamDaemon
-      startBlock: 22776838
+      startBlock: 23234873
     mapping:
       kind: ethereum/events
       apiVersion: 0.0.7
@@ -67,30 +59,10 @@ dataSources:
         - DEXRoute
       abis:
         - name: StreamDaemon
-          file: StreamDaemon\abis\StreamDaemon.json
+          file: StreamDaemon\StreamDaemon.json
       eventHandlers:
         - event: DEXRouteAdded(indexed address)
           handler: handleDEXRouteAdded
         - event: DEXRouteRemoved(indexed address)
           handler: handleDEXRouteRemoved
-      file: Core\Core.wasm
-  - kind: ethereum/contract
-    name: Fees
-    network: local
-    source:
-      address: "0x06E5297780b87dCDD51A71Cf036E738F69Eca3e4"
-      abi: Fees
-      startBlock: 22776838
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.7
-      language: wasm/assemblyscript
-      entities:
-        - FeeClaim
-      abis:
-        - name: Fees
-          file: Fees\abis\Fees.json
-      eventHandlers:
-        - event: FeesClaimed(indexed address,indexed address,uint256)
-          handler: handleFeesClaimed
       file: Core\Core.wasm
