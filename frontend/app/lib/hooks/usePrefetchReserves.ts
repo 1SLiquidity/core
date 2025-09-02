@@ -143,11 +143,16 @@ export const usePrefetchReserves = ({
 
       clearTimeout(timeoutId)
 
+      const data = await response.json()
+
+      // Handle "No liquidity" error response from API
+      if (data.error) {
+        throw new Error(data.message || data.error)
+      }
+
       if (!response.ok) {
         throw new Error('Failed to fetch reserves')
       }
-
-      const data = await response.json()
 
       if (!data || !data.reserves || !data.decimals) {
         throw new Error('No liquidity data received')

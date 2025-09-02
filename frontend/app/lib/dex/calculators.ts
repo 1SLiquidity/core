@@ -6,32 +6,67 @@ import {
   SushiSwapRouterABI,
 } from '../config/abis'
 
-// Create a shared provider instance to avoid too many connections
-// This should be reused across all calculator instances
-const sharedProviders: Record<string, ethers.providers.Provider> = {}
+// Singleton provider instance to avoid rate limits
+// let sharedAlchemyProvider: ethers.providers.JsonRpcProvider | null = null
 
-const getSharedProvider = (chainId: string): ethers.providers.Provider => {
-  if (!sharedProviders[chainId]) {
-    // Use a JsonRpcProvider with a sensible polling interval to reduce requests
-    sharedProviders[chainId] = new ethers.providers.JsonRpcProvider(
-      'https://eth-mainnet.alchemyapi.io/v2/_gg7wSSi0KMBsdKnGVfHDueq6xMB9EkC',
-      parseInt(chainId)
-    )
+// export function createAlchemyProvider(): ethers.providers.JsonRpcProvider {
+//   // Return existing provider if already created
+//   if (sharedAlchemyProvider) {
+//     return sharedAlchemyProvider
+//   }
 
-    // Increase polling interval to reduce requests (default is 4000ms)
-    ;(
-      sharedProviders[chainId] as ethers.providers.JsonRpcProvider
-    ).pollingInterval = 15000
-  }
-  return sharedProviders[chainId]
+//   // Create new provider only if it doesn't exist
+//   const ALCHEMY_API_KEY = 'LC21HsslONyX2SwijOkIG'
+//   // const url = `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY}`
+//   const url = `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`
+//   sharedAlchemyProvider = new ethers.providers.JsonRpcProvider(url)
+
+//   return sharedAlchemyProvider
+// }
+
+// Singleton provider instance to avoid rate limits
+let sharedProvider: ethers.providers.JsonRpcProvider | null = null
+
+// Function to reset the provider (useful for debugging)
+export function resetProvider() {
+  console.log('🔄 Resetting provider')
+  sharedProvider = null
 }
 
-export function createAlchemyProvider(): ethers.providers.JsonRpcProvider {
-  const ALCHEMY_API_KEY = 'eqzoGPYFURd6rxyiC_gON9JMZ4J7Wyk6' // replace with your actual key
-  const url = `https://eth-mainnet.alchemyapi.io/v2/${ALCHEMY_API_KEY}`
-  const provider = new ethers.providers.JsonRpcProvider(url)
+// export function createProvider(): ethers.providers.JsonRpcProvider {
+//   // Return existing provider if already created
+//   if (sharedProvider) {
+//     console.log('🔄 Reusing existing Alchemy provider')
+//     return sharedProvider
+//   }
 
-  return provider
+//   // Use your actual API key from the Worldchain app you created
+//   const ALCHEMY_API_KEY = 'LC21HsslONyX2SwijOkIG'
+
+//   // Use the Worldchain endpoint URL (not Ethereum mainnet)
+//   const url = `https://eth-mainnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}`
+
+//   console.log('🆕 Creating new Alchemy provider with URL:', url)
+//   sharedProvider = new ethers.providers.JsonRpcProvider(url)
+
+//   return sharedProvider
+// }
+
+export function createProvider(): ethers.providers.JsonRpcProvider {
+  // Return existing provider if already created
+  if (sharedProvider) {
+    console.log('🔄 Reusing existing Infura provider')
+    return sharedProvider
+  }
+
+  // Infura endpoint URL
+  const INFURA_URL =
+    'https://mainnet.infura.io/v3/47907acd16d2498d962484d4d7b513fc'
+
+  console.log('🆕 Creating new Infura provider with URL:', INFURA_URL)
+  sharedProvider = new ethers.providers.JsonRpcProvider(INFURA_URL)
+
+  return sharedProvider
 }
 
 // Extract fee tier from DEX identifier (e.g., "uniswap-v3-3000" -> 3000)
@@ -153,7 +188,7 @@ export abstract class BaseDexCalculator implements DexCalculator {
   constructor(chainId: string = '1') {
     // Use shared provider to reduce connections
     // this.provider = getSharedProvider(chainId)
-    this.provider = createAlchemyProvider()
+    this.provider = createProvider()
     this.chainId = chainId
   }
 
