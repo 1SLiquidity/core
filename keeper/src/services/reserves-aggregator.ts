@@ -347,8 +347,6 @@ export class ReservesAggregator {
       return null
     }
 
-    console.log('Results:', results)
-
     // Find the result with highest liquidity
     const deepestPool = results.reduce((prev, current) => {
       return current.meanReserves > prev.meanReserves ? current : prev
@@ -370,9 +368,37 @@ export class ReservesAggregator {
         token1: token1Info.decimals,
       },
       totalReserves: {
-        totalReserveTokenA: totalReserveTokenA.toString(),
-        totalReserveTokenB: totalReserveTokenB.toString(),
+        // Wei values (original)
+        totalReserveTokenAWei: totalReserveTokenA.toString(),
+        totalReserveTokenBWei: totalReserveTokenB.toString(),
+        // Normal values (converted)
+        totalReserveTokenA: this.convertWeiToNormal(
+          totalReserveTokenA,
+          token0Info.decimals
+        ),
+        totalReserveTokenB: this.convertWeiToNormal(
+          totalReserveTokenB,
+          token1Info.decimals
+        ),
       },
     }
+  }
+
+  // Helper function to convert Wei to normal value
+  private convertWeiToNormal(weiValue: bigint, decimals: number): string {
+    const divisor = BigInt(10 ** decimals)
+    const wholePart = weiValue / divisor
+    const fractionalPart = weiValue % divisor
+
+    if (fractionalPart === 0n) {
+      return wholePart.toString()
+    }
+
+    const fractionalStr = fractionalPart.toString().padStart(decimals, '0')
+    const trimmedFractional = fractionalStr.replace(/0+$/, '')
+
+    return trimmedFractional
+      ? `${wholePart}.${trimmedFractional}`
+      : wholePart.toString()
   }
 }
