@@ -7,12 +7,12 @@ provider:
   runtime: nodejs18.x
   stage: ${opt:stage, 'dev'}
   region: us-east-1
-  timeout: 90 # Match API Gateway limit
-  memorySize: 1024 # Increase memory for better performance
+  timeout: 90
+  memorySize: 1024
   httpApi:
     cors: true
   apiGateway:
-    minimumCompressionSize: 1024 # Enable compression for responses
+    minimumCompressionSize: 1024
     shouldStartNameWithService: true
   environment:
     NODE_ENV: ${self:provider.stage}
@@ -23,11 +23,12 @@ provider:
     REDIS_PASSWORD: ${env:REDIS_PASSWORD, ''}
     REDIS_URL: ${env:REDIS_URL, ''}
 
+# Remove the package section since webpack will handle bundling
 functions:
   reserves:
     handler: src/functions/reserves/handler.main
-    timeout: 90 # Just under API Gateway limit
-    memorySize: 1024 # Increase memory for better performance
+    timeout: 90
+    memorySize: 1024
     events:
       - http:
           path: reserves
@@ -41,33 +42,27 @@ functions:
           path: reserves
           method: options
           cors: true
-  price:
-    handler: src/functions/price/handler.main
-    timeout: 30 # Override default timeout for this function
-    events:
-      - http:
-          path: /price
-          method: get
-          cors: true
-  depth:
-    handler: src/functions/depth/handler.main
-    timeout: 30
-    events:
-      - http:
-          path: /depth
-          method: get
-          cors: true
 
 plugins:
+  - serverless-webpack
   - serverless-offline
-  - serverless-plugin-typescript
   - serverless-dotenv-plugin
 
 custom:
+  webpack:
+    webpackConfig: 'webpack.config.js'
+    includeModules: true
+    packager: 'npm'
+    excludeFiles:
+      - 'src/**/*.test.js'
+      - 'src/**/*.test.ts'
+      - 'src/**/*.spec.js'
+      - 'src/**/*.spec.ts'
+    keepOutputDirectory: false
   serverless-offline:
     httpPort: 3001
     lambdaPort: 3002
-    noTimeout: true # This prevents the local server from timing out
+    noTimeout: true
   dotenv:
     path: .env
     include:
