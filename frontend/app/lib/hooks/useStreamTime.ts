@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAppKitProvider, useAppKitAccount } from '@reown/appkit/react'
 import { getAverageBlockTime } from '../gas-calculations'
 import type { Provider } from '@reown/appkit/react'
-import { createAlchemyProvider } from '../dex/calculators'
+import { createProvider } from '../dex/calculators'
 
 export function useStreamTime(streamCount: number | undefined) {
   const [estimatedTime, setEstimatedTime] = useState<string>('')
@@ -24,7 +24,7 @@ export function useStreamTime(streamCount: number | undefined) {
       try {
         // Use wallet provider if connected (address exists), otherwise fall back to Alchemy provider
         const provider =
-          address && walletProvider ? walletProvider : createAlchemyProvider()
+          address && walletProvider ? walletProvider : createProvider()
         console.log('Selected provider:', provider)
 
         const avgBlockTime = await getAverageBlockTime(provider)
