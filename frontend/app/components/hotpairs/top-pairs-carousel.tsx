@@ -10,6 +10,8 @@ import {
 import PairCard from './PairCard'
 import LoadingPairCard from './LoadingPairCard'
 import { useEnhancedTopTokens } from '@/app/lib/hooks/hotpairs/useEnhancedTokens'
+import { useEffect, useState } from 'react'
+import { formatNumberAdvanced } from '@/lib/utils'
 
 export default function TopPairsCarousel({
   activeHotPair,
@@ -18,6 +20,9 @@ export default function TopPairsCarousel({
   activeHotPair: any
   setActiveHotPair: any
 }) {
+  // State for sorted pairs with slippageSavingsUsd
+  const [sortedPairs, setSortedPairs] = useState<any[]>([])
+
   // Fetch top tokens using React Query
   const {
     data: topTokensData,
@@ -31,11 +36,39 @@ export default function TopPairsCarousel({
     enabled: true,
   })
 
-  const sortedPairs = topTokensData?.data.sort((a: any, b: any) => {
-    const valueA = a.slippageSavings * (a.tokenBUsdPrice || 1)
-    const valueB = b.slippageSavings * (b.tokenBUsdPrice || 1)
-    return valueB - valueA // Descending order (b - a)
-  })
+  // const sortedPairs = topTokensData?.data.sort((a: any, b: any) => {
+  //   const valueA = a.slippageSavings * (a.tokenBUsdPrice || 1)
+  //   const valueB = b.slippageSavings * (b.tokenBUsdPrice || 1)
+  //   return valueB - valueA // Descending order (b - a)
+  // })
+
+  // Update sorted pairs when data changes
+  useEffect(() => {
+    if (topTokensData?.data) {
+      const pairsWithUsdValue = topTokensData.data.map((pair: any) => ({
+        ...pair,
+        slippageSavingsUsd: pair.slippageSavings * (pair.tokenBUsdPrice || 1),
+      }))
+
+      const sorted = pairsWithUsdValue.sort((a: any, b: any) => {
+        return b.slippageSavingsUsd - a.slippageSavingsUsd // Descending order
+      })
+
+      setSortedPairs(sorted)
+    }
+  }, [topTokensData])
+
+  // Enhanced setActiveHotPair that includes slippageSavingsUsd
+  const handleSetActiveHotPair = (pair: any) => {
+    const enhancedPair = {
+      ...pair,
+      slippageSavingsUsd: formatNumberAdvanced(
+        pair.slippageSavingsUsd ||
+          pair.slippageSavings * (pair.tokenBUsdPrice || 1)
+      ),
+    }
+    setActiveHotPair(enhancedPair)
+  }
 
   return (
     <div className="dark bg-gray-950 my-20">

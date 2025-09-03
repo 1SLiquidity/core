@@ -23,6 +23,8 @@ import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { useModal } from '@/app/lib/context/modalContext'
 import { useRouter } from 'next/navigation'
 import { useEnhancedTopTokens } from '@/app/lib/hooks/hotpairs/useEnhancedTokens'
+import LoadingPairCard from '@/app/components/hotpairs/LoadingPairCard'
+import CryptoCardSkeleton from './CryptoCardSkeleton'
 
 const hotPairs = [
   {
@@ -97,7 +99,7 @@ export default function HotPairBox() {
     error: topTokensError,
     refetch: refetchTopTokens,
   } = useEnhancedTopTokens({
-    limit: 3,
+    limit: 100,
     metric: 'slippageSavings',
     enabled: true,
   })
@@ -280,23 +282,33 @@ export default function HotPairBox() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                  {sortedPairs?.map((pair: any, index: number) => (
-                    <div
-                      key={index}
-                      onClick={() => handleSelectPair(pair, index)}
-                      className="cursor-pointer"
-                    >
-                      <CryptoCard2
-                        pair={pair}
-                        isActive={
-                          selectedTokenFrom?.symbol?.toLowerCase() ===
-                            pair.tokenASymbol?.toLowerCase() &&
-                          selectedTokenTo?.symbol?.toLowerCase() ===
-                            pair.tokenBSymbol?.toLowerCase()
-                        }
-                      />
-                    </div>
-                  ))}
+                  {isLoading
+                    ? Array(3)
+                        .fill(0)
+                        .map((_, index) => (
+                          <div key={index} className="">
+                            <CryptoCardSkeleton />
+                          </div>
+                        ))
+                    : sortedPairs
+                        ?.slice(0, 3)
+                        .map((pair: any, index: number) => (
+                          <div
+                            key={index}
+                            onClick={() => handleSelectPair(pair, index)}
+                            className="cursor-pointer"
+                          >
+                            <CryptoCard2
+                              pair={pair}
+                              isActive={
+                                selectedTokenFrom?.symbol?.toLowerCase() ===
+                                  pair.tokenASymbol?.toLowerCase() &&
+                                selectedTokenTo?.symbol?.toLowerCase() ===
+                                  pair.tokenBSymbol?.toLowerCase()
+                              }
+                            />
+                          </div>
+                        ))}
                 </div>
                 <div className="flex w-full justify-center items-center group">
                   <div

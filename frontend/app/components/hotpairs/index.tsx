@@ -32,6 +32,7 @@ const HotPairs = () => {
 
   const [selectedBaseToken, setSelectedBaseToken] = useState<any>(null)
   const [selectedOtherToken, setSelectedOtherToken] = useState<any>(null)
+  const [slippageSavingsUsd, setSlippageSavingsUsd] = useState<any>(null)
 
   const controls = useAnimation()
 
@@ -77,6 +78,12 @@ const HotPairs = () => {
     setVolumeAmount(pair?.reserveAtotaldepth)
     // setVolumeAmount(pair?.reserveAtotaldepthWei)
     setWinAmount(pair?.percentageSavings || 0)
+    // setSlippageSavingsUsd(pair?.slippageSavingsUsd)
+    setSlippageSavingsUsd(pair.slippageSavings * (pair.tokenBUsdPrice || 1))
+    console.log(
+      'slippageSavingsUsd ===>',
+      pair.slippageSavings * (pair.tokenBUsdPrice || 1)
+    )
     setVolumeActive(true)
     setWinActive(true)
 
@@ -186,10 +193,10 @@ const HotPairs = () => {
     )
 
     console.log('savings ===>', savings)
-    const savingsInUSD = savings * (activeHotPair?.tokenBUsdPrice || 0)
+    const savingsInUSD = savings * (activeHotPair?.tokenBUsdPrice || 1)
     // setWinAmount(savingsInUSD || 0)
     setWinAmount(Number(percentageSavings.toFixed(2)) || 0)
-
+    setSlippageSavingsUsd(savingsInUSD)
     setWinLoading(false)
 
     // After one seond set volume loading to false
@@ -234,6 +241,10 @@ const HotPairs = () => {
   // console.log('activeHotPair ===>', activeHotPair)
   console.log('selectedBaseToken ===>', selectedBaseToken)
   console.log('selectedOtherToken ===>', selectedOtherToken)
+
+  console.log('activeHotPair ===>', activeHotPair)
+  console.log('winAmount ===>', winAmount)
+  console.log('volumeAmount ===>', volumeAmount)
 
   return (
     <>
@@ -344,6 +355,7 @@ const HotPairs = () => {
                     setVolumeActive(false)
                     setWinActive(true)
                   }}
+                  slippageSavingsUsd={slippageSavingsUsd}
                   active={false}
                   disabled={true}
                   // disabled={!activeHotPair}

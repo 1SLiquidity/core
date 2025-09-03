@@ -1,5 +1,5 @@
 import InputAmount from '@/app/components/inputAmount'
-import { cn } from '@/lib/utils'
+import { cn, formatNumberAdvanced } from '@/lib/utils'
 
 interface InputAmountProps {
   amount: number
@@ -12,6 +12,7 @@ interface InputAmountProps {
   isLoading?: boolean
   isInsufficientBalance?: boolean
   setIsInsufficientBalance?: (isInsufficientBalance: boolean) => void
+  slippageSavingsUsd?: number
 }
 
 const InputFieldWithIcon: React.FC<InputAmountProps> = ({
@@ -25,6 +26,7 @@ const InputFieldWithIcon: React.FC<InputAmountProps> = ({
   isLoading,
   isInsufficientBalance,
   setIsInsufficientBalance,
+  slippageSavingsUsd,
 }) => {
   return (
     <div className="w-full">
@@ -46,14 +48,15 @@ const InputFieldWithIcon: React.FC<InputAmountProps> = ({
           />
         </div>
       </div>
-      {amount > 0 && (
+      {amount > 0 && slippageSavingsUsd && (
         <div
           className={cn(
             'mt-2 w-full text-left text-primary',
             isLoading && 'mt-[0.85rem]'
           )}
         >
-          Dummy text of the win
+          Est. Savings ${formatNumberAdvanced(slippageSavingsUsd)} for given
+          volume
         </div>
       )}
     </div>

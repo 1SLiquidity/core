@@ -84,16 +84,6 @@ const InputFieldWithTokenPair: React.FC<InputAmountProps> = ({
           </div>
         )}
       </div>
-      {amount > 0 && (
-        <div
-          className={cn(
-            'mt-2 w-full text-left text-primary',
-            isLoading && 'mt-[0.85rem]'
-          )}
-        >
-          Dummy text for given Volume
-        </div>
-      )}
     </div>
   )
 }

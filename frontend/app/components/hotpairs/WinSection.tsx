@@ -22,9 +22,10 @@ interface Props {
   active: boolean
   handleActive: (active: boolean) => void
   isLoading: boolean
+  slippageSavingsUsd: number
 }
 
-const VolumeSection: React.FC<Props> = ({
+const WinSection: React.FC<Props> = ({
   amount,
   setAmount,
   inValidAmount,
@@ -34,6 +35,7 @@ const VolumeSection: React.FC<Props> = ({
   active,
   handleActive,
   isLoading,
+  slippageSavingsUsd,
 }) => {
   // const [active, setActive] = useState(true)
   const sectionRef = useRef<HTMLDivElement>(null)
@@ -75,7 +77,7 @@ const VolumeSection: React.FC<Props> = ({
                 ? 'bg-gradient-to-r from-[#071310] to-[#062118]'
                 : 'bg-[#0D0D0D]'
               : 'bg-[#0D0D0D]'
-          } ${amount > 0 && !inValidAmount && 'dotsbg'}`}
+          }`}
         >
           {/* title */}
           <div className="flex items-center gap-2">
@@ -106,6 +108,7 @@ const VolumeSection: React.FC<Props> = ({
               isInsufficientBalance={isInsufficientBalance}
               setIsInsufficientBalance={setIsInsufficientBalance}
               isLoading={isLoading}
+              slippageSavingsUsd={slippageSavingsUsd}
             />
           </div>
         </div>
@@ -114,4 +117,4 @@ const VolumeSection: React.FC<Props> = ({
   )
 }
 
-export default VolumeSection
+export default WinSection
