@@ -7,7 +7,7 @@ import {
   Entity,
   Bytes,
   Address,
-  BigInt
+  BigInt,
 } from "@graphprotocol/graph-ts";
 
 export class DEXRouteAdded extends ethereum.Event {
@@ -100,6 +100,38 @@ export class StreamDaemon__evaluateSweetSpotAndDexResult {
   }
 }
 
+export class StreamDaemon__findBestPriceForTokenPairResult {
+  value0: Address;
+  value1: BigInt;
+  value2: BigInt;
+
+  constructor(value0: Address, value1: BigInt, value2: BigInt) {
+    this.value0 = value0;
+    this.value1 = value1;
+    this.value2 = value2;
+  }
+
+  toMap(): TypedMap<string, ethereum.Value> {
+    let map = new TypedMap<string, ethereum.Value>();
+    map.set("value0", ethereum.Value.fromAddress(this.value0));
+    map.set("value1", ethereum.Value.fromUnsignedBigInt(this.value1));
+    map.set("value2", ethereum.Value.fromUnsignedBigInt(this.value2));
+    return map;
+  }
+
+  getBestFetcher(): Address {
+    return this.value0;
+  }
+
+  getMaxReserveIn(): BigInt {
+    return this.value1;
+  }
+
+  getMaxReserveOut(): BigInt {
+    return this.value2;
+  }
+}
+
 export class StreamDaemon__findHighestReservesForTokenPairResult {
   value0: Address;
   value1: BigInt;
@@ -141,7 +173,7 @@ export class StreamDaemon extends ethereum.SmartContract {
     let result = super.call(
       "MIN_EFFECTIVE_GAS_DOLLARS",
       "MIN_EFFECTIVE_GAS_DOLLARS():(uint256)",
-      []
+      [],
     );
 
     return result[0].toBigInt();
@@ -151,7 +183,7 @@ export class StreamDaemon extends ethereum.SmartContract {
     let result = super.tryCall(
       "MIN_EFFECTIVE_GAS_DOLLARS",
       "MIN_EFFECTIVE_GAS_DOLLARS():(uint256)",
-      []
+      [],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -166,7 +198,7 @@ export class StreamDaemon extends ethereum.SmartContract {
     volume: BigInt,
     reserveIn: BigInt,
     reserveOut: BigInt,
-    effectiveGas: BigInt
+    effectiveGas: BigInt,
   ): BigInt {
     let result = super.call(
       "_sweetSpotAlgo",
@@ -177,8 +209,8 @@ export class StreamDaemon extends ethereum.SmartContract {
         ethereum.Value.fromUnsignedBigInt(volume),
         ethereum.Value.fromUnsignedBigInt(reserveIn),
         ethereum.Value.fromUnsignedBigInt(reserveOut),
-        ethereum.Value.fromUnsignedBigInt(effectiveGas)
-      ]
+        ethereum.Value.fromUnsignedBigInt(effectiveGas),
+      ],
     );
 
     return result[0].toBigInt();
@@ -190,7 +222,7 @@ export class StreamDaemon extends ethereum.SmartContract {
     volume: BigInt,
     reserveIn: BigInt,
     reserveOut: BigInt,
-    effectiveGas: BigInt
+    effectiveGas: BigInt,
   ): ethereum.CallResult<BigInt> {
     let result = super.tryCall(
       "_sweetSpotAlgo",
@@ -201,8 +233,79 @@ export class StreamDaemon extends ethereum.SmartContract {
         ethereum.Value.fromUnsignedBigInt(volume),
         ethereum.Value.fromUnsignedBigInt(reserveIn),
         ethereum.Value.fromUnsignedBigInt(reserveOut),
-        ethereum.Value.fromUnsignedBigInt(effectiveGas)
-      ]
+        ethereum.Value.fromUnsignedBigInt(effectiveGas),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  _sweetSpotAlgo_v1(
+    scaledVolume: BigInt,
+    scaledReserveIn: BigInt,
+    scaledReserveOut: BigInt,
+  ): BigInt {
+    let result = super.call(
+      "_sweetSpotAlgo_v1",
+      "_sweetSpotAlgo_v1(uint256,uint256,uint256):(uint256)",
+      [
+        ethereum.Value.fromUnsignedBigInt(scaledVolume),
+        ethereum.Value.fromUnsignedBigInt(scaledReserveIn),
+        ethereum.Value.fromUnsignedBigInt(scaledReserveOut),
+      ],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try__sweetSpotAlgo_v1(
+    scaledVolume: BigInt,
+    scaledReserveIn: BigInt,
+    scaledReserveOut: BigInt,
+  ): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "_sweetSpotAlgo_v1",
+      "_sweetSpotAlgo_v1(uint256,uint256,uint256):(uint256)",
+      [
+        ethereum.Value.fromUnsignedBigInt(scaledVolume),
+        ethereum.Value.fromUnsignedBigInt(scaledReserveIn),
+        ethereum.Value.fromUnsignedBigInt(scaledReserveOut),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  _sweetSpotAlgo_v2(scaledVolume: BigInt, scaledReserveIn: BigInt): BigInt {
+    let result = super.call(
+      "_sweetSpotAlgo_v2",
+      "_sweetSpotAlgo_v2(uint256,uint256):(uint256)",
+      [
+        ethereum.Value.fromUnsignedBigInt(scaledVolume),
+        ethereum.Value.fromUnsignedBigInt(scaledReserveIn),
+      ],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try__sweetSpotAlgo_v2(
+    scaledVolume: BigInt,
+    scaledReserveIn: BigInt,
+  ): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "_sweetSpotAlgo_v2",
+      "_sweetSpotAlgo_v2(uint256,uint256):(uint256)",
+      [
+        ethereum.Value.fromUnsignedBigInt(scaledVolume),
+        ethereum.Value.fromUnsignedBigInt(scaledReserveIn),
+      ],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -213,7 +316,7 @@ export class StreamDaemon extends ethereum.SmartContract {
 
   dexToRouters(param0: Address): Address {
     let result = super.call("dexToRouters", "dexToRouters(address):(address)", [
-      ethereum.Value.fromAddress(param0)
+      ethereum.Value.fromAddress(param0),
     ]);
 
     return result[0].toAddress();
@@ -223,7 +326,7 @@ export class StreamDaemon extends ethereum.SmartContract {
     let result = super.tryCall(
       "dexToRouters",
       "dexToRouters(address):(address)",
-      [ethereum.Value.fromAddress(param0)]
+      [ethereum.Value.fromAddress(param0)],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -234,7 +337,7 @@ export class StreamDaemon extends ethereum.SmartContract {
 
   dexs(param0: BigInt): Address {
     let result = super.call("dexs", "dexs(uint256):(address)", [
-      ethereum.Value.fromUnsignedBigInt(param0)
+      ethereum.Value.fromUnsignedBigInt(param0),
     ]);
 
     return result[0].toAddress();
@@ -242,7 +345,7 @@ export class StreamDaemon extends ethereum.SmartContract {
 
   try_dexs(param0: BigInt): ethereum.CallResult<Address> {
     let result = super.tryCall("dexs", "dexs(uint256):(address)", [
-      ethereum.Value.fromUnsignedBigInt(param0)
+      ethereum.Value.fromUnsignedBigInt(param0),
     ]);
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -255,23 +358,25 @@ export class StreamDaemon extends ethereum.SmartContract {
     tokenIn: Address,
     tokenOut: Address,
     volume: BigInt,
-    effectiveGas: BigInt
+    effectiveGas: BigInt,
+    usePriceBased: boolean,
   ): StreamDaemon__evaluateSweetSpotAndDexResult {
     let result = super.call(
       "evaluateSweetSpotAndDex",
-      "evaluateSweetSpotAndDex(address,address,uint256,uint256):(uint256,address,address)",
+      "evaluateSweetSpotAndDex(address,address,uint256,uint256,bool):(uint256,address,address)",
       [
         ethereum.Value.fromAddress(tokenIn),
         ethereum.Value.fromAddress(tokenOut),
         ethereum.Value.fromUnsignedBigInt(volume),
-        ethereum.Value.fromUnsignedBigInt(effectiveGas)
-      ]
+        ethereum.Value.fromUnsignedBigInt(effectiveGas),
+        ethereum.Value.fromBoolean(usePriceBased),
+      ],
     );
 
     return new StreamDaemon__evaluateSweetSpotAndDexResult(
       result[0].toBigInt(),
       result[1].toAddress(),
-      result[2].toAddress()
+      result[2].toAddress(),
     );
   }
 
@@ -279,17 +384,19 @@ export class StreamDaemon extends ethereum.SmartContract {
     tokenIn: Address,
     tokenOut: Address,
     volume: BigInt,
-    effectiveGas: BigInt
+    effectiveGas: BigInt,
+    usePriceBased: boolean,
   ): ethereum.CallResult<StreamDaemon__evaluateSweetSpotAndDexResult> {
     let result = super.tryCall(
       "evaluateSweetSpotAndDex",
-      "evaluateSweetSpotAndDex(address,address,uint256,uint256):(uint256,address,address)",
+      "evaluateSweetSpotAndDex(address,address,uint256,uint256,bool):(uint256,address,address)",
       [
         ethereum.Value.fromAddress(tokenIn),
         ethereum.Value.fromAddress(tokenOut),
         ethereum.Value.fromUnsignedBigInt(volume),
-        ethereum.Value.fromUnsignedBigInt(effectiveGas)
-      ]
+        ethereum.Value.fromUnsignedBigInt(effectiveGas),
+        ethereum.Value.fromBoolean(usePriceBased),
+      ],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -299,42 +406,91 @@ export class StreamDaemon extends ethereum.SmartContract {
       new StreamDaemon__evaluateSweetSpotAndDexResult(
         value[0].toBigInt(),
         value[1].toAddress(),
-        value[2].toAddress()
-      )
+        value[2].toAddress(),
+      ),
+    );
+  }
+
+  findBestPriceForTokenPair(
+    tokenIn: Address,
+    tokenOut: Address,
+    volume: BigInt,
+  ): StreamDaemon__findBestPriceForTokenPairResult {
+    let result = super.call(
+      "findBestPriceForTokenPair",
+      "findBestPriceForTokenPair(address,address,uint256):(address,uint256,uint256)",
+      [
+        ethereum.Value.fromAddress(tokenIn),
+        ethereum.Value.fromAddress(tokenOut),
+        ethereum.Value.fromUnsignedBigInt(volume),
+      ],
+    );
+
+    return new StreamDaemon__findBestPriceForTokenPairResult(
+      result[0].toAddress(),
+      result[1].toBigInt(),
+      result[2].toBigInt(),
+    );
+  }
+
+  try_findBestPriceForTokenPair(
+    tokenIn: Address,
+    tokenOut: Address,
+    volume: BigInt,
+  ): ethereum.CallResult<StreamDaemon__findBestPriceForTokenPairResult> {
+    let result = super.tryCall(
+      "findBestPriceForTokenPair",
+      "findBestPriceForTokenPair(address,address,uint256):(address,uint256,uint256)",
+      [
+        ethereum.Value.fromAddress(tokenIn),
+        ethereum.Value.fromAddress(tokenOut),
+        ethereum.Value.fromUnsignedBigInt(volume),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      new StreamDaemon__findBestPriceForTokenPairResult(
+        value[0].toAddress(),
+        value[1].toBigInt(),
+        value[2].toBigInt(),
+      ),
     );
   }
 
   findHighestReservesForTokenPair(
     tokenIn: Address,
-    tokenOut: Address
+    tokenOut: Address,
   ): StreamDaemon__findHighestReservesForTokenPairResult {
     let result = super.call(
       "findHighestReservesForTokenPair",
       "findHighestReservesForTokenPair(address,address):(address,uint256,uint256)",
       [
         ethereum.Value.fromAddress(tokenIn),
-        ethereum.Value.fromAddress(tokenOut)
-      ]
+        ethereum.Value.fromAddress(tokenOut),
+      ],
     );
 
     return new StreamDaemon__findHighestReservesForTokenPairResult(
       result[0].toAddress(),
       result[1].toBigInt(),
-      result[2].toBigInt()
+      result[2].toBigInt(),
     );
   }
 
   try_findHighestReservesForTokenPair(
     tokenIn: Address,
-    tokenOut: Address
+    tokenOut: Address,
   ): ethereum.CallResult<StreamDaemon__findHighestReservesForTokenPairResult> {
     let result = super.tryCall(
       "findHighestReservesForTokenPair",
       "findHighestReservesForTokenPair(address,address):(address,uint256,uint256)",
       [
         ethereum.Value.fromAddress(tokenIn),
-        ethereum.Value.fromAddress(tokenOut)
-      ]
+        ethereum.Value.fromAddress(tokenOut),
+      ],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
@@ -344,9 +500,41 @@ export class StreamDaemon extends ethereum.SmartContract {
       new StreamDaemon__findHighestReservesForTokenPairResult(
         value[0].toAddress(),
         value[1].toBigInt(),
-        value[2].toBigInt()
-      )
+        value[2].toBigInt(),
+      ),
     );
+  }
+
+  findLowestPriceForTokenPair(tokenIn: Address, tokenOut: Address): BigInt {
+    let result = super.call(
+      "findLowestPriceForTokenPair",
+      "findLowestPriceForTokenPair(address,address):(uint256)",
+      [
+        ethereum.Value.fromAddress(tokenIn),
+        ethereum.Value.fromAddress(tokenOut),
+      ],
+    );
+
+    return result[0].toBigInt();
+  }
+
+  try_findLowestPriceForTokenPair(
+    tokenIn: Address,
+    tokenOut: Address,
+  ): ethereum.CallResult<BigInt> {
+    let result = super.tryCall(
+      "findLowestPriceForTokenPair",
+      "findLowestPriceForTokenPair(address,address):(uint256)",
+      [
+        ethereum.Value.fromAddress(tokenIn),
+        ethereum.Value.fromAddress(tokenOut),
+      ],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(value[0].toBigInt());
   }
 
   owner(): Address {
@@ -368,7 +556,7 @@ export class StreamDaemon extends ethereum.SmartContract {
     let result = super.call(
       "universalDexInterface",
       "universalDexInterface():(address)",
-      []
+      [],
     );
 
     return result[0].toAddress();
@@ -378,7 +566,7 @@ export class StreamDaemon extends ethereum.SmartContract {
     let result = super.tryCall(
       "universalDexInterface",
       "universalDexInterface():(address)",
-      []
+      [],
     );
     if (result.reverted) {
       return new ethereum.CallResult();
