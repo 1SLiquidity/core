@@ -87,16 +87,16 @@ function calculateTotalReserves(
     ? [
         'reservesAUniswapV2',
         'reservesASushiswap',
-        'reservesAUniswapV3_500',
-        'reservesAUniswapV3_3000',
-        'reservesAUniswapV3_10000',
+        // 'reservesAUniswapV3_500',
+        // 'reservesAUniswapV3_3000',
+        // 'reservesAUniswapV3_10000',
       ]
     : [
         'reservesBUniswapV2',
         'reservesBSushiswap',
-        'reservesBUniswapV3_500',
-        'reservesBUniswapV3_3000',
-        'reservesBUniswapV3_10000',
+        // 'reservesBUniswapV3_500',
+        // 'reservesBUniswapV3_3000',
+        // 'reservesBUniswapV3_10000',
       ]
 
   let totalWei = BigInt(0)
@@ -669,9 +669,9 @@ async function getAllReservesForPair(
 
   // Test each DEX individually
   const dexes = [
-    { name: 'uniswap-v3-500', fee: 500 },
-    { name: 'uniswap-v3-3000', fee: 3000 },
-    { name: 'uniswap-v3-10000', fee: 10000 },
+    // { name: 'uniswap-v3-500', fee: 500 },
+    // { name: 'uniswap-v3-3000', fee: 3000 },
+    // { name: 'uniswap-v3-10000', fee: 10000 },
     { name: 'uniswapV2', fee: null },
     { name: 'sushiswap', fee: null },
   ]
@@ -866,18 +866,18 @@ async function transformToColumnFormat(
           record.reservesASushiswap = pair.reserves.token0
           record.reservesBSushiswap = pair.reserves.token1
           break
-        case 'uniswap-v3-500':
-          record.reservesAUniswapV3_500 = pair.reserves.token0
-          record.reservesBUniswapV3_500 = pair.reserves.token1
-          break
-        case 'uniswap-v3-3000':
-          record.reservesAUniswapV3_3000 = pair.reserves.token0
-          record.reservesBUniswapV3_3000 = pair.reserves.token1
-          break
-        case 'uniswap-v3-10000':
-          record.reservesAUniswapV3_10000 = pair.reserves.token0
-          record.reservesBUniswapV3_10000 = pair.reserves.token1
-          break
+        // case 'uniswap-v3-500':
+        //   record.reservesAUniswapV3_500 = pair.reserves.token0
+        //   record.reservesBUniswapV3_500 = pair.reserves.token1
+        //   break
+        // case 'uniswap-v3-3000':
+        //   record.reservesAUniswapV3_3000 = pair.reserves.token0
+        //   record.reservesBUniswapV3_3000 = pair.reserves.token1
+        //   break
+        // case 'uniswap-v3-10000':
+        //   record.reservesAUniswapV3_10000 = pair.reserves.token0
+        //   record.reservesBUniswapV3_10000 = pair.reserves.token1
+        //   break
         default:
           console.warn(`⚠️  Unknown DEX: ${pair.dex}`)
       }
@@ -908,17 +908,17 @@ async function transformToColumnFormat(
     const reservesA = [
       { dex: 'uniswap-v2', reserve: record.reservesAUniswapV2 },
       { dex: 'sushiswap', reserve: record.reservesASushiswap },
-      { dex: 'uniswap-v3-500', reserve: record.reservesAUniswapV3_500 },
-      { dex: 'uniswap-v3-3000', reserve: record.reservesAUniswapV3_3000 },
-      { dex: 'uniswap-v3-10000', reserve: record.reservesAUniswapV3_10000 },
+      // { dex: 'uniswap-v3-500', reserve: record.reservesAUniswapV3_500 },
+      // { dex: 'uniswap-v3-3000', reserve: record.reservesAUniswapV3_3000 },
+      // { dex: 'uniswap-v3-10000', reserve: record.reservesAUniswapV3_10000 },
     ].filter((r) => r.reserve !== null)
 
     const reservesB = [
       { dex: 'uniswap-v2', reserve: record.reservesBUniswapV2 },
       { dex: 'sushiswap', reserve: record.reservesBSushiswap },
-      { dex: 'uniswap-v3-500', reserve: record.reservesBUniswapV3_500 },
-      { dex: 'uniswap-v3-3000', reserve: record.reservesBUniswapV3_3000 },
-      { dex: 'uniswap-v3-10000', reserve: record.reservesBUniswapV3_10000 },
+      // { dex: 'uniswap-v3-500', reserve: record.reservesBUniswapV3_500 },
+      // { dex: 'uniswap-v3-3000', reserve: record.reservesBUniswapV3_3000 },
+      // { dex: 'uniswap-v3-10000', reserve: record.reservesBUniswapV3_10000 },
     ].filter((r) => r.reserve !== null)
 
     // Compare using BigInt, but don't store as BigInt
@@ -1180,68 +1180,68 @@ export async function calculateSlippageSavings(
       return { slippageSavings, percentageSavings }
     }
 
-    if (dex.startsWith('uniswap-v3')) {
-      // Calculate getAmountsOut from UniswapV3Quoter
-      const quoter = new ethers.Contract(
-        CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
-        CONTRACT_ABIS.UNISWAP_V3.QUOTER,
-        provider
-      )
+    // if (dex.startsWith('uniswap-v3')) {
+    //   // Calculate getAmountsOut from UniswapV3Quoter
+    //   const quoter = new ethers.Contract(
+    //     CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+    //     CONTRACT_ABIS.UNISWAP_V3.QUOTER,
+    //     provider
+    //   )
 
-      // Get quote for full amount
-      const data = quoter.interface.encodeFunctionData(
-        'quoteExactInputSingle',
-        [tokenIn, tokenOut, feeTier, tradeVolume, 0]
-      )
+    //   // Get quote for full amount
+    //   const data = quoter.interface.encodeFunctionData(
+    //     'quoteExactInputSingle',
+    //     [tokenIn, tokenOut, feeTier, tradeVolume, 0]
+    //   )
 
-      const result = await provider.call({
-        to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
-        data,
-      })
+    //   const result = await provider.call({
+    //     to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+    //     data,
+    //   })
 
-      const dexQuoteAmountOut = quoter.interface.decodeFunctionResult(
-        'quoteExactInputSingle',
-        result
-      )[0]
+    //   const dexQuoteAmountOut = quoter.interface.decodeFunctionResult(
+    //     'quoteExactInputSingle',
+    //     result
+    //   )[0]
 
-      const dexQuoteAmountOutInETH = Number(dexQuoteAmountOut) / 10 ** decimalsB
+    //   const dexQuoteAmountOutInETH = Number(dexQuoteAmountOut) / 10 ** decimalsB
 
-      // Get quote for (tradeVolume / sweetSpot)
-      const sweetSpotQuote = quoter.interface.encodeFunctionData(
-        'quoteExactInputSingle',
-        [tokenIn, tokenOut, feeTier, tradeVolume / BigInt(sweetSpot), 0]
-      )
+    //   // Get quote for (tradeVolume / sweetSpot)
+    //   const sweetSpotQuote = quoter.interface.encodeFunctionData(
+    //     'quoteExactInputSingle',
+    //     [tokenIn, tokenOut, feeTier, tradeVolume / BigInt(sweetSpot), 0]
+    //   )
 
-      const sweetSpotQuoteResult = await provider.call({
-        to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
-        data: sweetSpotQuote,
-      })
+    //   const sweetSpotQuoteResult = await provider.call({
+    //     to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+    //     data: sweetSpotQuote,
+    //   })
 
-      const sweetSpotQuoteAmountOut = quoter.interface.decodeFunctionResult(
-        'quoteExactInputSingle',
-        sweetSpotQuoteResult
-      )[0]
+    //   const sweetSpotQuoteAmountOut = quoter.interface.decodeFunctionResult(
+    //     'quoteExactInputSingle',
+    //     sweetSpotQuoteResult
+    //   )[0]
 
-      const sweetSpotQuoteAmountOutInETH =
-        Number(sweetSpotQuoteAmountOut) / 10 ** decimalsB
-      const scaledSweetSpotQuoteAmountOutInETH =
-        sweetSpotQuoteAmountOutInETH * sweetSpot
+    //   const sweetSpotQuoteAmountOutInETH =
+    //     Number(sweetSpotQuoteAmountOut) / 10 ** decimalsB
+    //   const scaledSweetSpotQuoteAmountOutInETH =
+    //     sweetSpotQuoteAmountOutInETH * sweetSpot
 
-      const slippageSavings =
-        scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
-      // const percentageSavings = (slippageSavings / dexQuoteAmountOutInETH) * 100
+    //   const slippageSavings =
+    //     scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
+    //   // const percentageSavings = (slippageSavings / dexQuoteAmountOutInETH) * 100
 
-      let raw = slippageSavings / dexQuoteAmountOutInETH
-      // Instead of raw * 100, do (1 - raw) * 100
-      let percentageSavings = (1 - raw) * 100
-      percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
-      percentageSavings = Number(percentageSavings.toFixed(3))
+    //   let raw = slippageSavings / dexQuoteAmountOutInETH
+    //   // Instead of raw * 100, do (1 - raw) * 100
+    //   let percentageSavings = (1 - raw) * 100
+    //   percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+    //   percentageSavings = Number(percentageSavings.toFixed(3))
 
-      // console.log('slippageSavings =====>', slippageSavings)
-      // console.log('percentageSavings =====>', percentageSavings)
+    //   // console.log('slippageSavings =====>', slippageSavings)
+    //   // console.log('percentageSavings =====>', percentageSavings)
 
-      return { slippageSavings, percentageSavings }
-    }
+    //   return { slippageSavings, percentageSavings }
+    // }
 
     return { slippageSavings: 0, percentageSavings: 0 }
   } catch (error) {
