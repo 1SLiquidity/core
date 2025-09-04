@@ -165,12 +165,11 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   } = useModal()
   const { address, isConnected } = useAppKitAccount()
 
-  // Get user's wallet tokens - always use 'arbitrum' chain for this project
   const {
     tokens: walletTokens,
     isLoading: isLoadingTokens,
     rawTokens,
-  } = useWalletTokens(address, 'arbitrum')
+  } = useWalletTokens(address)
 
   // Get token list from useTokenList hook
   const { tokens: allTokens, isLoading: isLoadingTokenList } = useTokenList()

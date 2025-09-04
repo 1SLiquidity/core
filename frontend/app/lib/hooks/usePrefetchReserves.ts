@@ -17,15 +17,15 @@ const POPULAR_TOKENS = {
     WBTC: '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599',
     WSOL: '0x0Df040Bda85394A9B36224069D6c70646dB8cbF8', // Wrapped SOL on Ethereum
   },
-  '42161': {
-    // Arbitrum
-    USDC: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
-    USDT: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
-    DAI: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
-    WETH: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
-    WBTC: '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
-    WSOL: '0x0Df040Bda85394A9B36224069D6c70646dB8cbF8', // Wrapped SOL on Arbitrum
-  },
+  // '42161': {
+  //   // Arbitrum
+  //   USDC: '0xaf88d065e77c8cc2239327c5edb3a432268e5831',
+  //   USDT: '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9',
+  //   DAI: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1',
+  //   WETH: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
+  //   WBTC: '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f',
+  //   WSOL: '0x0Df040Bda85394A9B36224069D6c70646dB8cbF8', // Wrapped SOL on Arbitrum
+  // },
 }
 
 // Token pairs to prefetch - prioritized by importance

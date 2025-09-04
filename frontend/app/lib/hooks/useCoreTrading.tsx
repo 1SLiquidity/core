@@ -133,6 +133,8 @@ export const useCoreTrading = () => {
         toast.dismiss('token-approval')
         toast.error(`Token approval failed: ${error.reason || error.message}`)
         return false
+      } finally {
+        toast.dismiss('token-approval')
       }
     },
     []
@@ -437,6 +439,7 @@ export const useCoreTrading = () => {
         toast.error(`Failed to cancel trade: ${error.reason || error.message}`)
         return { success: false }
       } finally {
+        toast.dismiss('cancel-trade')
         setLoading(false)
       }
     },
@@ -546,6 +549,7 @@ export const useCoreTrading = () => {
         toast.error(`Failed to instasettle: ${error.reason || error.message}`)
         return { success: false }
       } finally {
+        toast.dismiss('instasettle')
         setLoading(false)
       }
     },

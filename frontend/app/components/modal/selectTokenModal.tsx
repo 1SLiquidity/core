@@ -33,17 +33,17 @@ type BaseTokenData = {
 // Chain name mapping for display purposes
 const CHAIN_NAMES: { [key: string]: string } = {
   '1': 'Ethereum',
-  '42161': 'Arbitrum One',
-  '137': 'Polygon',
-  '56': 'BNB Chain',
+  // '42161': 'Arbitrum One',
+  // '137': 'Polygon',
+  // '56': 'BNB Chain',
 }
 
 // Mapping from chain IDs to Moralis chain identifiers
 const CHAIN_ID_TO_MORALIS: { [key: string]: string } = {
   '1': 'eth',
-  '42161': 'arbitrum',
-  '137': 'polygon',
-  '56': 'bsc',
+  // '42161': 'arbitrum',
+  // '137': 'polygon',
+  // '56': 'bsc',
 }
 
 // Base tokens that will be shown as popular tokens

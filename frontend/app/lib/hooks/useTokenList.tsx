@@ -46,9 +46,9 @@ interface EssentialToken {
 // Mapping from chain IDs to CoinGecko platform identifiers
 const CHAIN_ID_TO_PLATFORM: Record<string, string> = {
   '1': 'ethereum',
-  '42161': 'arbitrum-one',
-  '137': 'polygon-pos',
-  '56': 'binance-smart-chain',
+  // '42161': 'arbitrum-one',
+  // '137': 'polygon-pos',
+  // '56': 'binance-smart-chain',
   // Add more chains as needed
 }
 

@@ -22,7 +22,8 @@ const metadata = {
 const modal = createAppKit({
   adapters: [wagmiAdapter],
   projectId,
-  networks: [mainnet, arbitrum],
+  // networks: [mainnet, arbitrum],
+  networks: [mainnet],
   defaultNetwork: mainnet,
   metadata: metadata,
   features: {
