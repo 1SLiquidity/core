@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 // import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import "./StreamDaemon.sol";
 import "./Executor.sol";
@@ -12,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 // import "forge-std/console.sol";
 
-contract Core is Ownable /*, UUPSUpgradeable */ {
+contract Core is Ownable, ReentrancyGuard /*, UUPSUpgradeable */ {
     using SafeERC20 for IERC20;
 
     // @audit must be able to recieve and transfer tokens
@@ -50,6 +51,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 totalAmountOut,
         uint256 totalFees
     );
+
+    event LowLevelError(string error);
+
+    event DataError(bytes error);
 
     // =========================
     // Fees state
@@ -94,13 +99,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         return (amount * bps) / MAX_BPS;
     }
 
-    function _applyStreamFees(
-        uint256 tradeId,
-        address tokenOut,
-        uint256 deltaOut,
-        bool isInitial,
-        address bot
-    )
+    function _applyStreamFees(uint256 tradeId, address tokenOut, uint256 deltaOut, bool isInitial, address bot)
         internal
         returns (uint256 protocolFee, uint256 botFee)
     {
@@ -151,7 +150,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         emit FeeRatesUpdated(streamProtocolFeeBps, streamBotFeeBps, instasettleProtocolFeeBps);
     }
 
-    function claimProtocolFees(address token) external onlyOwner {
+    function claimProtocolFees(address token) external onlyOwner nonReentrant {
         uint256 amount = protocolFees[token];
         require(amount > 0, "no fees");
         protocolFees[token] = 0;
@@ -174,7 +173,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         registry = IRegistry(_registry);
     }
 
-    function instasettle(uint256 tradeId) external {
+    function instasettle(uint256 tradeId) external nonReentrant {
         Utils.Trade memory trade = trades[tradeId];
         require(trade.owner != address(0), "Trade not found");
         require(trade.isInstasettlable, "Trade not instasettlable");
@@ -193,7 +192,8 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             );
             return;
         }
-
+        // otheriwse, remove trade from storage and settle amounts
+        delete trades[tradeId];
         // Calculate remaining amount that needs to be settled
         uint256 remainingAmountOut = trade.targetAmountOut - trade.realisedAmountOut;
         require(remainingAmountOut > 0, "No remaining amount to settle");
@@ -211,7 +211,6 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
             emit InstasettleFeeTaken(trade.tradeId, msg.sender, trade.tokenOut, protocolFee);
         }
 
-        delete trades[tradeId];
         IERC20(trade.tokenOut).safeTransferFrom(msg.sender, trade.owner, settlerPayment);
         IERC20(trade.tokenIn).safeTransfer(msg.sender, trade.amountRemaining);
         emit TradeSettled(
@@ -253,7 +252,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         // @audit needs attention for small trades - these hsouldn't be entered in the orderbook / storage
         trades[tradeId] = Utils.Trade({
             owner: msg.sender,
-            attempts: 1,
+            attempts: 0,
             tokenIn: tokenIn,
             tokenOut: tokenOut,
             amountIn: amountIn,
@@ -271,7 +270,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
 
         Utils.Trade storage trade = trades[tradeId];
         uint256 realisedBefore = trade.realisedAmountOut;
-        Utils.Trade memory updatedTrade = _executeStream(trade);
+        Utils.Trade memory updatedTrade = executeStream(trade.tradeId);
         uint256 delta = updatedTrade.realisedAmountOut - realisedBefore; // initial delta = realised
         if (delta > 0) {
             (uint256 protocolFee, uint256 botFee) = _applyStreamFees(tradeId, tokenOut, delta, true, address(0));
@@ -295,7 +294,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         );
     }
 
-    function _cancelTrade(uint256 tradeId) public returns (bool) {
+    function cancelTrade(uint256 tradeId) public nonReentrant returns (bool) {
         // @audit It is essential that this authority may be granted by a bot, therefore meaning if the msg.sender is
         // Core.
         // @audit Similarly, when the Router is implemented, we mnust forward the msg.sender in the function call /
@@ -304,12 +303,12 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         if (trade.owner == address(0)) {
             revert("Trade does not exist");
         }
-        if (trade.owner == msg.sender || msg.sender == address(this) || trade.attempts >= 3) {
+        if (trade.owner == msg.sender || msg.sender == address(this)) {
             bytes32 pairId = keccak256(abi.encode(trade.tokenIn, trade.tokenOut));
             delete trades[tradeId];
             _removeTradeIdFromArray(pairId, tradeId);
-            IERC20(trade.tokenOut).safeTransfer(msg.sender, trade.realisedAmountOut);
-            IERC20(trade.tokenIn).safeTransfer(msg.sender, trade.amountRemaining);
+            IERC20(trade.tokenOut).safeTransfer(trade.owner, trade.realisedAmountOut);
+            IERC20(trade.tokenIn).safeTransfer(trade.owner, trade.amountRemaining);
 
             emit TradeCancelled(tradeId, trade.amountRemaining, trade.realisedAmountOut);
 
@@ -319,20 +318,19 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         }
     }
 
-    function executeTrades(bytes32 pairId) public {
+    function executeTrades(bytes32 pairId) public nonReentrant {
         uint256[] storage tradeIds = pairIdTradeIds[pairId];
         uint256 botFeesAccrued = 0;
         address tokenOutForRun = address(0);
 
         for (uint256 i = 0; i < tradeIds.length; i++) {
             Utils.Trade storage trade = trades[tradeIds[i]];
-
             if (trade.attempts >= 3) {
                 // we delete the trade from storage
-                _cancelTrade(trade.tradeId);
+                cancelTrade(trade.tradeId);
             } else {
                 uint256 realisedBefore = trade.realisedAmountOut;
-                try this._executeStream(trade) returns (Utils.Trade memory updatedTrade) {
+                try this.executeStream(trade.tradeId) returns (Utils.Trade memory updatedTrade) {
                     uint256 delta = updatedTrade.realisedAmountOut - realisedBefore;
                     if (delta > 0) {
                         if (tokenOutForRun == address(0)) tokenOutForRun = updatedTrade.tokenOut;
@@ -349,8 +347,10 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
                     }
                 } catch Error(string memory reason) {
                     trade.attempts++;
+                    emit LowLevelError(reason);
                 } catch (bytes memory lowLevelData) {
                     trade.attempts++;
+                    emit DataError(lowLevelData);
                 }
             }
         }
@@ -362,16 +362,18 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         }
     }
 
-    function _executeStream(Utils.Trade memory trade) public returns (Utils.Trade memory updatedTrade) {
-        Utils.Trade storage storageTrade = trades[trade.tradeId];
+    function executeStream(uint256 tradeId) public returns (Utils.Trade memory updatedTrade) {
+        Utils.Trade storage storageTrade = trades[tradeId];
+        Utils.Trade memory trade = trades[tradeId];
 
         // security measure @audit may need review
         // if (trade.realisedAmountOut > trade.targetAmountOut) {
         //     revert ToxicTrade(trade.tradeId);
         // }
 
-        (uint256 sweetSpot, address bestDex, address router) = 
-            streamDaemon.evaluateSweetSpotAndDex(trade.tokenIn, trade.tokenOut, trade.amountRemaining, 0, trade.usePriceBased);
+        (uint256 sweetSpot, address bestDex, address router) = streamDaemon.evaluateSweetSpotAndDex(
+            trade.tokenIn, trade.tokenOut, trade.amountRemaining, 0, trade.usePriceBased
+        );
 
         if (
             trade.lastSweetSpot == 1 || trade.lastSweetSpot == 2 || trade.lastSweetSpot == 3 || trade.lastSweetSpot == 4
@@ -387,7 +389,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         uint256 targetAmountOut;
         uint256 streamVolume;
         if (trade.targetAmountOut > trade.realisedAmountOut) {
-            targetAmountOut = (trade.targetAmountOut - trade.realisedAmountOut) / sweetSpot; // big change exists here
+            targetAmountOut = (trade.targetAmountOut - trade.realisedAmountOut) / sweetSpot * 996 / 1000; // dropping 0.4% to allow for DEX fees
             streamVolume = trade.amountRemaining / sweetSpot;
         } else {
             targetAmountOut = trade.realisedAmountOut - trade.targetAmountOut;
@@ -404,7 +406,7 @@ contract Core is Ownable /*, UUPSUpgradeable */ {
         (bool success, bytes memory returnData) =
             address(executor).delegatecall(abi.encodeWithSelector(tradeData.selector, tradeData.params));
         if (!success) {
-            revert("DEX trade failed");
+            revert(string(abi.encodePacked("DEX trade failed: ", returnData)));
         }
         uint256 amountOut = abi.decode(returnData, (uint256));
         require(amountOut > 0, "No tokens received from swap");
