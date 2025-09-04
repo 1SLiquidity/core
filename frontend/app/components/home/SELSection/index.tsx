@@ -21,6 +21,8 @@ import { useRefreshTimer } from '@/app/lib/hooks/useRefreshTimer'
 import { useSwapCalculator } from '@/app/lib/hooks/useSwapCalculator'
 import HotPairBox from './HotPair/HotPairBox'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { useWallet } from '@/app/lib/hooks/useWallet'
+import { useCoreTrading } from '@/app/lib/hooks/useCoreTrading'
 
 const TIMER_DURATION = 10 // 10 seconds
 
@@ -47,6 +49,13 @@ const SELSection = () => {
   const { address, isConnected } = useAppKitAccount()
   const [isInsufficientBalance, setIsInsufficientBalance] = useState(false)
   const [isInsufficientLiquidity, setIsInsufficientLiquidity] = useState(false)
+  const { placeTrade, loading } = useCoreTrading()
+  const { getSigner, isConnected: isConnectedWallet } = useWallet()
+
+  console.log('loading =========>', loading)
+  console.log('isConnectedWallet =========>', isConnectedWallet)
+  console.log('isConnected =========>', isConnected)
+  console.log('selectedTokenFrom =========>', getSigner())
 
   // const { prefetchedReserves, getPairKey } = usePrefetchReserves()
   // const pairKey = getPairKey('USDC', 'WETH')
@@ -443,6 +452,25 @@ const SELSection = () => {
     },
   }
 
+  const handlePlaceTrade = async () => {
+    if (isConnectedWallet) {
+      const signer = getSigner()
+      if (signer) {
+        await placeTrade(
+          {
+            tokenIn: selectedTokenFrom?.token_address || '',
+            tokenOut: selectedTokenTo?.token_address || '',
+            amountIn: sellAmount.toString(),
+            minAmountOut: buyAmount.toString(),
+            isInstasettlable: false,
+            usePriceBased: false,
+          },
+          signer
+        )
+      }
+    }
+  }
+
   console.log('isCalculating ===>', isCalculating)
   console.log('buyAmount ===>', buyAmount)
   console.log('sellAmount ===>', sellAmount)
@@ -619,8 +647,11 @@ const SELSection = () => {
               theme="gradient"
               onClick={
                 sellAmount > 0 && buyAmount > 0
-                  ? () => addToast(<NotifiSwapStream />)
+                  ? () => handlePlaceTrade()
                   : () => {}
+                // sellAmount > 0 && buyAmount > 0
+                //   ? () => addToast(<NotifiSwapStream />)
+                //   : () => {}
               }
               error={
                 invaliSelldAmount ||
