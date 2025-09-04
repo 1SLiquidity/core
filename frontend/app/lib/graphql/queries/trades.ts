@@ -5,9 +5,7 @@ export const GET_TRADES = gql`
     trades(first: $first, orderBy: id, orderDirection: asc, skip: $skip) {
       amountIn
       amountRemaining
-      botGasAllowance
       createdAt
-      cumulativeGasEntailed
       instasettleBps
       isInstasettlable
       lastSweetSpot
@@ -20,7 +18,6 @@ export const GET_TRADES = gql`
       id
       executions(first: 10) {
         amountIn
-        cumulativeGasEntailed
         id
         lastSweetSpot
         timestamp

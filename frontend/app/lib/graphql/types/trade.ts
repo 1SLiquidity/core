@@ -10,9 +10,7 @@ export interface Execution {
 export interface Trade {
   amountIn: string
   amountRemaining: string
-  botGasAllowance: string
   createdAt: string
-  cumulativeGasEntailed: string
   instasettleBps: string
   isInstasettlable: boolean
   lastSweetSpot: string
