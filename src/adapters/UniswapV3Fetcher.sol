@@ -30,9 +30,7 @@ interface IUniswapV3Pool {
         int256 amountSpecified,
         uint160 sqrtPriceLimitX96,
         bytes calldata data
-    )
-        external
-        returns (int256 amount0, int256 amount1);
+    ) external returns (int256 amount0, int256 amount1);
 }
 
 /**
@@ -47,10 +45,7 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
         fee = _fee;
     }
 
-    function getReserves(
-        address tokenA,
-        address tokenB
-    )
+    function getReserves(address tokenA, address tokenB)
         external
         view
         override
@@ -108,11 +103,11 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
     function getPrice(address tokenIn, address tokenOut, uint256 amountIn) external view override returns (uint256) {
         // For UniswapV3, calculate price based on reserves
         (uint256 reserveIn, uint256 reserveOut) = this.getReserves(tokenIn, tokenOut);
-        
+
         if (reserveIn == 0 || reserveOut == 0) {
             return 0;
         }
-        
+
         // Simple price calculation based on reserves ratio
         // This is a simplified version - UniswapV3 has more complex pricing with concentrated liquidity
         return (amountIn * reserveOut) / reserveIn;

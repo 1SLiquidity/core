@@ -18,13 +18,13 @@ contract Registry is IRegistry, Ownable {
 
     // DEX type to router mapping
     mapping(string => address) public dexRouters;
-    
+
     // DEX type to executor selector mapping
     mapping(string => bytes4) public dexExecutors;
-    
+
     // DEX type to parameter encoding function mapping
     mapping(string => bytes4) public dexParameterEncoders;
-    
+
     constructor() Ownable(msg.sender) {
         // Register existing DEX types with their executors and parameter encoders
         _registerExistingDexTypes();
@@ -37,26 +37,22 @@ contract Registry is IRegistry, Ownable {
         // UniswapV2-style DEXes
         dexExecutors["UniswapV2"] = Executor.executeUniswapV2Trade.selector;
         dexParameterEncoders["UniswapV2"] = _getUniswapV2ParameterEncoder();
-        
+
         dexExecutors["Sushiswap"] = Executor.executeUniswapV2Trade.selector;
         dexParameterEncoders["Sushiswap"] = _getUniswapV2ParameterEncoder();
-        
+
         // UniswapV3
         dexExecutors["UniswapV3"] = Executor.executeUniswapV3Trade.selector;
         dexParameterEncoders["UniswapV3"] = _getUniswapV3ParameterEncoder();
-        
+
         // Balancer
         dexExecutors["Balancer"] = Executor.executeBalancerTrade.selector;
         dexParameterEncoders["Balancer"] = _getBalancerParameterEncoder();
-        
+
         // Curve
         dexExecutors["Curve"] = Executor.executeCurveTrade.selector;
         dexParameterEncoders["Curve"] = _getCurveParameterEncoder();
-        
-        // PancakeSwap
-        dexExecutors["PancakeSwap"] = Executor.executePancakeSwapTrade.selector;
-        dexParameterEncoders["PancakeSwap"] = _getPancakeSwapParameterEncoder();
-        
+
         // OneInch
         dexExecutors["OneInch"] = Executor.executeOneInchTrade.selector;
         dexParameterEncoders["OneInch"] = _getOneInchParameterEncoder();
@@ -87,17 +83,15 @@ contract Registry is IRegistry, Ownable {
      * @param executorSelector The executor function selector
      * @param parameterEncoder The parameter encoding function selector
      */
-    function registerDexType(
-        string calldata dexType,
-        bytes4 executorSelector,
-        bytes4 parameterEncoder
-    ) external onlyOwner {
+    function registerDexType(string calldata dexType, bytes4 executorSelector, bytes4 parameterEncoder)
+        external
+        onlyOwner
+    {
         require(executorSelector != bytes4(0), "Invalid executor selector");
         require(parameterEncoder != bytes4(0), "Invalid parameter encoder");
-        
+
         dexExecutors[dexType] = executorSelector;
         dexParameterEncoders[dexType] = parameterEncoder;
-        
     }
 
     /**
@@ -120,11 +114,10 @@ contract Registry is IRegistry, Ownable {
         uint256 minOut,
         address recipient
     ) external view override returns (TradeData memory) {
-        
         // Get DEX type from the fetcher
         IUniversalDexInterface fetcher = IUniversalDexInterface(dex);
         string memory dexType = fetcher.getDexType();
-        
+
         // Get router for this DEX type
         address router = dexRouters[dexType];
         require(router != address(0), "Router not configured");
@@ -134,24 +127,15 @@ contract Registry is IRegistry, Ownable {
 
         // Check if DEX type is supported
         require(isDexTypeSupported(dexType), "Unsupported DEX type");
-        
+
         // Get executor and parameter encoder for this DEX type
         bytes4 executorSelector = dexExecutors[dexType];
         bytes4 parameterEncoder = dexParameterEncoders[dexType];
-        
+
         // Prepare trade data dynamically
-        tradeData = _prepareTradeData(
-            tokenIn,
-            tokenOut,
-            amount,
-            minOut,
-            recipient,
-            router,
-            executorSelector,
-            parameterEncoder
-        );
-        
-        
+        tradeData =
+            _prepareTradeData(tokenIn, tokenOut, amount, minOut, recipient, router, executorSelector, parameterEncoder);
+
         return tradeData;
     }
 
@@ -177,16 +161,16 @@ contract Registry is IRegistry, Ownable {
         bytes4 executorSelector,
         bytes4 parameterEncoder
     ) internal pure returns (TradeData memory) {
-        
         bytes memory params;
-        
+
         // Handle different parameter encoding patterns
         if (parameterEncoder == _getUniswapV2ParameterEncoder()) {
-            // UniswapV2-style DEXes (PancakeSwap, SushiSwap, etc.)
+            // UniswapV2-style DEXes (SushiSwap, etc.)
             params = abi.encode(tokenIn, tokenOut, amount, minOut, recipient, router);
         } else if (parameterEncoder == _getUniswapV3ParameterEncoder()) {
             // UniswapV3-style DEXes
-            params = abi.encode(tokenIn, tokenOut, amount, minOut, recipient, UNISWAP_V3_FEE, SQRT_PRICE_LIMIT_X96, router);
+            params =
+                abi.encode(tokenIn, tokenOut, amount, minOut, recipient, UNISWAP_V3_FEE, SQRT_PRICE_LIMIT_X96, router);
         } else if (parameterEncoder == _getBalancerParameterEncoder()) {
             // Balancer-style DEXes
             // BAL/WETH pool on Balancer
@@ -195,9 +179,6 @@ contract Registry is IRegistry, Ownable {
         } else if (parameterEncoder == _getCurveParameterEncoder()) {
             // Curve-style DEXes
             params = _prepareCurveTrade(tokenIn, tokenOut, amount, minOut, recipient, router).params;
-        } else if (parameterEncoder == _getPancakeSwapParameterEncoder()) {
-            // PancakeSwap-style DEXes
-            params = _preparePancakeSwapTrade(tokenIn, tokenOut, amount, minOut, recipient, router).params;
         } else if (parameterEncoder == _getOneInchParameterEncoder()) {
             // OneInch-style DEXes
             params = _prepareOneInchTrade(tokenIn, tokenOut, amount, minOut, recipient, router).params;
@@ -205,35 +186,27 @@ contract Registry is IRegistry, Ownable {
             // Default to UniswapV2-style encoding
             params = abi.encode(tokenIn, tokenOut, amount, minOut, recipient, router);
         }
-        
-        return TradeData({
-            selector: executorSelector,
-            router: router,
-            params: params
-        });
+
+        return TradeData({selector: executorSelector, router: router, params: params});
     }
 
     // Parameter encoder selectors for different DEX types
     function _getUniswapV2ParameterEncoder() internal pure returns (bytes4) {
         return bytes4(keccak256("UniswapV2Style"));
     }
-    
+
     function _getUniswapV3ParameterEncoder() internal pure returns (bytes4) {
         return bytes4(keccak256("UniswapV3Style"));
     }
-    
+
     function _getBalancerParameterEncoder() internal pure returns (bytes4) {
         return bytes4(keccak256("BalancerStyle"));
     }
-    
+
     function _getCurveParameterEncoder() internal pure returns (bytes4) {
         return bytes4(keccak256("CurveStyle"));
     }
-    
-    function _getPancakeSwapParameterEncoder() internal pure returns (bytes4) {
-        return bytes4(keccak256("PancakeSwapStyle"));
-    }
-    
+
     function _getOneInchParameterEncoder() internal pure returns (bytes4) {
         return bytes4(keccak256("OneInchStyle"));
     }
@@ -246,18 +219,10 @@ contract Registry is IRegistry, Ownable {
         address recipient,
         address router
     ) internal pure returns (TradeData memory) {
-
         // Encode all parameters into a single bytes value
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            amount, 
-            minOut,
-            recipient,
-            router
-        );
+        bytes memory params = abi.encode(tokenIn, tokenOut, amount, minOut, recipient, router);
 
-        return TradeData({ selector: Executor.executeUniswapV2Trade.selector, router: router, params: params });
+        return TradeData({selector: Executor.executeUniswapV2Trade.selector, router: router, params: params});
     }
 
     function _prepareUniswapV3Trade(
@@ -268,20 +233,11 @@ contract Registry is IRegistry, Ownable {
         address recipient,
         address router
     ) internal pure returns (TradeData memory) {
-
         // Encode all parameters into a single bytes value
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            amount,
-            minOut,
-            recipient,
-            UNISWAP_V3_FEE,
-            SQRT_PRICE_LIMIT_X96,
-            router
-        );
+        bytes memory params =
+            abi.encode(tokenIn, tokenOut, amount, minOut, recipient, UNISWAP_V3_FEE, SQRT_PRICE_LIMIT_X96, router);
 
-        return TradeData({ selector: Executor.executeUniswapV3Trade.selector, router: router, params: params });
+        return TradeData({selector: Executor.executeUniswapV3Trade.selector, router: router, params: params});
     }
 
     function _prepareBalancerTrade(
@@ -292,21 +248,12 @@ contract Registry is IRegistry, Ownable {
         address recipient,
         address router
     ) internal view returns (TradeData memory) {
-
         // BAL/WETH pool on Balancer
         bytes32 poolId = 0x5c6ee304399dbdb9c8ef030ab642b10820db8f56000200000000000000000014;
         // Encode all parameters into a single bytes value
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            amount,
-            minOut,
-            recipient,
-            poolId,
-            router
-        );
+        bytes memory params = abi.encode(tokenIn, tokenOut, amount, minOut, recipient, poolId, router);
 
-        return TradeData({ selector: Executor.executeBalancerTrade.selector, router: router, params: params });
+        return TradeData({selector: Executor.executeBalancerTrade.selector, router: router, params: params});
     }
 
     function _prepareCurveTrade(
@@ -317,26 +264,16 @@ contract Registry is IRegistry, Ownable {
         address recipient,
         address router
     ) internal pure returns (TradeData memory) {
-
         // For Curve we need to determine i and j indices based on actual token positions
         // For Curve 3Pool: index 0 = DAI, index 1 = USDC, index 2 = USDT
         int128 i = _getCurveTokenIndex(tokenIn);
         int128 j = _getCurveTokenIndex(tokenOut);
         // Encode all parameters into a single bytes value
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            i,
-            j,
-            amount,
-            minOut,
-            recipient,
-            router
-        );
+        bytes memory params = abi.encode(tokenIn, tokenOut, i, j, amount, minOut, recipient, router);
 
-        return TradeData({ selector: Executor.executeCurveTrade.selector, router: router, params: params });
+        return TradeData({selector: Executor.executeCurveTrade.selector, router: router, params: params});
     }
-    
+
     function _getCurveTokenIndex(address token) internal pure returns (int128) {
         // For Curve 3Pool: index 0 = DAI, index 1 = USDC, index 2 = USDT
         if (token == 0x6B175474E89094C44Da98b954EedeAC495271d0F) return 0; // DAI
@@ -353,48 +290,10 @@ contract Registry is IRegistry, Ownable {
         address recipient,
         address router
     ) internal pure returns (TradeData memory) {
-
         // Sushiswap uses the same interface as UniswapV2
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            amount,
-            minOut,
-            recipient,
-            router
-        );
+        bytes memory params = abi.encode(tokenIn, tokenOut, amount, minOut, recipient, router);
 
-        return TradeData({
-            selector: Executor.executeUniswapV2Trade.selector,
-            router: router,
-            params: params
-        });
-    }
-
-    function _preparePancakeSwapTrade(
-        address tokenIn,
-        address tokenOut,
-        uint256 amount,
-        uint256 minOut,
-        address recipient,
-        address router
-    ) internal pure returns (TradeData memory) {
-
-        // PancakeSwap uses the same interface as UniswapV2
-        bytes memory params = abi.encode(
-            tokenIn,
-            tokenOut,
-            amount,
-            minOut,
-            recipient,
-            router
-        );
-
-        return TradeData({
-            selector: Executor.executePancakeSwapTrade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({selector: Executor.executeUniswapV2Trade.selector, router: router, params: params});
     }
 
     function _prepareOneInchTrade(
@@ -405,12 +304,11 @@ contract Registry is IRegistry, Ownable {
         address recipient,
         address router
     ) internal pure returns (TradeData memory) {
-
         // 1inch V5 requires additional parameters for the aggregator
         // In a real implementation, these would come from the 1inch API
         address dummyExecutor = router; // Use router as dummy executor for testing
         bytes memory dummySwapData = abi.encode("placeholder"); // Placeholder swap data
-        
+
         // Encode all parameters including 1inch-specific data
         bytes memory params = abi.encode(
             tokenIn,
@@ -419,15 +317,11 @@ contract Registry is IRegistry, Ownable {
             minOut,
             recipient,
             router,
-            dummyExecutor,  // 1inch executor address (from API in production)
-            dummySwapData   // Encoded swap data (from 1inch API in production)
+            dummyExecutor, // 1inch executor address (from API in production)
+            dummySwapData // Encoded swap data (from 1inch API in production)
         );
 
-        return TradeData({
-            selector: Executor.executeOneInchTrade.selector,
-            router: router,
-            params: params
-        });
+        return TradeData({selector: Executor.executeOneInchTrade.selector, router: router, params: params});
     }
 
     function _compareStrings(string memory a, string memory b) internal pure returns (bool) {

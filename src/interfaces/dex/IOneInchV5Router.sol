@@ -21,15 +21,13 @@ interface IOneInchV5Router {
      * @return returnAmount Resulting token amount
      * @return spentAmount Source token amount
      */
-    function swap(
-        address executor,
-        SwapDescription calldata desc,
-        bytes calldata permit,
-        bytes calldata data
-    ) external payable returns (uint256 returnAmount, uint256 spentAmount);
+    function swap(address executor, SwapDescription calldata desc, bytes calldata permit, bytes calldata data)
+        external
+        payable
+        returns (uint256 returnAmount, uint256 spentAmount);
 
     /**
-     * @notice Same as `swap` but calls permit first, 
+     * @notice Same as `swap` but calls permit first,
      * allowing to approve token spending and make a swap in one transaction.
      * Also allows to specify the receiver of the swapped tokens
      * @param executor Aggregation executor that executes calls described in `data`
@@ -39,12 +37,10 @@ interface IOneInchV5Router {
      * @return returnAmount Resulting token amount
      * @return spentAmount Source token amount
      */
-    function swapWithPermit(
-        address executor,
-        SwapDescription calldata desc,
-        bytes calldata permit,
-        bytes calldata data
-    ) external payable returns (uint256 returnAmount, uint256 spentAmount);
+    function swapWithPermit(address executor, SwapDescription calldata desc, bytes calldata permit, bytes calldata data)
+        external
+        payable
+        returns (uint256 returnAmount, uint256 spentAmount);
 
     /**
      * @notice Performs multiple swaps in one transaction
@@ -58,4 +54,4 @@ interface IOneInchV5Router {
      * @return The spender address for approvals
      */
     function getSpender() external view returns (address);
-} 
+}
