@@ -85,7 +85,7 @@ class CronScheduler {
 
     try {
       await runLiquidityAnalysisFromJson(
-        'src/tests/tokens-list-28-08-2025.json'
+        'src/tests/tokens-list-04-09-2025.json'
       )
       const duration = Date.now() - startTime
       this.log(
