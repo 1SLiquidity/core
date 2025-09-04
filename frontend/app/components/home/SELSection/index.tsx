@@ -455,9 +455,12 @@ const SELSection = () => {
   const handlePlaceTrade = async () => {
     if (isConnectedWallet) {
       const signer = getSigner()
+
       if (signer) {
-        await placeTrade(
+        const res = await placeTrade(
           {
+            tokenInObj: selectedTokenFrom,
+            tokenOutObj: selectedTokenTo,
             tokenIn: selectedTokenFrom?.token_address || '',
             tokenOut: selectedTokenTo?.token_address || '',
             amountIn: sellAmount.toString(),
@@ -467,6 +470,9 @@ const SELSection = () => {
           },
           signer
         )
+        if (res.success) {
+          setSellAmount(0)
+        }
       }
     }
   }
@@ -649,7 +655,7 @@ const SELSection = () => {
                 sellAmount > 0 && buyAmount > 0
                   ? () => handlePlaceTrade()
                   : () => {}
-                // sellAmount > 0 && buyAmount > 0
+                // !(sellAmount > 0 && buyAmount > 0)
                 //   ? () => addToast(<NotifiSwapStream />)
                 //   : () => {}
               }
@@ -667,7 +673,7 @@ const SELSection = () => {
                 !(sellAmount > 0 && buyAmount > 0) ||
                 (isConnected && isInsufficientBalance)
               }
-              loading={isFetchingReserves}
+              loading={isFetchingReserves || loading}
             />
           ) : (
             <Button
@@ -700,7 +706,7 @@ const SELSection = () => {
                 }
               }}
               disabled={isFetchingReserves}
-              loading={isFetchingReserves}
+              loading={isFetchingReserves || loading}
             />
           )}
         </div>
