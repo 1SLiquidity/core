@@ -13,6 +13,7 @@ import { formatUnits } from 'viem'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { RefreshIcon, TypewriterIcon } from '@/app/lib/icons'
 import { Button } from '@/components/ui/button'
+import { useAppKitAccount } from '@reown/appkit/react'
 
 type GlobalStreamSidebarProps = {
   isOpen: boolean
@@ -31,6 +32,15 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   const [selectedStream, setSelectedStream] = useState<any>(
     initialStream || null
   )
+  const { address } = useAppKitAccount()
+
+  // Reset to default state when sidebar opens
+  useEffect(() => {
+    if (isOpen) {
+      setIsStreamSelected(false)
+      setSelectedStream(initialStream || null)
+    }
+  }, [isOpen, initialStream])
 
   // Fetch trades data with Apollo's 30s polling
   const { trades, isLoading, error, isRefetching } = useTrades({
@@ -118,8 +128,12 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
             <StreamDetails
               onBack={() => setSelectedStream(null)}
               selectedStream={selectedStream}
-              walletAddress="GY68234nasmd234asfKT21"
-              onClose={onClose}
+              walletAddress={address}
+              onClose={() => {
+                setIsStreamSelected(false)
+                setSelectedStream(null)
+                onClose()
+              }}
             />
           </>
         ) : (
@@ -215,7 +229,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                         />
                       ))}
                       {isLoading &&
-                        Array(10)
+                        Array(4)
                           .fill(0)
                           .map((_, index) => (
                             <SwapStream

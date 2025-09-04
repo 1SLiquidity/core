@@ -57,18 +57,18 @@ type WalletDetailsSidebarProps = {
 // Chain name mapping for display purposes
 const CHAIN_NAMES: { [key: string]: string } = {
   '1': 'Ethereum',
-  '42161': 'Arbitrum One',
-  '137': 'Polygon',
-  '56': 'BNB Chain',
+  // '42161': 'Arbitrum One',
+  // '137': 'Polygon',
+  // '56': 'BNB Chain',
   // Add more chains as needed
 }
 
 // Mapping from chain IDs to Moralis chain identifiers
 const CHAIN_ID_TO_MORALIS: { [key: string]: string } = {
   '1': 'eth',
-  '42161': 'arbitrum',
-  '137': 'polygon',
-  '56': 'bsc',
+  // '42161': 'arbitrum',
+  // '137': 'polygon',
+  // '56': 'bsc',
   // Add more chains as needed
 }
 
@@ -86,6 +86,15 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   >(null)
   const [dayChange, setDayChange] = useState<number | null>(null)
   const [showCopied, setShowCopied] = useState(false)
+
+  // Reset to default state when sidebar opens
+  useEffect(() => {
+    if (isOpen) {
+      setIsStreamDetailsOpen(false)
+      setSelectedStream(null)
+      setActiveTab(WALLET_TABS[0])
+    }
+  }, [isOpen])
 
   const { address, isConnected, caipAddress, status, embeddedWalletInfo } =
     useAppKitAccount()
@@ -210,20 +219,22 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
 
   return (
     <Sidebar isOpen={isOpen} onClose={onClose}>
-      {/* close icon */}
-      <div
-        onClick={onClose}
-        className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[1.9rem] -left-[0.7rem] z-50"
-      >
-        <Image
-          src={'/icons/close.svg'}
-          alt="close"
-          className="w-2"
-          width={1000}
-          height={1000}
+      {/* close icon - hide when stream details are open */}
+      {!isStreamDetailsOpen && (
+        <div
           onClick={onClose}
-        />
-      </div>
+          className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[1.9rem] -left-[0.7rem] z-50"
+        >
+          <Image
+            src={'/icons/close.svg'}
+            alt="close"
+            className="w-2"
+            width={1000}
+            height={1000}
+            onClick={onClose}
+          />
+        </div>
+      )}
 
       {/* main content */}
       <div className="relative max-h-[90vh] overflow-hidden overflow-y-auto">
@@ -233,7 +244,11 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
             selectedStream={selectedStream}
             walletAddress={address}
             isUser={true}
-            onClose={onClose}
+            onClose={() => {
+              setIsStreamDetailsOpen(false)
+              setSelectedStream(null)
+              onClose()
+            }}
           />
         ) : (
           <>

@@ -9,6 +9,7 @@ import { formatUnits } from 'viem'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { cn } from '@/lib/utils'
 import { useStreamTime } from '@/app/lib/hooks/useStreamTime'
+import ImageFallback from '@/app/shared/ImageFallback'
 
 type Trade = {
   id: string
@@ -87,8 +88,12 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
               </>
             ) : (
               <>
-                <Image
-                  src={tokenIn?.icon || '/icons/default-token.svg'}
+                <ImageFallback
+                  src={
+                    (tokenIn?.symbol.toLowerCase() === 'usdt'
+                      ? '/tokens/usdt.svg'
+                      : tokenIn?.icon) || '/icons/default-token.svg'
+                  }
                   width={2400}
                   height={2400}
                   alt={tokenIn?.symbol || 'token'}
@@ -115,8 +120,12 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
               </>
             ) : (
               <>
-                <Image
-                  src={tokenOut?.icon || '/icons/default-token.svg'}
+                <ImageFallback
+                  src={
+                    (tokenOut?.symbol.toLowerCase() === 'usdt'
+                      ? '/tokens/usdt.svg'
+                      : tokenOut?.icon) || '/icons/default-token.svg'
+                  }
                   width={2400}
                   height={2400}
                   alt={tokenOut?.symbol || 'token'}

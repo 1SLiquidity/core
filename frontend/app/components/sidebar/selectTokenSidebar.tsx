@@ -8,11 +8,13 @@ import SearchbarWithIcon from '../searchbarWithIcon'
 type SelectTokenSidebarProps = {
   isOpen: boolean
   onClose: () => void
+  hideInnerCloseIcon?: boolean // Add this prop to hide inner close when opened from another sidebar
 }
 
 const SelectTokenSidebar: React.FC<SelectTokenSidebarProps> = ({
   isOpen,
   onClose,
+  hideInnerCloseIcon = false,
 }) => {
   const [searchValue, setSearchValue] = useState('')
   const debouncedSearchValue = useDebounce(searchValue, 300)
@@ -22,14 +24,16 @@ const SelectTokenSidebar: React.FC<SelectTokenSidebarProps> = ({
       <div className="p-7">
         <div className="flex justify-between gap-2 h-full">
           <div className="">Select Token</div>
-          <Image
-            src={'/icons/close.svg'}
-            alt="close"
-            className="w-3 cursor-pointer"
-            width={1000}
-            height={1000}
-            onClick={onClose}
-          />
+          {!hideInnerCloseIcon && (
+            <Image
+              src={'/icons/close.svg'}
+              alt="close"
+              className="w-3 cursor-pointer"
+              width={1000}
+              height={1000}
+              onClick={onClose}
+            />
+          )}
         </div>
 
         {/* searchbar */}

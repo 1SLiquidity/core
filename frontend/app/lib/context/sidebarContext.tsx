@@ -125,39 +125,26 @@ export const SidebarProvider: React.FC<SidebarProviderProps> = ({
     >
       {children}
 
-      {/* {isSelectTokenSidebarOpen && (
-        <SelectTokenSidebar
-          isOpen={isSelectTokenSidebarOpen}
-          onClose={() => setIsSelectTokenSidebarOpen(false)}
-        />
-      )}
-      {isWalletDetailsSidebarOpen && (
-        <WalletDetailsSidebar
-          isOpen={isWalletDetailsSidebarOpen}
-          onClose={() => setIsWalletDetailsSidebarOpen(false)}
-        />
-      )}
-      {isGlobalStreamSidebarOpen && (
-        <GlobalStreamSidebar
-          isOpen={isGlobalStreamSidebarOpen}
-          onClose={() => setIsGlobalStreamSidebarOpen(false)}
-        />
-      )} */}
-
       {/* Always render sidebars but control visibility with isOpen prop */}
       <SelectTokenSidebar
         isOpen={isSelectTokenSidebarOpen}
-        onClose={() => setIsSelectTokenSidebarOpen(false)}
+        onClose={() => {
+          setIsSelectTokenSidebarOpen(false)
+        }}
       />
 
       <WalletDetailsSidebar
         isOpen={isWalletDetailsSidebarOpen}
-        onClose={() => setIsWalletDetailsSidebarOpen(false)}
+        onClose={() => {
+          setIsWalletDetailsSidebarOpen(false)
+        }}
       />
 
       <GlobalStreamSidebar
         isOpen={isGlobalStreamSidebarOpen}
-        onClose={() => setIsGlobalStreamSidebarOpen(false)}
+        onClose={() => {
+          setIsGlobalStreamSidebarOpen(false)
+        }}
       />
     </SidebarContext.Provider>
   )

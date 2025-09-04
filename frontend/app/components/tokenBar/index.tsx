@@ -22,7 +22,11 @@ const TokenBar: React.FC<TokenBarProps> = ({
             <Skeleton className="w-[30px] h-[30px] rounded-full" />
           ) : (
             <Image
-              src={sellToken?.icon || '/icons/default-token.svg'}
+              src={
+                (sellToken?.symbol.toLowerCase() === 'usdt'
+                  ? '/tokens/usdt.svg'
+                  : sellToken?.icon) || '/icons/default-token.svg'
+              }
               alt={sellToken?.symbol || 'token'}
               width={40}
               height={40}
@@ -52,7 +56,11 @@ const TokenBar: React.FC<TokenBarProps> = ({
             <Skeleton className="w-[30px] h-[30px] rounded-full" />
           ) : (
             <Image
-              src={buyToken?.icon || '/icons/default-token.svg'}
+              src={
+                (buyToken?.symbol.toLowerCase() === 'usdt'
+                  ? '/tokens/usdt.svg'
+                  : buyToken?.icon) || '/icons/default-token.svg'
+              }
               alt={buyToken?.symbol || 'token'}
               width={40}
               height={40}

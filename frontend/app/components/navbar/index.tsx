@@ -36,6 +36,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
     isWalletDetailsSidebarOpen,
     isGlobalStreamSidebarOpen,
   } = useSidebar()
+
   const [searchValue, setSearchValue] = useState('')
   const { open } = useAppKit()
   const handleConnectWallet = () => {

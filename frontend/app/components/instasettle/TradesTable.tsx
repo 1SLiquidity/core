@@ -26,6 +26,7 @@ import { formatUnits } from 'viem'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { formatRelativeTime } from '@/app/lib/utils/time'
+import ImageFallback from '@/app/shared/ImageFallback'
 
 // Constants
 const LIMIT = 10
@@ -610,8 +611,14 @@ const TradesTable = ({
                     <TableCell className="font-medium text-center">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Image
-                            src={item.tokenInDetails?.icon || '/tokens/eth.svg'}
+                          <ImageFallback
+                            src={
+                              (item.tokenInDetails?.symbol.toLowerCase() ===
+                              'usdt'
+                                ? '/tokens/usdt.svg'
+                                : item.tokenInDetails?.icon) ||
+                              '/icons/default-token.svg'
+                            }
                             width={32}
                             height={32}
                             className="w-6 h-6"
@@ -634,9 +641,13 @@ const TradesTable = ({
                           className="w-4 h-4 mx-2"
                         />
                         <div className="flex items-center gap-2">
-                          <Image
+                          <ImageFallback
                             src={
-                              item.tokenOutDetails?.icon || '/tokens/usdc.svg'
+                              (item.tokenOutDetails?.symbol.toLowerCase() ===
+                              'usdt'
+                                ? '/tokens/usdt.svg'
+                                : item.tokenOutDetails?.icon) ||
+                              '/icons/default-token.svg'
                             }
                             width={32}
                             height={32}
