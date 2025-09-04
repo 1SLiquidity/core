@@ -335,6 +335,15 @@ export const useCoreTrading = () => {
 
         // Encode trade data
         console.log('Encoding trade data...')
+        console.log('Trade data ===>', {
+          tokenIn,
+          tokenOut,
+          amountInWei,
+          minAmountOutWei,
+          isInstasettlable,
+          usePriceBased,
+        })
+
         const tradeData = ethers.utils.defaultAbiCoder.encode(
           ['address', 'address', 'uint256', 'uint256', 'bool', 'bool'],
           [
