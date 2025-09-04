@@ -1,5 +1,30 @@
+'use client'
+
 import Moralis from 'moralis'
 import { EvmChain } from 'moralis/common-evm-utils'
+
+// Types for the JSON structure
+interface TokenResult {
+  tokenName: string
+  tokenAddress: string
+  tokenDecimals: number
+  tokenSymbol: string
+  success: boolean
+  failureReason: string
+}
+
+interface TestResult {
+  baseToken: string
+  totalTests: number
+  successCount: number
+  failureCount: number
+  results: TokenResult[]
+}
+
+interface TokensListData {
+  timestamp: string
+  testResults: TestResult[]
+}
 
 // Initialize Moralis
 export const initMoralis = async () => {
@@ -7,6 +32,46 @@ export const initMoralis = async () => {
     await Moralis.start({
       apiKey: process.env.NEXT_PUBLIC_MORALIS_API_KEY,
     })
+  }
+}
+
+/**
+ * Load whitelisted token addresses from the JSON file
+ * @returns Array of lowercase token addresses that have success: true
+ */
+const getWhitelistedTokens = (): string[] => {
+  try {
+    // Dynamically require the JSON file
+    const tokensListData: TokensListData = require('./utils/tokens-list-04-09-2025.json')
+    const whitelistedTokens: string[] = []
+
+    // Iterate through all test results
+    tokensListData.testResults.forEach((testResult: TestResult) => {
+      testResult.results.forEach((token: TokenResult) => {
+        // Only include tokens that have success: true
+        if (token.success === true && token.tokenAddress) {
+          // Convert to lowercase for consistent comparison
+          const address = token.tokenAddress.toLowerCase()
+          // Avoid duplicates
+          if (!whitelistedTokens.includes(address)) {
+            whitelistedTokens.push(address)
+          }
+        }
+      })
+    })
+
+    console.log(
+      `🔍 DEBUG: Loaded ${whitelistedTokens.length} whitelisted tokens from JSON file`
+    )
+    return whitelistedTokens
+  } catch (error) {
+    console.error('💥 Error loading whitelisted tokens from JSON:', error)
+    // Fallback to basic tokens if JSON loading fails
+    return [
+      '0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT on Ethereum mainnet
+      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC on Ethereum mainnet
+      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
+    ]
   }
 }
 
@@ -64,13 +129,17 @@ export const getWalletTokens = async (
     // Convert string chain to EvmChain object
     const evmChain = CHAIN_MAPPING[chain.toLowerCase()] || EvmChain.ETHEREUM
 
+    // console.log('🔍 DEBUG: Fetching tokens for address:', address)
+    // console.log('🔍 DEBUG: Chain:', chain, 'EvmChain:', evmChain)
+
     // Get token balances
     const response = await Moralis.EvmApi.token.getWalletTokenBalances({
       address,
       chain: evmChain,
     })
 
-    console.log('Token balances response ====>', response)
+    // console.log('📊 Token balances response ====>', response)
+    // console.log('📊 Token balances count:', response.toJSON().length)
 
     // Get native balance (ETH, BNB, MATIC, etc.) - important to include native token
     const nativeBalanceResponse = await Moralis.EvmApi.balance.getNativeBalance(
@@ -80,7 +149,7 @@ export const getWalletTokens = async (
       }
     )
 
-    console.log('Native balance response ====>', nativeBalanceResponse)
+    // console.log('Native balance response ====>', nativeBalanceResponse)
 
     const nativeBalance = nativeBalanceResponse.toJSON()
 
@@ -111,11 +180,7 @@ export const getWalletTokens = async (
       // For ETH, we use a special endpoint
       let priceResponse
 
-      if (
-        chain.toLowerCase() === 'eth' ||
-        chain.toLowerCase() === 'ethereum' ||
-        chain.toLowerCase() === 'arbitrum'
-      ) {
+      if (chain.toLowerCase() === 'eth' || chain.toLowerCase() === 'ethereum') {
         priceResponse = await Moralis.EvmApi.token.getTokenPrice({
           chain: evmChain,
           address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH contract address
@@ -248,24 +313,40 @@ export const getWalletTokens = async (
         return false
       }
 
-      // Todo: Remove this once we have a proper whitelist
       // Whitelist - tokens to always include regardless of other filters
-      const whitelistedTokens = [
-        // Alienzone token address
-        '0x888aaa48ebea87c74f690189e947d2c679705972',
-        // Common standard tokens
-        '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9', // USDT
-        '0x82af49447d8a07e3bd95bd0d56f35241523fbab1', // WETH
-        '0x561877b6b3dd7651313794e5f2894b2f18be0766', // MATIC
-      ]
+      const whitelistedTokens = getWhitelistedTokens()
+
+      // console.log('🔍 DEBUG: Whitelisted tokens:', whitelistedTokens)
+
+      // console.log(
+      //   '🔍 DEBUG: Checking token:',
+      //   token.symbol,
+      //   token.token_address
+      // )
+      // console.log(
+      //   '🔍 DEBUG: Token has usd_price:',
+      //   token.usd_price,
+      //   'possible_spam:',
+      //   token.possible_spam
+      // )
 
       // Always include whitelisted tokens
       if (whitelistedTokens.includes(token.token_address.toLowerCase())) {
+        // console.log(
+        //   '✅ DEBUG: Token whitelisted:',
+        //   token.symbol,
+        //   token.token_address
+        // )
         return true
       }
 
       // Skip tokens that are marked as possible spam
       if (token.possible_spam === true) {
+        console.log(
+          '🚫 DEBUG: Token marked as spam:',
+          token.symbol,
+          token.token_address
+        )
         return false
       }
 
@@ -299,20 +380,55 @@ export const getWalletTokens = async (
       )
 
       if (hasSpamPattern) {
+        console.log(
+          '🚫 DEBUG: Token has spam pattern:',
+          token.symbol,
+          token.name,
+          token.token_address
+        )
         return false
       }
 
       // Keep tokens with price data or native token or tokens with actual balance that passed spam checks
-      return (
-        token.usd_price > 0 ||
-        token.token_address === '0x0000000000000000000000000000000000000000' ||
-        parseFloat(token.balance) > 0
-      )
+      const hasPrice = token.usd_price > 0
+      const isNativeToken =
+        token.token_address === '0x0000000000000000000000000000000000000000'
+      const hasBalance = parseFloat(token.balance) > 0
+
+      const shouldInclude = hasPrice || isNativeToken || hasBalance
+
+      console.log('🔍 DEBUG: Token filter result:', {
+        symbol: token.symbol,
+        address: token.token_address,
+        hasPrice,
+        isNativeToken,
+        hasBalance,
+        shouldInclude,
+        usd_price: token.usd_price,
+        balance: token.balance,
+      })
+
+      return shouldInclude
     })
 
+    console.log('📈 DEBUG: Total tokens after filtering:', validTokens.length)
+    console.log(
+      '📈 DEBUG: Valid tokens:',
+      validTokens.map((t) => ({
+        symbol: t.symbol,
+        address: t.token_address,
+        price: t.usd_price,
+      }))
+    )
+
     return validTokens
-  } catch (error) {
-    console.warn('Error fetching wallet tokens:', error)
+  } catch (error: any) {
+    console.error('💥 Error fetching wallet tokens:', error)
+    console.error('💥 Error details:', {
+      message: error?.message,
+      code: error?.code,
+      response: error?.response?.data,
+    })
     return []
   }
 }

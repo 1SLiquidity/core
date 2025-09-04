@@ -69,10 +69,10 @@ const KNOWN_TOKEN_DECIMALS: Record<string, number> = {
   '0x4fabb145d64652a948d72533023f6e7a623c7c53': 18, // BUSD
 
   // Arbitrum
-  '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9': 6, // USDT on Arbitrum
-  '0xaf88d065e77c8cc2239327c5edb3a432268e5831': 6, // USDC on Arbitrum
-  '0x82af49447d8a07e3bd95bd0d56f35241523fbab1': 18, // WETH on Arbitrum
-  '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f': 8, // WBTC on Arbitrum
+  // '0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9': 6, // USDT on Arbitrum
+  // '0xaf88d065e77c8cc2239327c5edb3a432268e5831': 6, // USDC on Arbitrum
+  // '0x82af49447d8a07e3bd95bd0d56f35241523fbab1': 18, // WETH on Arbitrum
+  // '0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f': 8, // WBTC on Arbitrum
 }
 
 // Function to check if a token is an ERC20 token
