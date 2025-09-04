@@ -32,9 +32,9 @@ contract StreamDaemon is Ownable {
         require(scaledReserveOut > 0, "Invalid reserve");
 
         if (scaledReserveIn >= scaledReserveOut) {
-            alpha = (scaledReserveIn * 1e24) / (scaledReserveOut * scaledReserveOut);
+            alpha = (scaledReserveIn * 1e32) / (scaledReserveOut * scaledReserveOut);
         } else {
-            alpha = (scaledReserveOut * 1e24) / (scaledReserveIn * scaledReserveIn);
+            alpha = (scaledReserveOut * 1e32) / (scaledReserveIn * scaledReserveIn);
         }
     }
 
@@ -75,25 +75,19 @@ contract StreamDaemon is Ownable {
         uint256 volume,
         uint256 effectiveGas,
         bool usePriceBased
-    )
-        public
-        view
-        returns (uint256 sweetSpot, address bestFetcher, address router)
-    {
+    ) public view returns (uint256 sweetSpot, address bestFetcher, address router) {
         address identifiedFetcher;
         uint256 maxReserveIn;
         uint256 maxReserveOut;
-        
+
         if (usePriceBased) {
             // Price-based DEX selection
-            (identifiedFetcher, maxReserveIn, maxReserveOut) =
-                findBestPriceForTokenPair(tokenIn, tokenOut, volume);
+            (identifiedFetcher, maxReserveIn, maxReserveOut) = findBestPriceForTokenPair(tokenIn, tokenOut, volume);
             bestFetcher = identifiedFetcher;
             router = dexToRouters[bestFetcher];
         } else {
             // Reserve-based DEX selection
-            (identifiedFetcher, maxReserveIn, maxReserveOut) =
-                findHighestReservesForTokenPair(tokenIn, tokenOut);
+            (identifiedFetcher, maxReserveIn, maxReserveOut) = findHighestReservesForTokenPair(tokenIn, tokenOut);
             bestFetcher = identifiedFetcher;
             router = dexToRouters[bestFetcher];
         }
@@ -106,21 +100,22 @@ contract StreamDaemon is Ownable {
         sweetSpot = _sweetSpotAlgo(tokenIn, tokenOut, volume, maxReserveIn, maxReserveOut, effectiveGas);
     }
 
-    function findLowestPriceForTokenPair(address tokenIn, address tokenOut) public view returns (uint256 lowestPrice) {}
-
-    function findBestPriceForTokenPair(address tokenIn, address tokenOut, uint256 volume) 
-        public view returns (address bestFetcher, uint256 maxReserveIn, uint256 maxReserveOut) {
-        
+    function findBestPriceForTokenPair(address tokenIn, address tokenOut, uint256 volume)
+        public
+        view
+        returns (address bestFetcher, uint256 maxReserveIn, uint256 maxReserveOut)
+    {
         uint256 bestPrice = type(uint256).max;
-        
+
         for (uint256 i = 0; i < dexs.length; i++) {
             IUniversalDexInterface fetcher = IUniversalDexInterface(dexs[i]);
-            
+
             try fetcher.getPrice(tokenIn, tokenOut, volume) returns (uint256 price) {
-                if (price < bestPrice) {
+                // Only consider non-zero prices
+                if (price > 0 && price < bestPrice) {
                     bestPrice = price;
                     bestFetcher = address(fetcher);
-                    
+
                     // Get reserves for sweet spot calculation
                     try fetcher.getReserves(tokenIn, tokenOut) returns (uint256 reserveIn, uint256 reserveOut) {
                         maxReserveIn = reserveIn;
@@ -140,10 +135,7 @@ contract StreamDaemon is Ownable {
      * @dev always written in terms of
      *  **the token that is being added to the pool** (tokenIn)
      */
-    function findHighestReservesForTokenPair(
-        address tokenIn,
-        address tokenOut
-    )
+    function findHighestReservesForTokenPair(address tokenIn, address tokenOut)
         public
         view
         returns (address bestFetcher, uint256 maxReserveIn, uint256 maxReserveOut)
@@ -172,11 +164,7 @@ contract StreamDaemon is Ownable {
         uint256 reserveIn,
         uint256 reserveOut,
         uint256 effectiveGas
-    )
-        public
-        view
-        returns (uint256 sweetSpot)
-    {
+    ) public view returns (uint256 sweetSpot) {
         // ensure no division by 0
         if (reserveIn == 0 || reserveOut == 0 || effectiveGas == 0) {
             revert("No reserves or appropriate gas estimation"); // **revert** if no reserves
@@ -186,15 +174,24 @@ contract StreamDaemon is Ownable {
         uint8 decimalsOut = IERC20Metadata(tokenOut).decimals();
 
         // scale tokens to decimal zero
-        uint256 scaledVolume = volume / (10 ** decimalsIn);
-        uint256 scaledReserveIn = reserveIn / (10 ** decimalsIn);
-        uint256 scaledReserveOut = reserveOut / (10 ** decimalsOut);
+        uint256 scaledVolume = (volume * 1e16) / (10 ** decimalsIn);
+        uint256 scaledReserveIn = (reserveIn * 1e16) / (10 ** decimalsIn);
+        uint256 scaledReserveOut = (reserveOut * 1e16) / (10 ** decimalsOut);
 
         sweetSpot = _sweetSpotAlgo_v1(scaledVolume, scaledReserveIn, scaledReserveOut);
 
         if (scaledReserveIn > scaledReserveOut && sweetSpot > 500) {
             sweetSpot = _sweetSpotAlgo_v2(scaledVolume, scaledReserveIn);
         }
+
+        // here we are going to add a conditional
+        // which evaluates if a trade volume is < 0.01% of the pool depth
+        // if so, we should set sweetSpot to 1
+        // commenting out for now to test the protocol for small trades
+
+        // if (scaledVolume < scaledReserveIn * 100 / 1000000) {
+        //     sweetSpot = 1;
+        // }
 
         if (sweetSpot == 0) {
             sweetSpot = 4;
@@ -207,20 +204,16 @@ contract StreamDaemon is Ownable {
         // @audit need to add a case for volume < 0.001 pool depth whereby sweetspot = 1
     }
 
-    function _sweetSpotAlgo_v1(
-        uint256 scaledVolume,
-        uint256 scaledReserveIn,
-        uint256 scaledReserveOut
-    )
+    function _sweetSpotAlgo_v1(uint256 scaledVolume, uint256 scaledReserveIn, uint256 scaledReserveOut)
         public
         pure
         returns (uint256 sweetSpot)
     {
         uint256 alpha = computeAlpha(scaledReserveIn, scaledReserveOut);
-        sweetSpot = sqrt((alpha * scaledVolume * scaledVolume) / 1e24);
+        sweetSpot = sqrt((alpha * scaledVolume * scaledVolume) / 1e48);
     }
 
     function _sweetSpotAlgo_v2(uint256 scaledVolume, uint256 scaledReserveIn) public pure returns (uint256 sweetSpot) {
-        sweetSpot = (scaledVolume) / sqrt(scaledReserveIn);
+        sweetSpot = (scaledVolume) / sqrt(scaledReserveIn) / 1e8;
     }
 }
