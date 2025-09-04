@@ -1,8 +1,40 @@
+import ImageFallback from '@/app/shared/ImageFallback'
 import Image from 'next/image'
+import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 
-type Props = {}
+type Props = {
+  tokenInObj: any
+  tokenOutObj: any
+  tokenIn: string
+  tokenOut: string
+  amountIn: string
+  amountOut: string
+  progress?: number // Progress percentage (0-100)
+  step?: string // Current step description
+  currentStep?: number // Current step number (1, 2, 3, etc.)
+  totalSteps?: number // Total number of steps
+}
 
-const NotifiSwapStream: React.FC<Props> = () => {
+const NotifiSwapStream: React.FC<Props> = ({
+  tokenInObj,
+  tokenOutObj,
+  tokenIn,
+  tokenOut,
+  amountIn,
+  amountOut,
+  progress = 0,
+  step = 'Starting trade...',
+  currentStep = 1,
+  totalSteps = 3,
+}) => {
+  // Get the correct token icon
+  const getTokenIcon = (token: TOKENS_TYPE) => {
+    if (token.symbol.toLowerCase() === 'usdt') {
+      return '/tokens/usdt.png'
+    }
+    return token.icon
+  }
+
   return (
     <div className="w-full">
       <div className="flex mr-8 items-center gap-1.5">
@@ -12,21 +44,23 @@ const NotifiSwapStream: React.FC<Props> = () => {
           height={24}
           alt="swapStream"
         />
-        <p className="text-white">Swap stream 1/2 completed</p>
+        <p className="text-white">{step}</p>
       </div>
 
       {/* main content */}
       <div className="ml-[27px] flex flex-col">
         <div className="flex gap-[6px] items-center mt-2.5">
           <div className="flex items-center gap-1">
-            <Image
-              src="/tokens/eth.svg"
+            <ImageFallback
+              src={getTokenIcon(tokenInObj)}
               width={2400}
               height={2400}
               alt="swapStream"
               className="w-[18px] h-[18px]"
             />
-            <p className="text-white uppercase">1 ETH</p>
+            <p className="text-white uppercase">
+              {amountIn} {tokenInObj.symbol}
+            </p>
           </div>
           <Image
             src="/icons/right-arrow.svg"
@@ -36,25 +70,27 @@ const NotifiSwapStream: React.FC<Props> = () => {
             className="w-[10px]"
           />
           <div className="flex items-center gap-1">
-            <Image
-              src="/tokens/usdc.svg"
+            <ImageFallback
+              src={getTokenIcon(tokenOutObj)}
               width={2400}
               height={2400}
               alt="swapStream"
               className="w-[18px] h-[18px]"
             />
-            <p className="text-white uppercase">3,300 USDC (Est)</p>
+            <p className="text-white uppercase">
+              {amountOut} {tokenOutObj.symbol} (Est)
+            </p>
           </div>
         </div>
 
         <div className="w-full h-[3px] bg-white005 mt-[12px] relative">
           <div
-            className="w-[80%] h-[3px] bg-primary absolute top-0 left-0"
-            // style={{ animation: 'fillup 2s linear forwards' }}
+            className="h-[3px] bg-primary absolute top-0 left-0 transition-all duration-500 ease-out"
+            style={{ width: `${Math.min(progress, 100)}%` }}
           />
         </div>
 
-        <div className="mt-[3px] flex justify-between items-center gap-2 text-white52">
+        {/* <div className="mt-[3px] flex justify-between items-center gap-2 text-white52">
           <p className="">1/2 completed</p>
           <div className="flex gap-1">
             {' '}
@@ -67,6 +103,17 @@ const NotifiSwapStream: React.FC<Props> = () => {
             />
             <p>9 min</p>
           </div>
+        </div> */}
+        <div className="mt-[8px] flex justify-between items-center gap-2 text-white52">
+          <p className="text-sm">
+            {currentStep}/{totalSteps} {step}
+          </p>
+          {progress < 100 && (
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 border-t-2 border-primary animate-spin rounded-full"></div>
+              <p className="text-sm">{Math.round(progress)}%</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

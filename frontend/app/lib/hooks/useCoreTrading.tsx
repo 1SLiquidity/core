@@ -4,6 +4,8 @@ import { ethers } from 'ethers'
 import { erc20Abi } from 'viem'
 import { toast } from 'react-hot-toast'
 import coreAbi from '../config/trade-core.json'
+import { useToast } from '../context/toastProvider'
+import NotifiSwapStream from '@/app/components/toasts/notifiSwapStream'
 
 // Types
 export interface TradeData {
@@ -20,6 +22,8 @@ export interface TradeData {
 }
 
 export interface PlaceTradeParams {
+  tokenInObj: any
+  tokenOutObj: any
   tokenIn: string
   tokenOut: string
   amountIn: string
@@ -47,6 +51,7 @@ const CORE_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CORE_ADDRESS || ''
 export const useCoreTrading = () => {
   const [loading, setLoading] = useState(false)
   const [contractInfo, setContractInfo] = useState<ContractInfo | null>(null)
+  const { addToast } = useToast()
 
   // Helper function to get contract instance
   const getContract = useCallback((signer?: ethers.Signer) => {
@@ -268,11 +273,35 @@ export const useCoreTrading = () => {
       params: PlaceTradeParams,
       signer: ethers.Signer
     ): Promise<{ success: boolean; tradeId?: number; txHash?: string }> => {
+      // Helper function to update toast with progress
+      const updateToastProgress = (
+        step: string,
+        progress: number,
+        currentStep: number
+      ) => {
+        const toastContent = (
+          <NotifiSwapStream
+            tokenInObj={params.tokenInObj}
+            tokenOutObj={params.tokenOutObj}
+            tokenIn={params.tokenInObj?.token_address || ''}
+            tokenOut={params.tokenOutObj?.token_address || ''}
+            amountIn={params.amountIn.toString()}
+            amountOut={params.minAmountOut.toString()}
+            step={step}
+            progress={progress}
+            currentStep={currentStep}
+            totalSteps={4}
+          />
+        )
+
+        addToast(toastContent)
+      }
+
       try {
         setLoading(true)
-        toast.loading('Placing trade...', { id: 'place-trade' })
-
         const {
+          tokenInObj,
+          tokenOutObj,
           tokenIn,
           tokenOut,
           amountIn,
@@ -280,6 +309,9 @@ export const useCoreTrading = () => {
           isInstasettlable,
           usePriceBased,
         } = params
+
+        // Step 1: Initialize
+        updateToastProgress('Preparing trade...', 10, 1)
 
         console.log('=== Placing Trade ===')
         console.log('Params:', params)
@@ -290,7 +322,8 @@ export const useCoreTrading = () => {
           throw new Error('Core contract address not configured')
         }
 
-        // Get token decimals
+        // Step 2: Get token decimals
+        updateToastProgress('Getting token information...', 25, 2)
         console.log('Getting token decimals...')
         const tokenInDecimals = await getTokenDecimals(tokenIn, signer)
         const tokenOutDecimals = await getTokenDecimals(tokenOut, signer)
@@ -306,7 +339,8 @@ export const useCoreTrading = () => {
           minAmountOutWei: minAmountOutWei.toString(),
         })
 
-        // Check and handle token allowance
+        // Step 3: Check and handle token allowance
+        updateToastProgress('Checking token allowance...', 40, 3)
         console.log('Checking token allowance...')
         const hasAllowance = await checkTokenAllowance(
           tokenIn,
@@ -317,6 +351,7 @@ export const useCoreTrading = () => {
         console.log('Has allowance:', hasAllowance)
 
         if (!hasAllowance) {
+          updateToastProgress('Approving tokens...', 55, 3)
           console.log('Approving tokens...')
           const approved = await approveToken(
             tokenIn,
@@ -329,7 +364,8 @@ export const useCoreTrading = () => {
           }
         }
 
-        // Get contract instance with signer
+        // Step 4: Prepare trade
+        updateToastProgress('Preparing trade data...', 70, 4)
         console.log('Getting contract instance...')
         const contract = getContract(signer)
 
@@ -363,13 +399,14 @@ export const useCoreTrading = () => {
         console.log('Gas estimate:', gasEstimate.toString())
 
         // Execute place trade
+        updateToastProgress('Sending transaction...', 85, 4)
         console.log('Executing place trade...')
         const placeTradeTx = await contract.placeTrade(tradeData, {
           gasLimit: gasEstimate.mul(120).div(100), // 20% buffer
         })
 
         console.log('Transaction sent:', placeTradeTx.hash)
-        toast.loading('Waiting for confirmation...', { id: 'place-trade' })
+        updateToastProgress('Waiting for confirmation...', 95, 4)
         const receipt = await placeTradeTx.wait()
         console.log('Transaction confirmed! Block:', receipt.blockNumber)
 
@@ -379,10 +416,8 @@ export const useCoreTrading = () => {
         )
         const tradeId = tradeCreatedEvent?.args?.tradeId?.toNumber()
 
-        toast.success(
-          `Trade placed successfully! ${tradeId ? `Trade ID: ${tradeId}` : ''}`,
-          { id: 'place-trade' }
-        )
+        // Final success update
+        updateToastProgress('Trade completed successfully!', 100, 4)
 
         return {
           success: true,
@@ -391,15 +426,14 @@ export const useCoreTrading = () => {
         }
       } catch (error: any) {
         console.error('Error placing trade:', error)
-        toast.dismiss('place-trade')
-        toast.error(`Failed to place trade: ${error.reason || error.message}`)
+        // Show error in custom toast
+        updateToastProgress(`Failed: ${error.reason || error.message}`, 0, 1)
         return { success: false }
       } finally {
-        toast.dismiss('place-trade')
         setLoading(false)
       }
     },
-    [getContract, getTokenDecimals, checkTokenAllowance, approveToken]
+    [getContract, getTokenDecimals, checkTokenAllowance, approveToken, addToast]
   )
 
   // Cancel a trade
