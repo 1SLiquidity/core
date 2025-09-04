@@ -23,10 +23,13 @@ import { useInView } from 'react-intersection-observer'
 import { useTrades } from '@/app/lib/hooks/useTrades'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatUnits } from 'viem'
-import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import { useCustomTokenList } from '@/app/lib/hooks/useCustomTokensList'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { formatRelativeTime } from '@/app/lib/utils/time'
 import ImageFallback from '@/app/shared/ImageFallback'
+import { useWallet } from '@/app/lib/hooks/useWallet'
+import { useAccount } from 'wagmi'
+import { useCoreTrading } from '@/app/lib/hooks/useCoreTrading'
 
 // Constants
 const LIMIT = 10
@@ -36,6 +39,7 @@ interface ExtendedTrade extends Trade {
   effectivePrice: number
   networkFee: number
   amountInUsd: number
+  amountOut: number
   tokenInDetails: TOKENS_TYPE | null
   tokenOutDetails: TOKENS_TYPE | null
   formattedAmountRemaining: string
@@ -79,6 +83,8 @@ interface TradesTableProps {
   selectedVolume: number | null
   isChartFiltered: boolean
   onClearSelection: () => void
+  selectedTokenFrom?: TOKENS_TYPE | null
+  selectedTokenTo?: TOKENS_TYPE | null
 }
 
 const TradesTable = ({
@@ -86,6 +92,8 @@ const TradesTable = ({
   selectedVolume,
   isChartFiltered,
   onClearSelection,
+  selectedTokenFrom,
+  selectedTokenTo,
 }: TradesTableProps) => {
   const [activeTab, setActiveTab] = useState('all')
   const timeframes = ['1D', '1W', '1M', '1Y', 'ALL']
@@ -101,7 +109,22 @@ const TradesTable = ({
   const { ref, inView } = useInView()
 
   // Get token list
-  const { tokens: tokenList, isLoading: isLoadingTokenList } = useTokenList()
+  const { tokens: tokenList, isLoading: isLoadingTokenList } =
+    useCustomTokenList()
+
+  const { getSigner, isConnected: isConnectedWallet } = useWallet()
+  const { address } = useAccount()
+  const { placeTrade, loading, instasettle } = useCoreTrading()
+
+  // Memoize token addresses to prevent unnecessary re-renders
+  const tokenFromAddress = useMemo(
+    () => selectedTokenFrom?.token_address?.toLowerCase(),
+    [selectedTokenFrom?.token_address]
+  )
+  const tokenToAddress = useMemo(
+    () => selectedTokenTo?.token_address?.toLowerCase(),
+    [selectedTokenTo?.token_address]
+  )
 
   // Use the useTrades hook for GraphQL queries
   const { trades, isLoading, error, loadMore } = useTrades({
@@ -313,6 +336,7 @@ const TradesTable = ({
         // Update trade object with calculated values
         return {
           ...trade,
+          amountOut: Number(amountOut),
           effectivePrice: isFinite(effectivePrice) ? effectivePrice : 0,
           networkFee: isFinite(Number(networkFee)) ? Number(networkFee) : 0,
           amountInUsd: isFinite(amountInUsd) ? amountInUsd : 0,
@@ -338,6 +362,15 @@ const TradesTable = ({
         } as ExtendedTrade
       }
     })
+
+    // Apply token filter (only if both tokens are selected and not chart filtered)
+    if (tokenFromAddress && tokenToAddress && !isChartFiltered) {
+      filteredTrades = filteredTrades.filter(
+        (trade) =>
+          trade.tokenIn?.toLowerCase() === tokenFromAddress &&
+          trade.tokenOut?.toLowerCase() === tokenToAddress
+      )
+    }
 
     // Apply ownership filter
     if (activeTab === 'myInstasettles') {
@@ -371,11 +404,37 @@ const TradesTable = ({
     isChartFiltered,
     selectedTrade,
     tokenList,
+    tokenFromAddress,
+    tokenToAddress,
   ])
 
   const handleStreamClick = (item: ExtendedTrade) => {
     setInitialStream(item)
     setIsSidebarOpen(true)
+  }
+
+  const handleInstasettleClick = async (item: ExtendedTrade) => {
+    if (isConnectedWallet) {
+      const signer = getSigner()
+
+      if (signer) {
+        const res = await instasettle(
+          {
+            tradeId: Number(item.id),
+            tokenInObj: item.tokenInDetails,
+            tokenOutObj: item.tokenOutDetails,
+            tokenIn: item.tokenInDetails?.token_address || '',
+            tokenOut: item.tokenOutDetails?.token_address || '',
+            amountIn: item.amountIn.toString(),
+            minAmountOut: item.amountOut.toString(),
+            isInstasettlable: true,
+            usePriceBased: false,
+            signer: signer,
+          },
+          signer
+        )
+      }
+    }
   }
 
   // Loading skeleton
@@ -403,18 +462,18 @@ const TradesTable = ({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Skeleton className="w-6 h-6 rounded-full" />
-                      <div>
+                      {/* <div>
                         <Skeleton className="w-12 h-4 mb-1" />
                         <Skeleton className="w-16 h-4" />
-                      </div>
+                      </div> */}
                     </div>
                     <Skeleton className="w-4 h-2" />
                     <div className="flex items-center gap-2">
                       <Skeleton className="w-6 h-6 rounded-full" />
-                      <div>
+                      {/* <div>
                         <Skeleton className="w-12 h-4 mb-1" />
                         <Skeleton className="w-16 h-4" />
-                      </div>
+                      </div> */}
                     </div>
                   </div>
                 </TableCell>
@@ -492,7 +551,7 @@ const TradesTable = ({
         {isChartFiltered && selectedVolume !== null && (
           <div className="w-fit h-10 border border-primary px-[6px] py-[3px] rounded-[12px] flex items-center">
             <div className="flex gap-[6px] items-center py-[6px] sm:py-[10px] px-[6px] sm:px-[9px] rounded-[8px]">
-              <span>Trade Volume: ${selectedVolume}</span>
+              <span>Trade Volume: {selectedVolume}</span>
               <button
                 onClick={onClearSelection}
                 className="hover:text-primary transition-colors"
@@ -670,7 +729,12 @@ const TradesTable = ({
                         text={
                           item.isInstasettlable ? 'INSTASETTLE' : 'INSTASETTLE'
                         }
+                        disabled={
+                          !isConnectedWallet ||
+                          address?.toLowerCase() !== item.user.toLowerCase()
+                        }
                         className="h-[2.15rem] hover:bg-primaryGradient hover:text-black"
+                        onClick={() => handleInstasettleClick(item)}
                       />
                     </TableCell>
                     <TableCell className="text-center">
@@ -707,7 +771,7 @@ const TradesTable = ({
       </ScrollArea>
 
       {/* Intersection Observer target */}
-      {!isChartFiltered && (
+      {/* {!isChartFiltered && (
         <div ref={ref}>
           {isLoading && (
             <div className="flex justify-center items-center py-4">
@@ -715,7 +779,7 @@ const TradesTable = ({
             </div>
           )}
         </div>
-      )}
+      )} */}
 
       {initialStream && (
         <GlobalStreamSidebar

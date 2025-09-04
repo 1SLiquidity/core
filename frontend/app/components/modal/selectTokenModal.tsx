@@ -12,7 +12,7 @@ import { useToast } from '@/app/lib/context/toastProvider'
 import { formatWalletAddress } from '@/app/lib/helper'
 import { useWalletTokens } from '@/app/lib/hooks/useWalletTokens'
 import { ChevronDown } from 'lucide-react'
-import tokensListData from '@/app/lib/utils/tokens-list-28-08-2025.json'
+import tokensListData from '@/app/lib/utils/tokens-list-04-09-2025.json'
 
 // Types for JSON data
 type TokenResult = {

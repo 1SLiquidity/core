@@ -19,8 +19,8 @@ export function useTrades(options: UseTradesOptions = {}) {
         first,
         skip,
       },
-      // Refetch every 30 seconds to keep data fresh
-      pollInterval: 30000,
+      // Refetch every 60 seconds to keep data fresh
+      pollInterval: 120000,
       notifyOnNetworkStatusChange: true, // This will help us track when polling happens
     })
 

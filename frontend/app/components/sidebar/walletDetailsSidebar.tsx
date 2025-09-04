@@ -432,7 +432,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                             />
                           ))}
                           {isLoadingTrades &&
-                            Array(5)
+                            Array(4)
                               .fill(0)
                               .map((_, index) => (
                                 <SwapStream

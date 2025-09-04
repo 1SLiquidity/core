@@ -174,7 +174,7 @@ const WalletDetailsModal: React.FC<WalletDetailsModalProps> = ({
                             />
                           ))}
                           {isLoadingTrades &&
-                            Array(5)
+                            Array(4)
                               .fill(0)
                               .map((_, index) => (
                                 <SwapStream

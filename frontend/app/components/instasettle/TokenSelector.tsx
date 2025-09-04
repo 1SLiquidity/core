@@ -8,15 +8,6 @@ import { useScreenSize } from '@/app/lib/hooks/useScreenSize'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 
-// Mock token data
-const tokens = [
-  { id: 1, name: 'Bitcoin', symbol: 'BTC', icon: '₿' },
-  { id: 2, name: 'Ethereum', symbol: 'ETH', icon: 'Ξ' },
-  { id: 3, name: 'Solana', symbol: 'SOL', icon: '◎' },
-  { id: 4, name: 'Cardano', symbol: 'ADA', icon: '₳' },
-  { id: 5, name: 'Polygon', symbol: 'MATIC', icon: '⬟' },
-]
-
 const defaultBoltConfig = {
   height: '8.5rem',
   color: '#020408',
@@ -156,7 +147,11 @@ export default function TokenSelector() {
                   <div className="flex items-center w-fit h-fit">
                     <div className="mr-2.5 relative">
                       <Image
-                        src={selectedTokenFrom.icon || '/icons/token.svg'}
+                        src={
+                          (selectedTokenFrom.symbol.toLowerCase() === 'usdt'
+                            ? '/tokens/usdt.svg'
+                            : selectedTokenFrom.icon) || '/icons/token.svg'
+                        }
                         alt={selectedTokenFrom.name || ''}
                         width={32}
                         height={32}
@@ -342,12 +337,16 @@ export default function TokenSelector() {
               >
                 <div
                   className="min-w-[120px] sm:min-w-[165px] overflow-hidden w-fit h-full bg-[#0D0D0D] group-hover:bg-tabsGradient transition-colors duration-300 p-2 gap-[14px] flex rounded-[25px] items-center justify-between cursor-pointer uppercase font-bold"
-                  onClick={() => showSelectTokenModal(true, 'from')}
+                  onClick={() => showSelectTokenModal(true, 'to')}
                 >
                   <div className="flex items-center w-fit h-fit">
                     <div className="mr-2.5 relative">
                       <Image
-                        src={selectedTokenTo.icon || '/icons/token.svg'}
+                        src={
+                          (selectedTokenTo.symbol.toLowerCase() === 'usdt'
+                            ? '/tokens/usdt.svg'
+                            : selectedTokenTo.icon) || '/icons/token.svg'
+                        }
                         alt={selectedTokenTo.name || ''}
                         width={32}
                         height={32}

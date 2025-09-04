@@ -63,6 +63,8 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
     )
   }
 
+  console.log('trades ===>', trade)
+
   return (
     <div
       className="w-full border border-white14 relative bg-white005 p-4 rounded-[15px] cursor-pointer hover:bg-tabsGradient transition-all duration-300"
@@ -146,9 +148,10 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
             <div
               className="h-[3px] bg-primary absolute top-0 left-0"
               style={{
-                width: `${
-                  (trade.executions.length / Number(trade.lastSweetSpot)) * 100
-                }%`, // Hardcoded for now as requested
+                width: `${Math.min(
+                  (trade.executions.length / Number(trade.lastSweetSpot)) * 100,
+                  100
+                )}%`,
               }}
             />
           )}

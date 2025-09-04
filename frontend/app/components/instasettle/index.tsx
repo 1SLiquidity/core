@@ -9,9 +9,11 @@ import TradesChart from './TradesChart'
 import TokenSelector from './TokenSelector'
 import { InstasettleIcon } from '@/app/lib/icons'
 import HeroSection from '../shared/HeroSection'
+import { useModal } from '@/app/lib/context/modalContext'
 
 const Instasettle = () => {
   const controls = useAnimation()
+  const { selectedTokenFrom, selectedTokenTo } = useModal()
 
   useEffect(() => {
     controls.start('visible')
@@ -95,7 +97,10 @@ const Instasettle = () => {
             </motion.h2>
           </div>
           <TokenSelector />
-          <TradesChart />
+          <TradesChart
+            selectedTokenFrom={selectedTokenFrom}
+            selectedTokenTo={selectedTokenTo}
+          />
         </div>
 
         {/* <motion.div

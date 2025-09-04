@@ -3,7 +3,7 @@ import { useState, useCallback } from 'react'
 import { ethers } from 'ethers'
 import { erc20Abi } from 'viem'
 import { toast } from 'react-hot-toast'
-import coreAbi from '../config/trade-core.json'
+import coreAbi from '../config/trade-core-abi.json'
 import { useToast } from '../context/toastProvider'
 import NotifiSwapStream from '@/app/components/toasts/notifiSwapStream'
 
@@ -30,6 +30,11 @@ export interface PlaceTradeParams {
   minAmountOut: string
   isInstasettlable: boolean
   usePriceBased: boolean
+}
+
+export interface InstasettleParams extends PlaceTradeParams {
+  tradeId: number
+  signer: ethers.Signer
 }
 
 export interface ContractInfo {
@@ -490,7 +495,7 @@ export const useCoreTrading = () => {
   )
 
   // Instasettle a trade
-  const instasettle = useCallback(
+  const instasettleOld = useCallback(
     async (
       tradeId: number,
       signer: ethers.Signer
@@ -597,6 +602,234 @@ export const useCoreTrading = () => {
       }
     },
     [getContract, getTokenDecimals, checkTokenAllowance, approveToken]
+  )
+
+  // Instasettle a trade
+  const instasettle = useCallback(
+    async (
+      params: InstasettleParams,
+      signer: ethers.Signer
+    ): Promise<{ success: boolean; txHash?: string }> => {
+      // Helper function to update toast with progress
+      const updateToastProgress = (
+        step: string,
+        progress: number,
+        currentStep: number,
+        tokenInObj?: any,
+        tokenOutObj?: any,
+        amountIn?: string,
+        amountOut?: string
+      ) => {
+        const toastContent = (
+          <NotifiSwapStream
+            tokenInObj={params.tokenInObj}
+            tokenOutObj={params.tokenOutObj}
+            tokenIn={params?.tokenIn || ''}
+            tokenOut={params?.tokenOut || ''}
+            amountIn={params.amountIn.toString()}
+            amountOut={params.minAmountOut.toString()}
+            step={step}
+            progress={progress}
+            currentStep={currentStep}
+            totalSteps={5}
+          />
+        )
+
+        addToast(toastContent)
+      }
+
+      try {
+        setLoading(true)
+
+        // Step 1: Initialize
+        updateToastProgress('Preparing instasettle...', 10, 1)
+
+        const contract = getContract(signer)
+
+        // Step 2: Get trade details
+        updateToastProgress('Getting trade details...', 25, 2)
+        const trade = await contract.getTrade(params.tradeId)
+
+        // Check if the trade is instasettlable
+        if (!trade.isInstasettlable) {
+          updateToastProgress('Trade is not instasettlable', 0, 1)
+          return { success: false }
+        }
+
+        // Calculate remaining amount
+        const remainingAmountOut = trade.targetAmountOut.sub(
+          trade.realisedAmountOut
+        )
+        if (remainingAmountOut.lte(0)) {
+          updateToastProgress('No remaining amount to settle', 0, 1)
+          return { success: false }
+        }
+
+        // Calculate settler payment
+        const settlerPayment = remainingAmountOut
+          .mul(10000 - trade.instasettleBps)
+          .div(10000)
+
+        // Get token decimals for display
+        const tokenInDecimals = await getTokenDecimals(trade.tokenIn, signer)
+        const tokenOutDecimals = await getTokenDecimals(trade.tokenOut, signer)
+
+        // Format amounts for display
+        const amountInFormatted = ethers.utils.formatUnits(
+          trade.targetAmountIn,
+          tokenInDecimals
+        )
+        const amountOutFormatted = ethers.utils.formatUnits(
+          remainingAmountOut,
+          tokenOutDecimals
+        )
+
+        // Create token objects for display (you may need to adjust this based on your token object structure)
+        const tokenInObj = { token_address: trade.tokenIn }
+        const tokenOutObj = { token_address: trade.tokenOut }
+
+        // Step 3: Check balance
+        updateToastProgress(
+          'Checking balance...',
+          40,
+          3,
+          tokenInObj,
+          tokenOutObj,
+          amountInFormatted,
+          amountOutFormatted
+        )
+
+        const tokenOutContract = new ethers.Contract(
+          trade.tokenOut,
+          erc20Abi,
+          signer
+        )
+        const userAddress = await signer.getAddress()
+        const tokenOutBalance = await tokenOutContract.balanceOf(userAddress)
+
+        if (tokenOutBalance.lt(settlerPayment)) {
+          updateToastProgress(
+            `Insufficient balance. Required: ${ethers.utils.formatUnits(
+              settlerPayment,
+              tokenOutDecimals
+            )}`,
+            0,
+            1,
+            tokenInObj,
+            tokenOutObj,
+            amountInFormatted,
+            amountOutFormatted
+          )
+          return { success: false }
+        }
+
+        // Step 4: Check and handle allowance
+        updateToastProgress(
+          'Checking token allowance...',
+          55,
+          4,
+          tokenInObj,
+          tokenOutObj,
+          amountInFormatted,
+          amountOutFormatted
+        )
+
+        const hasAllowance = await checkTokenAllowance(
+          trade.tokenOut,
+          CORE_CONTRACT_ADDRESS,
+          settlerPayment,
+          signer
+        )
+
+        if (!hasAllowance) {
+          updateToastProgress(
+            'Approving tokens...',
+            70,
+            4,
+            tokenInObj,
+            tokenOutObj,
+            amountInFormatted,
+            amountOutFormatted
+          )
+          const approved = await approveToken(
+            trade.tokenOut,
+            CORE_CONTRACT_ADDRESS,
+            settlerPayment,
+            signer
+          )
+          if (!approved) {
+            return { success: false }
+          }
+        }
+
+        // Step 5: Execute instasettle
+        updateToastProgress(
+          'Estimating gas...',
+          80,
+          5,
+          tokenInObj,
+          tokenOutObj,
+          amountInFormatted,
+          amountOutFormatted
+        )
+
+        // Estimate gas
+        const gasEstimate = await contract.estimateGas.instasettle(
+          params.tradeId
+        )
+
+        // Execute instasettle
+        updateToastProgress(
+          'Sending transaction...',
+          90,
+          5,
+          tokenInObj,
+          tokenOutObj,
+          amountInFormatted,
+          amountOutFormatted
+        )
+
+        const instasettleTx = await contract.instasettle(params.tradeId, {
+          gasLimit: gasEstimate.mul(120).div(100),
+        })
+
+        updateToastProgress(
+          'Waiting for confirmation...',
+          95,
+          5,
+          tokenInObj,
+          tokenOutObj,
+          amountInFormatted,
+          amountOutFormatted
+        )
+
+        await instasettleTx.wait()
+
+        // Final success update
+        updateToastProgress(
+          'Instasettle completed successfully!',
+          100,
+          5,
+          tokenInObj,
+          tokenOutObj,
+          amountInFormatted,
+          amountOutFormatted
+        )
+
+        return {
+          success: true,
+          txHash: instasettleTx.hash,
+        }
+      } catch (error: any) {
+        console.error('Error instasettling trade:', error)
+        // Show error in custom toast
+        updateToastProgress(`Failed: ${error.reason || error.message}`, 0, 1)
+        return { success: false }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [getContract, getTokenDecimals, checkTokenAllowance, approveToken, addToast]
   )
 
   // Get trades by token pair
