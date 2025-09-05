@@ -21,6 +21,7 @@ import { SwitchOffIcon } from '@/app/lib/icons'
 import { CircleCheckBigIcon, CopyIcon } from 'lucide-react'
 import { useDisconnect } from '@reown/appkit/react'
 import JazzAvatar from '../shared/JazzAvatar'
+import ImageFallback from '@/app/shared/ImageFallback'
 
 // Token Skeleton component for loading state
 const TokenSkeleton = () => {
@@ -511,10 +512,10 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                             >
                               <div className="flex gap-[12px]">
                                 <div className="relative h-fit">
-                                  <Image
+                                  <ImageFallback
                                     src={token.icon}
                                     alt={token.name}
-                                    className="w-[40px] h-[40px]"
+                                    className="w-[40px] h-[40px] rounded-full overflow-hidden object-cover"
                                     width={1000}
                                     height={1000}
                                   />

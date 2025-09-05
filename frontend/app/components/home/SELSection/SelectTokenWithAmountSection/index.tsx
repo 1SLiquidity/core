@@ -393,7 +393,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
                     alt={selectedToken.name || ''}
                     width={32}
                     height={32}
-                    className="w-8 h-8 object-contain"
+                    className="w-8 h-8 object-contain rounded-full overflow-hidden"
                     onError={(e) => {
                       // If the token image fails to load, use a fallback
                       const target = e.target as HTMLImageElement

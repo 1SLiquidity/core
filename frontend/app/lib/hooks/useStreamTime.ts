@@ -25,13 +25,13 @@ export function useStreamTime(streamCount: number | undefined) {
         // Use wallet provider if connected (address exists), otherwise fall back to Alchemy provider
         const provider =
           address && walletProvider ? walletProvider : createProvider()
-        console.log('Selected provider:', provider)
+        // console.log('Selected provider:', provider)
 
         const avgBlockTime = await getAverageBlockTime(provider)
-        console.log('Average block time:', avgBlockTime)
+        // console.log('Average block time:', avgBlockTime)
 
         const totalSeconds = Math.round(avgBlockTime * 2 * streamCount)
-        console.log('Total seconds calculated:', totalSeconds)
+        // console.log('Total seconds calculated:', totalSeconds)
 
         if (totalSeconds <= 0) {
           console.log('Invalid total seconds, setting empty time')

@@ -52,10 +52,10 @@ const SELSection = () => {
   const { placeTrade, loading } = useCoreTrading()
   const { getSigner, isConnected: isConnectedWallet } = useWallet()
 
-  console.log('loading =========>', loading)
-  console.log('isConnectedWallet =========>', isConnectedWallet)
-  console.log('isConnected =========>', isConnected)
-  console.log('selectedTokenFrom =========>', getSigner())
+  // console.log('loading =========>', loading)
+  // console.log('isConnectedWallet =========>', isConnectedWallet)
+  // console.log('isConnected =========>', isConnected)
+  // console.log('selectedTokenFrom =========>', getSigner())
 
   // const { prefetchedReserves, getPairKey } = usePrefetchReserves()
   // const pairKey = getPairKey('USDC', 'WETH')
@@ -312,8 +312,6 @@ const SELSection = () => {
     }
   }, [sellAmount])
 
-  console.log('reserveData =========>', reserveData)
-
   // Combine errors from both hooks
   const calculationError = reserveError || swapError
 
@@ -324,7 +322,7 @@ const SELSection = () => {
 
   // Check for insufficient liquidity (95% threshold)
   useEffect(() => {
-    console.log('reserveData totalReserves ===>', reserveData?.totalReserves)
+    // console.log('reserveData totalReserves ===>', reserveData?.totalReserves)
     if (sellAmount > 0 && reserveData?.totalReserves?.totalReserveTokenA) {
       const totalReserveTokenA = reserveData.totalReserves.totalReserveTokenA
       const liquidityThreshold = totalReserveTokenA * 0.95
@@ -453,9 +451,12 @@ const SELSection = () => {
   }
 
   const handlePlaceTrade = async () => {
+    console.log('handlePlaceTrade called', isConnectedWallet)
+
     if (isConnectedWallet) {
       const signer = getSigner()
 
+      console.log('signer ===>', signer)
       if (signer) {
         const res = await placeTrade(
           {
@@ -477,10 +478,10 @@ const SELSection = () => {
     }
   }
 
-  console.log('isCalculating ===>', isCalculating)
-  console.log('buyAmount ===>', buyAmount)
-  console.log('sellAmount ===>', sellAmount)
-  console.log('isInsufficientLiquidity ===>', isInsufficientLiquidity)
+  // console.log('isCalculating ===>', isCalculating)
+  // console.log('buyAmount ===>', buyAmount)
+  // console.log('sellAmount ===>', sellAmount)
+  // console.log('isInsufficientLiquidity ===>', isInsufficientLiquidity)
 
   return (
     <div className="w-full flex flex-col justify-center items-center">

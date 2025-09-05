@@ -118,6 +118,7 @@ interface TokenPrices {
  */
 const MORALIS_CACHE_CONFIG = {
   CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  TOKEN_BALANCE_CHECK_INTERVAL: 5 * 60 * 1000, // 5 minutes - check for new tokens more frequently
 }
 
 /**
@@ -173,7 +174,69 @@ const setCachedWalletData = (
 }
 
 /**
- * Fetch tokens for a wallet address
+ * Check if we should fetch fresh token list (for detecting new tokens)
+ * @param address - Wallet address
+ * @param chain - Chain identifier
+ * @returns true if we should check for new tokens
+ */
+const shouldCheckForNewTokens = (address: string, chain: string): boolean => {
+  try {
+    if (typeof window === 'undefined') return true
+
+    const lastCheckKey = `wallet_tokens_lastcheck_${address.toLowerCase()}_${chain.toLowerCase()}`
+    const lastCheck = localStorage.getItem(lastCheckKey)
+
+    if (!lastCheck) return true
+
+    const timeSinceLastCheck = Date.now() - parseInt(lastCheck)
+    return (
+      timeSinceLastCheck > MORALIS_CACHE_CONFIG.TOKEN_BALANCE_CHECK_INTERVAL
+    )
+  } catch (error) {
+    return true // Default to checking if there's an error
+  }
+}
+
+/**
+ * Update the last check timestamp
+ * @param address - Wallet address
+ * @param chain - Chain identifier
+ */
+const updateLastCheckTimestamp = (address: string, chain: string) => {
+  try {
+    if (typeof window === 'undefined') return
+
+    const lastCheckKey = `wallet_tokens_lastcheck_${address.toLowerCase()}_${chain.toLowerCase()}`
+    localStorage.setItem(lastCheckKey, Date.now().toString())
+  } catch (error) {
+    console.error('Error updating last check timestamp:', error)
+  }
+}
+
+/**
+ * Compare token lists and detect new tokens
+ * @param cachedTokens - Previously cached tokens
+ * @param freshTokenAddresses - Fresh token addresses from API
+ * @returns true if new tokens detected
+ */
+const hasNewTokens = (
+  cachedTokens: TokenData[],
+  freshTokenAddresses: string[]
+): boolean => {
+  const cachedAddresses = new Set(
+    cachedTokens.map((t) => t.token_address.toLowerCase())
+  )
+
+  // Check if any fresh token address is not in cached tokens
+  return freshTokenAddresses.some(
+    (address) =>
+      !cachedAddresses.has(address.toLowerCase()) &&
+      address.toLowerCase() !== '0x0000000000000000000000000000000000000000' // Exclude native token
+  )
+}
+
+/**
+ * Fetch tokens for a wallet address with smart caching
  * @param address Wallet address
  * @param chain Chain to fetch tokens from (e.g., 'eth', 'bsc', 'polygon')
  * @returns Array of token data
@@ -194,7 +257,10 @@ export const getWalletTokens = async (
       MORALIS_CACHE_CONFIG.CACHE_DURATION
     )
 
-    if (cachedTokens) {
+    // Check if we should look for new tokens (every 5 minutes)
+    const shouldCheckNew = shouldCheckForNewTokens(address, chain)
+
+    if (cachedTokens && !shouldCheckNew) {
       console.log(
         `🔍 DEBUG: Using cached wallet tokens for ${address} on ${chain}`
       )
@@ -202,7 +268,9 @@ export const getWalletTokens = async (
     }
 
     console.log(
-      `🔍 DEBUG: Fetching fresh wallet tokens for ${address} on ${chain}`
+      `🔍 DEBUG: Fetching fresh wallet tokens for ${address} on ${chain}${
+        cachedTokens ? ' (checking for new tokens)' : ''
+      }`
     )
 
     await initMoralis()
@@ -210,17 +278,31 @@ export const getWalletTokens = async (
     // Convert string chain to EvmChain object
     const evmChain = CHAIN_MAPPING[chain.toLowerCase()] || EvmChain.ETHEREUM
 
-    // console.log('🔍 DEBUG: Fetching tokens for address:', address)
-    // console.log('🔍 DEBUG: Chain:', chain, 'EvmChain:', evmChain)
-
-    // Get token balances
+    // Get token balances - this is a lightweight call to check for new tokens
     const response = await Moralis.EvmApi.token.getWalletTokenBalances({
       address,
       chain: evmChain,
     })
 
-    // console.log('📊 Token balances response ====>', response)
-    // console.log('📊 Token balances count:', response.toJSON().length)
+    const tokenBalances = response.toJSON()
+    const tokenAddresses = tokenBalances.map((token) => token.token_address)
+
+    // If we have cached tokens, check if there are new ones
+    if (cachedTokens && cachedTokens.length > 0) {
+      const newTokensDetected = hasNewTokens(cachedTokens, tokenAddresses)
+
+      if (!newTokensDetected) {
+        // No new tokens, update the last check timestamp and return cached data
+        updateLastCheckTimestamp(address, chain)
+        console.log(`✅ DEBUG: No new tokens detected, using cached data`)
+        return cachedTokens
+      } else {
+        console.log(`🆕 DEBUG: New tokens detected, fetching fresh data`)
+      }
+    }
+
+    // Either no cache exists or new tokens detected - fetch complete fresh data
+    updateLastCheckTimestamp(address, chain)
 
     // Get native balance (ETH, BNB, MATIC, etc.) - important to include native token
     const nativeBalanceResponse = await Moralis.EvmApi.balance.getNativeBalance(
@@ -230,15 +312,9 @@ export const getWalletTokens = async (
       }
     )
 
-    // console.log('Native balance response ====>', nativeBalanceResponse)
-
     const nativeBalance = nativeBalanceResponse.toJSON()
 
-    // Get token balances from response
-    let tokenBalances = response.toJSON()
-
     // Get token prices to calculate USD values
-    const tokenAddresses = tokenBalances.map((token) => token.token_address)
     let tokenPrices: TokenPrices = {}
 
     // Get native token price (e.g., ETH, BNB)
@@ -391,116 +467,45 @@ export const getWalletTokens = async (
 
       // Always exclude blacklisted tokens
       if (blacklistedTokens.includes(token.token_address.toLowerCase())) {
+        console.log(
+          '🚫 DEBUG: Token blacklisted:',
+          token.symbol,
+          token.token_address
+        )
         return false
+      }
+
+      // For native token, always include
+      if (
+        token.token_address === '0x0000000000000000000000000000000000000000'
+      ) {
+        console.log('✅ DEBUG: Native token included:', token.symbol)
+        return true
       }
 
       // Whitelist - tokens to always include regardless of other filters
       const whitelistedTokens = getWhitelistedTokens()
 
-      // console.log('🔍 DEBUG: Whitelisted tokens:', whitelistedTokens)
-
-      // console.log(
-      //   '🔍 DEBUG: Checking token:',
-      //   token.symbol,
-      //   token.token_address
-      // )
-      // console.log(
-      //   '🔍 DEBUG: Token has usd_price:',
-      //   token.usd_price,
-      //   'possible_spam:',
-      //   token.possible_spam
-      // )
-
-      // Always include whitelisted tokens
+      // STRICT WHITELIST CHECK - Only include tokens that are whitelisted
       if (whitelistedTokens.includes(token.token_address.toLowerCase())) {
-        // console.log(
-        //   '✅ DEBUG: Token whitelisted:',
-        //   token.symbol,
-        //   token.token_address
-        // )
+        console.log(
+          '✅ DEBUG: Token whitelisted:',
+          token.symbol,
+          token.token_address
+        )
         return true
       }
 
-      // Skip tokens that are marked as possible spam
-      if (token.possible_spam === true) {
-        console.log(
-          '🚫 DEBUG: Token marked as spam:',
-          token.symbol,
-          token.token_address
-        )
-        return false
-      }
-
-      // Skip tokens with suspicious names or symbols that contain URLs or common spam patterns
-      const suspiciousPatterns = [
-        'visit',
-        'swap',
-        'claim',
-        'airdrop',
-        'http',
-        '.xyz',
-        '.pro',
-        '.io',
-        '.us',
-        'get',
-        'free',
-        'bonus',
-        'win',
-        'lucky',
-        'prize',
-        'giveaway',
-      ]
-
-      const symbolLower = (token.symbol || '').toLowerCase()
-      const nameLower = (token.name || '').toLowerCase()
-
-      const hasSpamPattern = suspiciousPatterns.some(
-        (pattern) =>
-          symbolLower.includes(pattern.toLowerCase()) ||
-          nameLower.includes(pattern.toLowerCase())
+      // If not in whitelist, exclude the token
+      console.log(
+        '🚫 DEBUG: Token not whitelisted, excluding:',
+        token.symbol,
+        token.token_address
       )
-
-      if (hasSpamPattern) {
-        console.log(
-          '🚫 DEBUG: Token has spam pattern:',
-          token.symbol,
-          token.name,
-          token.token_address
-        )
-        return false
-      }
-
-      // Keep tokens with price data or native token or tokens with actual balance that passed spam checks
-      const hasPrice = token.usd_price > 0
-      const isNativeToken =
-        token.token_address === '0x0000000000000000000000000000000000000000'
-      const hasBalance = parseFloat(token.balance) > 0
-
-      const shouldInclude = hasPrice || isNativeToken || hasBalance
-
-      console.log('🔍 DEBUG: Token filter result:', {
-        symbol: token.symbol,
-        address: token.token_address,
-        hasPrice,
-        isNativeToken,
-        hasBalance,
-        shouldInclude,
-        usd_price: token.usd_price,
-        balance: token.balance,
-      })
-
-      return shouldInclude
+      return false
     })
 
-    console.log('📈 DEBUG: Total tokens after filtering:', validTokens.length)
-    console.log(
-      '📈 DEBUG: Valid tokens:',
-      validTokens.map((t) => ({
-        symbol: t.symbol,
-        address: t.token_address,
-        price: t.usd_price,
-      }))
-    )
+    console.log(`📈 DEBUG: Total tokens after filtering: ${validTokens.length}`)
 
     // Cache the result before returning
     setCachedWalletData(cacheKey, timestampKey, validTokens)
