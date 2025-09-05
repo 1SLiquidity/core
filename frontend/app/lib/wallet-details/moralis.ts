@@ -2,6 +2,7 @@
 
 import Moralis from 'moralis'
 import { EvmChain } from 'moralis/common-evm-utils'
+import tokensListData from '@/app/lib/utils/tokens-list-04-09-2025.json'
 
 // Types for the JSON structure
 interface TokenResult {
@@ -42,7 +43,7 @@ export const initMoralis = async () => {
 const getWhitelistedTokens = (): string[] => {
   try {
     // Dynamically require the JSON file
-    const tokensListData: TokensListData = require('./utils/tokens-list-04-09-2025.json')
+    // const tokensListData: TokensListData = require('./utils/tokens-list-04-09-2025.json')
     const whitelistedTokens: string[] = []
 
     // Iterate through all test results

@@ -7,16 +7,31 @@ import React, {
   useState,
   useCallback,
   ReactNode,
+  useRef,
 } from 'react'
 
 interface Toast {
-  id: number
+  id: number | string
   content: ReactNode
   exiting: boolean
+  autoClose?: boolean
+  autoCloseDelay?: number
 }
 
 interface ToastContextType {
-  addToast: (content: ReactNode) => void // Changed type from 'string' to 'ReactNode'
+  addToast: (
+    content: ReactNode,
+    id?: string,
+    autoClose?: boolean,
+    autoCloseDelay?: number
+  ) => void
+  updateToast: (
+    id: string,
+    content: ReactNode,
+    autoClose?: boolean,
+    autoCloseDelay?: number
+  ) => void
+  removeToast: (id: string) => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
@@ -26,31 +41,111 @@ export const ToastProvider: React.FC<React.PropsWithChildren<{}>> = ({
 }) => {
   const [toasts, setToasts] = useState<Toast[]>([])
   const [counter, setCounter] = useState(0)
+  const timeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   const addToast = useCallback(
-    (content: ReactNode) => {
-      const newToast = { id: counter, content, exiting: false }
-      setToasts((prevToasts) => [...prevToasts, newToast])
-      setCounter((prevCounter) => prevCounter + 1)
+    (
+      content: ReactNode,
+      id?: string,
+      autoClose: boolean = true,
+      autoCloseDelay: number = 2000
+    ) => {
+      const toastId = id || counter.toString()
 
-      setTimeout(() => {
-        setToasts((prevToasts) =>
-          prevToasts.map((toast) =>
-            toast.id === newToast.id ? { ...toast, exiting: true } : toast
-          )
+      // Clear existing timeout for this toast if it exists
+      const existingTimeout = timeoutsRef.current.get(toastId)
+      if (existingTimeout) {
+        clearTimeout(existingTimeout)
+      }
+
+      const newToast = {
+        id: toastId,
+        content,
+        exiting: false,
+        autoClose,
+        autoCloseDelay,
+      }
+
+      setToasts((prevToasts) => {
+        // If toast with same ID exists, update it instead of adding new one
+        const existingIndex = prevToasts.findIndex(
+          (toast) => toast.id === toastId
         )
-        setTimeout(() => {
-          setToasts((prevToasts) =>
-            prevToasts.filter((toast) => toast.id !== newToast.id)
-          )
-        }, 500) // Delay for exit animation
-      }, 2000)
+        if (existingIndex !== -1) {
+          const updatedToasts = [...prevToasts]
+          updatedToasts[existingIndex] = newToast
+          return updatedToasts
+        }
+        return [...prevToasts, newToast]
+      })
+
+      // Set auto-close timeout
+      if (autoClose) {
+        const timeout = setTimeout(() => {
+          removeToast(toastId)
+        }, autoCloseDelay)
+        timeoutsRef.current.set(toastId, timeout)
+      }
+
+      if (!id) {
+        setCounter((prevCounter) => prevCounter + 1)
+      }
     },
     [counter]
   )
 
+  const updateToast = useCallback(
+    (
+      id: string,
+      content: ReactNode,
+      autoClose: boolean = true,
+      autoCloseDelay: number = 2000
+    ) => {
+      // Clear existing timeout for this toast if it exists
+      const existingTimeout = timeoutsRef.current.get(id)
+      if (existingTimeout) {
+        clearTimeout(existingTimeout)
+      }
+
+      setToasts((prevToasts) =>
+        prevToasts.map((toast) =>
+          toast.id === id
+            ? { ...toast, content, autoClose, autoCloseDelay }
+            : toast
+        )
+      )
+
+      // Set new auto-close timeout
+      if (autoClose) {
+        const timeout = setTimeout(() => {
+          removeToast(id)
+        }, autoCloseDelay)
+        timeoutsRef.current.set(id, timeout)
+      }
+    },
+    []
+  )
+
+  const removeToast = useCallback((id: string) => {
+    // Clear timeout when manually removing
+    const timeout = timeoutsRef.current.get(id)
+    if (timeout) {
+      clearTimeout(timeout)
+      timeoutsRef.current.delete(id)
+    }
+
+    setToasts((prevToasts) =>
+      prevToasts.map((toast) =>
+        toast.id === id ? { ...toast, exiting: true } : toast
+      )
+    )
+    setTimeout(() => {
+      setToasts((prevToasts) => prevToasts.filter((toast) => toast.id !== id))
+    }, 500)
+  }, [])
+
   return (
-    <ToastContext.Provider value={{ addToast }}>
+    <ToastContext.Provider value={{ addToast, updateToast, removeToast }}>
       {children}
       <div
         className="fixed left-0 bottom-0 p-4 space-y-2 z-50"
@@ -77,11 +172,7 @@ export const ToastProvider: React.FC<React.PropsWithChildren<{}>> = ({
               width={200}
               height={200}
               className="absolute top-5 right-5 cursor-pointer w-3 h-3 mt-0.5"
-              onClick={() =>
-                setToasts((prevToasts) =>
-                  prevToasts.filter((_, i) => i !== index)
-                )
-              }
+              onClick={() => removeToast(toast.id.toString())}
             />
           </div>
         ))}

@@ -49,7 +49,7 @@ const SELSection = () => {
   const { address, isConnected } = useAppKitAccount()
   const [isInsufficientBalance, setIsInsufficientBalance] = useState(false)
   const [isInsufficientLiquidity, setIsInsufficientLiquidity] = useState(false)
-  const { placeTrade, loading } = useCoreTrading()
+  const { placeTrade, loading, placeTradeDummy } = useCoreTrading()
   const { getSigner, isConnected: isConnectedWallet } = useWallet()
 
   // console.log('loading =========>', loading)
@@ -456,8 +456,22 @@ const SELSection = () => {
     if (isConnectedWallet) {
       const signer = getSigner()
 
-      console.log('signer ===>', signer)
       if (signer) {
+        // const res = await placeTradeDummy(
+        //   {
+        //     tokenInObj: selectedTokenFrom,
+        //     tokenOutObj: selectedTokenTo,
+        //     tokenIn: selectedTokenFrom?.token_address || '',
+        //     tokenOut: selectedTokenTo?.token_address || '',
+        //     amountIn: sellAmount.toString(),
+        //     minAmountOut: buyAmount.toString(),
+        //     isInstasettlable: false,
+        //     usePriceBased: false,
+        //   },
+        //   signer,
+        //   'error'
+        // )
+
         const res = await placeTrade(
           {
             tokenInObj: selectedTokenFrom,

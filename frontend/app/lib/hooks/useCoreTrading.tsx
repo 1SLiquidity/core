@@ -56,7 +56,7 @@ const CORE_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CORE_ADDRESS || ''
 export const useCoreTrading = () => {
   const [loading, setLoading] = useState(false)
   const [contractInfo, setContractInfo] = useState<ContractInfo | null>(null)
-  const { addToast } = useToast()
+  const { addToast, updateToast, removeToast } = useToast()
 
   // Helper function to get contract instance
   const getContract = useCallback((signer?: ethers.Signer) => {
@@ -278,11 +278,14 @@ export const useCoreTrading = () => {
       params: PlaceTradeParams,
       signer: ethers.Signer
     ): Promise<{ success: boolean; tradeId?: number; txHash?: string }> => {
+      const TOAST_ID = 'place-trade'
+
       // Helper function to update toast with progress
       const updateToastProgress = (
         step: string,
         progress: number,
-        currentStep: number
+        currentStep: number,
+        isError: boolean = false
       ) => {
         const toastContent = (
           <NotifiSwapStream
@@ -296,10 +299,11 @@ export const useCoreTrading = () => {
             progress={progress}
             currentStep={currentStep}
             totalSteps={4}
+            isError={isError}
           />
         )
 
-        addToast(toastContent)
+        addToast(toastContent, TOAST_ID)
       }
 
       try {
@@ -317,11 +321,6 @@ export const useCoreTrading = () => {
 
         // Step 1: Initialize
         updateToastProgress('Preparing trade...', 10, 1)
-
-        console.log('=== Placing Trade ===')
-        console.log('Params:', params)
-        console.log('Signer:', signer)
-        console.log('Core contract address:', CORE_CONTRACT_ADDRESS)
 
         if (!CORE_CONTRACT_ADDRESS) {
           throw new Error('Core contract address not configured')
@@ -432,13 +431,114 @@ export const useCoreTrading = () => {
       } catch (error: any) {
         console.error('Error placing trade:', error)
         // Show error in custom toast
-        updateToastProgress(`Failed: ${error.reason || error.message}`, 0, 1)
+        updateToastProgress(
+          `Failed: ${error.reason || error.message}`,
+          0,
+          1,
+          true
+        )
         return { success: false }
       } finally {
         setLoading(false)
       }
     },
     [getContract, getTokenDecimals, checkTokenAllowance, approveToken, addToast]
+  )
+
+  // Dummy method for testing toast updates
+  const placeTradeDummy = useCallback(
+    async (
+      params: PlaceTradeParams,
+      signer: ethers.Signer,
+      testScenario: 'success' | 'error' | 'error-early' = 'success' // Easy test control
+    ): Promise<{ success: boolean; tradeId?: number; txHash?: string }> => {
+      const TOAST_ID = 'place-trade-dummy'
+
+      // Helper function to update toast with progress
+      const updateToastProgress = (
+        step: string,
+        progress: number,
+        currentStep: number,
+        isError: boolean = false
+      ) => {
+        const toastContent = (
+          <NotifiSwapStream
+            tokenInObj={params.tokenInObj}
+            tokenOutObj={params.tokenOutObj}
+            tokenIn={params.tokenInObj?.token_address || ''}
+            tokenOut={params.tokenOutObj?.token_address || ''}
+            amountIn={params.amountIn.toString()}
+            amountOut={params.minAmountOut.toString()}
+            step={step}
+            progress={progress}
+            currentStep={currentStep}
+            totalSteps={4}
+            isError={isError}
+          />
+        )
+
+        addToast(toastContent, TOAST_ID, true, 5000) // Auto-close after 5 seconds
+      }
+
+      try {
+        setLoading(true)
+
+        // Step 1: Initialize
+        updateToastProgress('Preparing trade...', 10, 1)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        // Test early error scenario
+        if (testScenario === 'error-early') {
+          throw new Error('Early error: Contract not found')
+        }
+
+        // Step 2: Get token information
+        updateToastProgress('Getting token information...', 25, 2)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        // Test error scenario after 2 steps
+        if (testScenario === 'error') {
+          throw new Error('Transaction failed: Insufficient gas')
+        }
+
+        // Step 3: Check token allowance
+        updateToastProgress('Checking token allowance...', 40, 3)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        // Step 4: Approve tokens
+        updateToastProgress('Approving tokens...', 55, 3)
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+
+        // Step 5: Prepare trade
+        updateToastProgress('Preparing trade data...', 70, 4)
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
+        // Step 6: Send transaction
+        updateToastProgress('Sending transaction...', 85, 4)
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+
+        // Step 7: Wait for confirmation
+        updateToastProgress('Waiting for confirmation...', 95, 4)
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+
+        // Final success update
+        updateToastProgress('Trade completed successfully!', 100, 4)
+
+        return {
+          success: true,
+          tradeId: Math.floor(Math.random() * 1000),
+          txHash: '0x' + Math.random().toString(16).substr(2, 64),
+        }
+      } catch (error: any) {
+        console.error('Error in dummy trade:', error)
+        // Show error in custom toast
+        updateToastProgress(`Failed: ${error.message}`, 0, 1, true)
+        return { success: false }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [addToast]
   )
 
   // Cancel a trade
@@ -883,6 +983,7 @@ export const useCoreTrading = () => {
     cancelTrade,
     instasettle,
     getTradesByPair,
+    placeTradeDummy,
 
     // Helper functions (exported in case needed)
     getTokenDecimals,

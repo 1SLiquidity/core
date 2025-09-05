@@ -13,6 +13,7 @@ type Props = {
   step?: string // Current step description
   currentStep?: number // Current step number (1, 2, 3, etc.)
   totalSteps?: number // Total number of steps
+  isError?: boolean // Whether this is an error state
 }
 
 const NotifiSwapStream: React.FC<Props> = ({
@@ -26,6 +27,7 @@ const NotifiSwapStream: React.FC<Props> = ({
   step = 'Starting trade...',
   currentStep = 1,
   totalSteps = 3,
+  isError = false,
 }) => {
   // Get the correct token icon
   const getTokenIcon = (token: TOKENS_TYPE) => {
@@ -34,6 +36,11 @@ const NotifiSwapStream: React.FC<Props> = ({
     }
     return token.icon
   }
+
+  // Determine colors based on error state
+  const textColor = isError ? 'text-red-400' : 'text-white'
+  const progressBarColor = isError ? 'bg-red-500' : 'bg-primary'
+  const spinnerColor = isError ? 'border-red-500' : 'border-primary'
 
   return (
     <div className="w-full">
@@ -44,7 +51,7 @@ const NotifiSwapStream: React.FC<Props> = ({
           height={24}
           alt="swapStream"
         />
-        <p className="text-white">{step}</p>
+        <p className={textColor}>{step}</p>
       </div>
 
       {/* main content */}
@@ -85,7 +92,7 @@ const NotifiSwapStream: React.FC<Props> = ({
 
         <div className="w-full h-[3px] bg-white005 mt-[12px] relative">
           <div
-            className="h-[3px] bg-primary absolute top-0 left-0 transition-all duration-500 ease-out"
+            className={`h-[3px] ${progressBarColor} absolute top-0 left-0 transition-all duration-500 ease-out`}
             style={{ width: `${Math.min(progress, 100)}%` }}
           />
         </div>
@@ -108,10 +115,18 @@ const NotifiSwapStream: React.FC<Props> = ({
           <p className="text-sm">
             {currentStep}/{totalSteps} {step}
           </p>
-          {progress < 100 && (
+          {progress < 100 && !isError && (
             <div className="flex items-center gap-1">
-              <div className="w-3 h-3 border-t-2 border-primary animate-spin rounded-full"></div>
+              <div
+                className={`w-3 h-3 border-t-2 ${spinnerColor} animate-spin rounded-full`}
+              ></div>
               <p className="text-sm">{Math.round(progress)}%</p>
+            </div>
+          )}
+          {isError && (
+            <div className="flex items-center gap-1">
+              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+              <p className="text-sm text-red-400">Failed</p>
             </div>
           )}
         </div>
