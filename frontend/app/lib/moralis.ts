@@ -114,6 +114,65 @@ interface TokenPrices {
 }
 
 /**
+ * Cache configuration for Moralis API calls
+ */
+const MORALIS_CACHE_CONFIG = {
+  CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+}
+
+/**
+ * Get cached data with TTL check
+ * @param cacheKey - The key to store/retrieve cached data
+ * @param timestampKey - The key to store/retrieve cache timestamp
+ * @param duration - Cache duration in milliseconds
+ * @returns Cached data if valid, null otherwise
+ */
+const getCachedWalletData = (
+  cacheKey: string,
+  timestampKey: string,
+  duration: number
+) => {
+  try {
+    if (typeof window === 'undefined') return null // SSR safety
+
+    const cachedData = localStorage.getItem(cacheKey)
+    const cachedTimestamp = localStorage.getItem(timestampKey)
+
+    if (cachedData && cachedTimestamp) {
+      const cacheAge = Date.now() - parseInt(cachedTimestamp)
+      if (cacheAge < duration) {
+        return JSON.parse(cachedData)
+      }
+    }
+    return null
+  } catch (error) {
+    console.error('Error reading cached wallet data:', error)
+    return null
+  }
+}
+
+/**
+ * Set cached data with timestamp
+ * @param cacheKey - The key to store cached data
+ * @param timestampKey - The key to store cache timestamp
+ * @param data - Data to cache
+ */
+const setCachedWalletData = (
+  cacheKey: string,
+  timestampKey: string,
+  data: any
+) => {
+  try {
+    if (typeof window === 'undefined') return // SSR safety
+
+    localStorage.setItem(cacheKey, JSON.stringify(data))
+    localStorage.setItem(timestampKey, Date.now().toString())
+  } catch (error) {
+    console.error('Error setting cached wallet data:', error)
+  }
+}
+
+/**
  * Fetch tokens for a wallet address
  * @param address Wallet address
  * @param chain Chain to fetch tokens from (e.g., 'eth', 'bsc', 'polygon')
@@ -124,6 +183,28 @@ export const getWalletTokens = async (
   chain: string = 'eth'
 ): Promise<TokenData[]> => {
   try {
+    // Create cache keys for this specific address and chain
+    const cacheKey = `wallet_tokens_${address.toLowerCase()}_${chain.toLowerCase()}`
+    const timestampKey = `wallet_tokens_timestamp_${address.toLowerCase()}_${chain.toLowerCase()}`
+
+    // Check for cached data first
+    const cachedTokens = getCachedWalletData(
+      cacheKey,
+      timestampKey,
+      MORALIS_CACHE_CONFIG.CACHE_DURATION
+    )
+
+    if (cachedTokens) {
+      console.log(
+        `🔍 DEBUG: Using cached wallet tokens for ${address} on ${chain}`
+      )
+      return cachedTokens
+    }
+
+    console.log(
+      `🔍 DEBUG: Fetching fresh wallet tokens for ${address} on ${chain}`
+    )
+
     await initMoralis()
 
     // Convert string chain to EvmChain object
@@ -420,6 +501,9 @@ export const getWalletTokens = async (
         price: t.usd_price,
       }))
     )
+
+    // Cache the result before returning
+    setCachedWalletData(cacheKey, timestampKey, validTokens)
 
     return validTokens
   } catch (error: any) {
