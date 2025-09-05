@@ -154,24 +154,24 @@ export async function getAverageBlockTime(
   numBlocks: number = 20
 ): Promise<number> {
   try {
-    console.log('Getting average block time with provider:', provider)
+    // console.log('Getting average block time with provider:', provider)
     const now = Date.now()
     if (cachedBlockTime && now - lastBlockTimeFetch < BLOCK_TIME_CACHE_MS) {
       console.log('Using cached block time:', cachedBlockTime)
       return cachedBlockTime
     }
 
-    console.log('Fetching latest block number...')
+    // console.log('Fetching latest block number...')
     const latestBlock = await provider.getBlockNumber()
-    console.log('Latest block:', latestBlock)
+    // console.log('Latest block:', latestBlock)
 
-    console.log('Fetching latest block details...')
+    // console.log('Fetching latest block details...')
     const latest = await provider.getBlock(latestBlock)
-    console.log('Latest block details:', latest)
+    // console.log('Latest block details:', latest)
 
-    console.log('Fetching earlier block details...')
+    // console.log('Fetching earlier block details...')
     const first = await provider.getBlock(latestBlock - numBlocks)
-    console.log('Earlier block details:', first)
+    // console.log('Earlier block details:', first)
 
     if (!latest || !first) {
       console.log('Missing block details, using fallback time of 12s')
@@ -179,7 +179,7 @@ export async function getAverageBlockTime(
     }
 
     const avg = (latest.timestamp - first.timestamp) / numBlocks
-    console.log('Calculated average block time:', avg)
+    // console.log('Calculated average block time:', avg)
 
     cachedBlockTime = avg
     lastBlockTimeFetch = now

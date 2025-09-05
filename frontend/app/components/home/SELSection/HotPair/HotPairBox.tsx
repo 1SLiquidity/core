@@ -104,7 +104,7 @@ export default function HotPairBox() {
     enabled: true,
   })
 
-  console.log('topTokensData ==>', topTokensData)
+  // console.log('topTokensData ==>', topTokensData)
 
   const sortedPairs = topTokensData?.data.sort((a: any, b: any) => {
     const valueA = a.slippageSavings * (a.tokenBUsdPrice || 1)

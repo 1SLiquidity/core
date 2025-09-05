@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react'
-import { formatTokensData, getWalletTokens, TokenData } from '../moralis'
+import {
+  formatTokensData,
+  getWalletTokens,
+  TokenData,
+} from '../wallet-details/moralis'
+// import {
+//   formatTokensData,
+//   getWalletTokens,
+//   TokenData,
+// } from '../wallet-details/infura'
 import { useQuery } from '@tanstack/react-query'
 
 // Define the TOKENS_TYPE interface here since we can't import it from constant-types.tsx

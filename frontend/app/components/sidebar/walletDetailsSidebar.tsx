@@ -1,6 +1,5 @@
 import { TOKENS, WALLET_TABS } from '@/app/lib/constants'
 import { formatWalletAddress } from '@/app/lib/helper'
-import { CHAIN_MAPPING } from '@/app/lib/moralis'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import Sidebar from '.'
@@ -9,10 +8,9 @@ import SwapStream from '../swapStream'
 import Tabs from '../tabs'
 import { useAppKitAccount, useAppKitState } from '@reown/appkit/react'
 import { useWalletTokens, TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
-import { calculateWalletBalance } from '@/app/lib/moralis'
-import { Stream } from '../../lib/types/stream'
+import { calculateWalletBalance } from '@/app/lib/wallet-details/moralis'
+// import { calculateWalletBalance } from '@/app/lib/wallet-details/infura'
 import {
-  MOCK_STREAMS,
   getOngoingStreams,
   getCompletedStreams,
 } from '../../lib/constants/streams'
@@ -20,15 +18,9 @@ import { useTrades } from '@/app/lib/hooks/useTrades'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { formatUnits } from 'viem'
 import { SwitchOffIcon } from '@/app/lib/icons'
-import {
-  CheckIcon,
-  CircleCheckBigIcon,
-  CircleCheckIcon,
-  CopyIcon,
-} from 'lucide-react'
+import { CircleCheckBigIcon, CopyIcon } from 'lucide-react'
 import { useDisconnect } from '@reown/appkit/react'
 import JazzAvatar from '../shared/JazzAvatar'
-import { Skeleton } from '@/components/ui/skeleton'
 
 // Token Skeleton component for loading state
 const TokenSkeleton = () => {

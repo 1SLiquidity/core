@@ -98,14 +98,14 @@ export const useDynamicReserveCache = ({
         chainId
       )
 
-      console.log('Dynamic - Successfully fetched reserves:', {
-        fromSymbol: tokenA.symbol,
-        toSymbol: tokenB.symbol,
-        token0Address: tokenA.token_address,
-        token1Address: tokenB.token_address,
-        reserves: data.reserves,
-        decimals: data.decimals,
-      })
+      // console.log('Dynamic - Successfully fetched reserves:', {
+      //   fromSymbol: tokenA.symbol,
+      //   toSymbol: tokenB.symbol,
+      //   token0Address: tokenA.token_address,
+      //   token1Address: tokenB.token_address,
+      //   reserves: data.reserves,
+      //   decimals: data.decimals,
+      // })
 
       return {
         reserveData: reserveDataWithDecimals,
