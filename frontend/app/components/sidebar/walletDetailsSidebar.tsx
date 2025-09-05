@@ -18,7 +18,7 @@ import { useTrades } from '@/app/lib/hooks/useTrades'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
 import { formatUnits } from 'viem'
 import { SwitchOffIcon } from '@/app/lib/icons'
-import { CircleCheckBigIcon, CopyIcon } from 'lucide-react'
+import { CircleCheckBigIcon, CopyIcon, X } from 'lucide-react'
 import { useDisconnect } from '@reown/appkit/react'
 import JazzAvatar from '../shared/JazzAvatar'
 import ImageFallback from '@/app/shared/ImageFallback'
@@ -216,16 +216,17 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
       {!isStreamDetailsOpen && (
         <div
           onClick={onClose}
-          className="bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[1.9rem] -left-[0.7rem] z-50"
+          className="bg-[#232624] cursor-pointer rounded-full p-1.5 absolute top-[1.9rem] -left-[0.7rem] z-50 group hover:bg-[#373D3F] transition-all duration-300"
         >
-          <Image
+          {/* <Image
             src={'/icons/close.svg'}
             alt="close"
             className="w-2"
             width={1000}
             height={1000}
             onClick={onClose}
-          />
+          /> */}
+          <X className="w-3 h-3 text-[#666666] group-hover:text-white transition-all duration-300" />
         </div>
       )}
 

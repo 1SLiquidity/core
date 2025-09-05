@@ -14,6 +14,7 @@ import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { RefreshIcon, TypewriterIcon } from '@/app/lib/icons'
 import { Button } from '@/components/ui/button'
 import { useAppKitAccount } from '@reown/appkit/react'
+import { X } from 'lucide-react'
 
 type GlobalStreamSidebarProps = {
   isOpen: boolean
@@ -106,18 +107,19 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
         <div
           onClick={onClose}
           className={cn(
-            'bg-[#232624] cursor-pointer rounded-full p-2 absolute top-[2.3rem] -left-[0.7rem] z-50',
+            'bg-[#232624] cursor-pointer rounded-full p-1.5 absolute top-[2.3rem] -left-[0.7rem] z-50 group hover:bg-[#373D3F] transition-all duration-300',
             className
           )}
         >
-          <Image
-            src={'/icons/close.svg'}
-            alt="close"
-            className="w-2"
-            width={1000}
-            height={1000}
-            onClick={onClose}
-          />
+          {/* <Image
+              src={'/icons/close.svg'}
+              alt="close"
+              className="w-2"
+              width={1000}
+              height={1000}
+              onClick={onClose}
+            /> */}
+          <X className="w-3 h-3 text-[#666666] group-hover:text-white transition-all duration-300" />
         </div>
       )}
 
