@@ -201,7 +201,7 @@ contract Instasettle is TradePlacement {
             amountIn,
             amountOutMin,
             isInstasettlable, // Use the parameter instead of hardcoding true
-            false  // usePriceBased - set to false for backward compatibility
+            false // usePriceBased - set to false for backward compatibility
         );
         core.placeTrade(tradeData);
 

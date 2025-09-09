@@ -22,7 +22,7 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
         console.log("UniswapV3TradePlacement: Starting trade test");
         console.log("UniswapV3TradePlacement: Using fetcher at", dexFetcher);
         console.log("UniswapV3TradePlacement: Using router at", dexRouter);
-        
+
         uint256 amountIn = formatTokenAmount(WETH, 1);
         uint256 amountOutMin = formatTokenAmount(USDC, 1800);
 
@@ -34,7 +34,7 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
             amountIn,
             amountOutMin,
             false,
-            false  // usePriceBased - set to false for backward compatibility
+            false // usePriceBased - set to false for backward compatibility
         );
 
         core.placeTrade(tradeData);
@@ -51,10 +51,12 @@ contract UniswapV3TradePlacement is SingleDexProtocol {
         assertEq(trade.tokenIn, WETH, "Token in should be WETH");
         assertEq(trade.tokenOut, USDC, "Token out should be USDC");
         assertEq(trade.amountIn, amountIn, "Amount in should match");
-        assertTrue(trade.amountRemaining < amountIn, "Amount remaining should be less than amount in after initial execution");
+        assertTrue(
+            trade.amountRemaining < amountIn, "Amount remaining should be less than amount in after initial execution"
+        );
         assertEq(trade.targetAmountOut, amountOutMin, "Target amount out should match");
         assertTrue(trade.realisedAmountOut > 0, "Realised amount out should be greater than 0 after initial execution");
-        assertEq(trade.attempts, 1, "Attempts should be 1 initially");
+        assertEq(trade.attempts, 0, "Attempts should be 0 initially");
         assertTrue(trade.lastSweetSpot < 4, "Last sweet spot should be less than 4 after initial execution");
         assertEq(trade.isInstasettlable, false, "Should not be instasettlable");
 

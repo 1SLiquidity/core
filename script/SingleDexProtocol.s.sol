@@ -97,9 +97,9 @@ contract SingleDexProtocol is Test {
         }
         console.log("SingleDexProtocol: Setting router in Registry for type", dexType);
         registry.setRouter(dexType, dexRouter);
-        
+
         // Also set up the router for the fetcher's DEX type if it's different
-        // This allows us to test PancakeSwap logic with UniswapV2 infrastructure
+        // This allows us to test DEX logic with compatible infrastructure
         IUniversalDexInterface fetcher = IUniversalDexInterface(dexFetcher);
         string memory fetcherDexType = fetcher.getDexType();
         if (keccak256(abi.encodePacked(dexType)) != keccak256(abi.encodePacked(fetcherDexType))) {

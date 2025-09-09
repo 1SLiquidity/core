@@ -1,26 +1,38 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import { Script, console } from "forge-std/Script.sol";
-import { StreamDaemon } from "../src/StreamDaemon.sol";
-import { Executor } from "../src/Executor.sol";
-import { IUniversalDexInterface } from "../src/interfaces/IUniversalDexInterface.sol";
-import { UniswapV2Fetcher } from "../src/adapters/UniswapV2Fetcher.sol";
-import { SushiswapFetcher } from "../src/adapters/SushiswapFetcher.sol";
-import { UniswapV3Fetcher } from "../src/adapters/UniswapV3Fetcher.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {StreamDaemon} from "../src/StreamDaemon.sol";
+import {Executor} from "../src/Executor.sol";
+import {IUniversalDexInterface} from "../src/interfaces/IUniversalDexInterface.sol";
+import {UniswapV2Fetcher} from "../src/adapters/UniswapV2Fetcher.sol";
+import {SushiswapFetcher} from "../src/adapters/SushiswapFetcher.sol";
+import {UniswapV3Fetcher} from "../src/adapters/UniswapV3Fetcher.sol";
+import {BalancerFetcher} from "../src/adapters/BalancerFetcher.sol";
+import {CurveFetcher} from "../src/adapters/CurveFetcher.sol";
+import {OneInchFetcher} from "../src/adapters/OneInchFetcher.sol";
 
 // we are going to rewrite the full suite with a singular call to identify the area where
 
 contract TestReservesScript is Script {
     address constant UNISWAP_V2_FACTORY = 0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f;
     address constant UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
+    address constant SUSHISWAP_FACTORY = 0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac;
+    address constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
+    // Using the BAL/WETH pool from your codebase as a reference - this is a real Balancer pool
+    address constant BALANCER_POOL = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56; // BAL/WETH pool (real address)
+    // Using Curve 3Pool (DAI/USDC/USDT) - this is a real Curve pool
+    address constant CURVE_POOL = 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7; // Curve 3Pool (real address)
+    address constant ONEINCH_AGGREGATOR = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D; // UniswapV2 router for testing
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
 
     function run() external {
         vm.startBroadcast();
 
+        // Create all DEX fetchers
         UniswapV2Fetcher uniswapV2Fetcher = new UniswapV2Fetcher(UNISWAP_V2_FACTORY);
+        SushiswapFetcher sushiswapFetcher = new SushiswapFetcher(SUSHISWAP_FACTORY);
 
         uint24[] memory feeTiers = new uint24[](3);
         feeTiers[0] = 500; // 0.05%
@@ -28,22 +40,68 @@ contract TestReservesScript is Script {
         feeTiers[2] = 10_000; // 1%
         UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, feeTiers[1]);
 
+        // Create other DEX fetchers with real addresses
+        BalancerFetcher balancerFetcher;
+        CurveFetcher curveFetcher;
+        OneInchFetcher oneInchFetcher;
+
+        // Using real Balancer pool address (BAL/WETH pool)
+        try new BalancerFetcher(BALANCER_POOL, BALANCER_VAULT) returns (BalancerFetcher balancer) {
+            balancerFetcher = balancer;
+        } catch {
+            console.log("BalancerFetcher creation failed");
+        }
+
+        try new CurveFetcher(CURVE_POOL) returns (CurveFetcher curve) {
+            curveFetcher = curve;
+        } catch {
+            console.log("CurveFetcher creation failed");
+        }
+
+        try new OneInchFetcher(ONEINCH_AGGREGATOR) returns (OneInchFetcher oneInch) {
+            oneInchFetcher = oneInch;
+        } catch {
+            console.log("OneInchFetcher creation failed");
+        }
+
         address[][] memory tokenPairs = new address[][](1);
         tokenPairs[0] = new address[](2);
         tokenPairs[0][0] = WETH;
         tokenPairs[0][1] = USDC;
 
+        // Test reserves for each DEX
         console.log("\n=== Testing Uniswap V2 Reserves ===");
         testReservesForAllPairs(uniswapV2Fetcher, tokenPairs);
+
+        console.log("\n=== Testing Sushiswap Reserves ===");
+        testReservesForAllPairs(sushiswapFetcher, tokenPairs);
 
         console.log("\n=== Testing Uniswap V3 Reserves ===");
         testReservesForAllPairs(uniswapV3Fetcher, tokenPairs);
 
-        address[] memory dexAddresses = new address[](2);
-        dexAddresses[0] = address(uniswapV2Fetcher);
-        dexAddresses[1] = address(uniswapV3Fetcher);
+        // Test other DEXs if they were created successfully
+        if (address(balancerFetcher) != address(0)) {
+            console.log("\n=== Testing Balancer Reserves ===");
+            testReservesForAllPairs(balancerFetcher, tokenPairs);
+        }
 
-        address[] memory routers = new address[](2);
+        if (address(curveFetcher) != address(0)) {
+            console.log("\n=== Testing Curve Reserves ===");
+            testReservesForAllPairs(curveFetcher, tokenPairs);
+        }
+
+        if (address(oneInchFetcher) != address(0)) {
+            console.log("\n=== Testing OneInch Reserves ===");
+            testReservesForAllPairs(oneInchFetcher, tokenPairs);
+        }
+
+        // Create array of all working DEX addresses
+        address[] memory dexAddresses = new address[](3);
+        dexAddresses[0] = address(uniswapV2Fetcher);
+        dexAddresses[1] = address(sushiswapFetcher);
+        dexAddresses[2] = address(uniswapV3Fetcher);
+
+        address[] memory routers = new address[](3);
 
         StreamDaemon streamDaemon = new StreamDaemon(dexAddresses, routers);
         console.log("\n=== Testing StreamDaemon's findHighestReservesForTokenPair ===");

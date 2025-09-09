@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.30;
 
-import { Script, console } from "forge-std/Script.sol";
-import { Registry } from "src/Registry.sol";
-import { HelperConfig } from "./HelperConfig.s.sol";
-import { DeployStreamDaemon } from "./DeployStreamDaemon.s.sol";
-import { DeployExecutor } from "./DeployExecutor.s.sol";
-import { DeployRegistry } from "./DeployRegistry.s.sol";
-import { Core } from "src/Core.sol";
-import { StreamDaemon } from "src/StreamDaemon.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {Registry} from "src/Registry.sol";
+import {HelperConfig} from "./HelperConfig.s.sol";
+import {DeployStreamDaemon} from "./DeployStreamDaemon.s.sol";
+import {DeployExecutor} from "./DeployExecutor.s.sol";
+import {DeployRegistry} from "./DeployRegistry.s.sol";
+import {Core} from "src/Core.sol";
+import {StreamDaemon} from "src/StreamDaemon.sol";
 
 contract DeployCore is Script {
     function run() external returns (Core) {
@@ -33,14 +33,7 @@ contract DeployCore is Script {
         return core;
     }
 
-    function createNewCore(
-        address streamDaemon,
-        address executor,
-        address registry
-    )
-        public
-        returns (Core)
-    {
+    function createNewCore(address streamDaemon, address executor, address registry) public returns (Core) {
         return new Core(streamDaemon, executor, registry);
     }
 }

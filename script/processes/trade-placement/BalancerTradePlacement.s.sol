@@ -9,17 +9,17 @@ import "../../../src/interfaces/dex/IBalancerVault.sol";
 contract BalancerTradePlacement is SingleDexProtocol {
     // Balancer pool address for BAL/WETH
     address constant BAL_WETH_POOL = 0x5c6Ee304399DBdB9C8Ef030aB642B10820DB8F56;
-    
+
     // Token addresses
     address constant BAL = 0xba100000625a3754423978a60c9317c58a424e3D;
-    
+
     // Real whale addresses that actually have tokens
     address constant BAL_WHALE = 0xBA12222222228d8Ba445958a75a0704d566BF2C8; // Balancer Vault
-    
+
     function setUp() public {
         // Deploy BalancerFetcher with BAL/WETH pool
         BalancerFetcher balancerFetcher = new BalancerFetcher(BAL_WETH_POOL, BALANCER_VAULT);
-        
+
         // Set up protocol with only Balancer
         setUpSingleDex(address(balancerFetcher), BALANCER_VAULT);
 
@@ -27,7 +27,7 @@ contract BalancerTradePlacement is SingleDexProtocol {
         uint256 wethWhaleBalance = IERC20(WETH).balanceOf(WETH_WHALE);
         console.log("WETH whale balance:", wethWhaleBalance);
         assertTrue(wethWhaleBalance >= 100 * 1e18, "WETH whale doesn't have enough tokens");
-        
+
         vm.startPrank(WETH_WHALE);
         IERC20(WETH).transfer(address(this), 100 * 1e18); // 100 WETH to test contract
         vm.stopPrank();
@@ -36,7 +36,7 @@ contract BalancerTradePlacement is SingleDexProtocol {
         uint256 balWhaleBalance = IERC20(BAL).balanceOf(BAL_WHALE);
         console.log("BAL whale balance:", balWhaleBalance);
         assertTrue(balWhaleBalance >= 1000 * 1e18, "BAL whale doesn't have enough tokens");
-        
+
         vm.startPrank(BAL_WHALE);
         IERC20(BAL).transfer(address(this), 1000 * 1e18); // 1000 BAL to test contract
         vm.stopPrank();
@@ -46,7 +46,7 @@ contract BalancerTradePlacement is SingleDexProtocol {
         uint256 ourBalBalance = IERC20(BAL).balanceOf(address(this));
         console.log("Our WETH balance:", ourWethBalance);
         console.log("Our BAL balance:", ourBalBalance);
-        
+
         assertTrue(ourWethBalance >= 100 * 1e18, "Should have received WETH");
         assertTrue(ourBalBalance >= 1000 * 1e18, "Should have received BAL");
 
@@ -61,7 +61,7 @@ contract BalancerTradePlacement is SingleDexProtocol {
 
     function testPlaceTradeWETHBAL() public {
         console.log("Starting Balancer WETH to BAL trade test");
-        
+
         // Use very small amounts to avoid complex calculations
         uint256 amountIn = formatTokenAmount(WETH, 1) / 100; // 0.01 WETH
         uint256 amountOutMin = formatTokenAmount(BAL, 1); // 1 BAL (very conservative)
@@ -78,7 +78,7 @@ contract BalancerTradePlacement is SingleDexProtocol {
             amountIn,
             amountOutMin,
             false,
-            false  // usePriceBased - set to false for backward compatibility
+            false // usePriceBased - set to false for backward compatibility
         );
 
         core.placeTrade(tradeData);
@@ -102,13 +102,13 @@ contract BalancerTradePlacement is SingleDexProtocol {
         assertEq(trade.tokenIn, WETH, "Token in should be WETH");
         assertEq(trade.tokenOut, BAL, "Token out should be BAL");
         assertEq(trade.amountIn, amountIn, "Amount in should match");
-        
+
         console.log("WETH to BAL trade test passed");
     }
 
     function testPlaceTradeBALWETH() public {
         console.log("Starting Balancer BAL to WETH trade test");
-        
+
         // Use reasonable amounts based on the working WETH→BAL rate
         // From working test: 0.0025 WETH → 8.02 BAL = ~3200 BAL per WETH
         // So 10 BAL should get ~0.003 WETH
@@ -128,7 +128,7 @@ contract BalancerTradePlacement is SingleDexProtocol {
             amountIn,
             amountOutMin,
             false,
-            false  // usePriceBased - set to false for backward compatibility
+            false // usePriceBased - set to false for backward compatibility
         );
 
         try core.placeTrade(tradeData) {
@@ -148,59 +148,57 @@ contract BalancerTradePlacement is SingleDexProtocol {
 
     function testBalancerSpecificFeatures() public {
         console.log("Testing Balancer-specific features");
-        
+
         // Test that BalancerFetcher can get reserves
         BalancerFetcher balancerFetcher = BalancerFetcher(dexFetcher);
-        
+
         (uint256 reserveBAL, uint256 reserveWETH) = balancerFetcher.getReserves(BAL, WETH);
-        
+
         console.log("Balancer BAL reserves:", reserveBAL);
         console.log("Balancer WETH reserves:", reserveWETH);
-        
+
         assertTrue(reserveBAL > 0, "BAL reserves should be greater than 0");
         assertTrue(reserveWETH > 0, "WETH reserves should be greater than 0");
-        
+
         // Test DEX type identification
         string memory dexType = balancerFetcher.getDexType();
         assertEq(dexType, "Balancer", "DEX type should be Balancer");
-        
+
         console.log("Balancer-specific features test passed");
     }
 
     function testBalancerPoolState() public {
         console.log("Testing Balancer pool state directly");
-        
+
         // Test the pool directly to see if it's accessible
         address poolAddress = BAL_WETH_POOL;
         address vaultAddress = BALANCER_VAULT;
-        
+
         console.log("Pool address:", poolAddress);
         console.log("Vault address:", vaultAddress);
-        
+
         // Try to get pool ID
         try IBalancerPool(poolAddress).getPoolId() returns (bytes32 poolId) {
             console.log("Pool ID retrieved successfully:", uint256(poolId));
-            
+
             // Try to get pool tokens
             try IBalancerVault(vaultAddress).getPoolTokens(poolId) returns (
-                address[] memory tokens,
-                uint256[] memory balances,
-                uint256 lastChangeBlock
+                address[] memory tokens, uint256[] memory balances, uint256 lastChangeBlock
             ) {
                 console.log("Pool tokens retrieved successfully");
                 console.log("Number of tokens:", tokens.length);
                 console.log("Last change block:", lastChangeBlock);
-                
-                for (uint i = 0; i < tokens.length; i++) {
+
+                for (uint256 i = 0; i < tokens.length; i++) {
                     console.log("Token", i, ":", tokens[i]);
                     console.log("Balance", i, ":", balances[i]);
                 }
-                
+
                 // Check if our tokens are in the pool
                 bool wethFound = false;
                 bool balFound = false;
-                
-                for (uint i = 0; i < tokens.length; i++) {
+
+                for (uint256 i = 0; i < tokens.length; i++) {
                     if (tokens[i] == WETH) {
                         wethFound = true;
                         console.log("WETH found at index:", i);
@@ -210,16 +208,14 @@ contract BalancerTradePlacement is SingleDexProtocol {
                         console.log("BAL found at index:", i);
                     }
                 }
-                
+
                 assertTrue(wethFound && balFound, "Both WETH and BAL should be found in pool");
                 console.log("Pool contains both WETH and BAL tokens");
-                
             } catch Error(string memory reason) {
                 console.log("Failed to get pool tokens:", reason);
             } catch (bytes memory lowLevelData) {
                 console.log("Failed to get pool tokens with low level data");
             }
-            
         } catch Error(string memory reason) {
             console.log("Failed to get pool ID:", reason);
         } catch (bytes memory lowLevelData) {
@@ -229,34 +225,34 @@ contract BalancerTradePlacement is SingleDexProtocol {
 
     function testBalancerIntegrationSetup() public {
         console.log("Testing Balancer integration setup");
-        
+
         // Verify that the BalancerFetcher is properly configured
         BalancerFetcher balancerFetcher = BalancerFetcher(dexFetcher);
-        
+
         // Check that the fetcher has the correct pool and vault addresses
         assertEq(balancerFetcher.pool(), BAL_WETH_POOL, "Pool address should match");
         assertEq(balancerFetcher.vault(), BALANCER_VAULT, "Vault address should match");
-        
+
         // Verify that the Registry is configured for Balancer
         string memory dexType = "Balancer";
         address router = registry.getRouter(dexType);
         assertEq(router, BALANCER_VAULT, "Registry should have Balancer router configured");
-        
+
         // Verify that the Core contract can identify Balancer as a DEX
         address firstDex = streamDaemon.dexs(0); // Get the first DEX address
         bool balancerFound = false;
-        
+
         // Check if the first DEX is our BalancerFetcher
         if (firstDex == address(balancerFetcher)) {
             balancerFound = true;
         }
-        
+
         assertTrue(balancerFound, "BalancerFetcher should be registered in StreamDaemon");
-        
+
         console.log("Balancer integration setup test passed");
         console.log("Pool address:", balancerFetcher.pool());
         console.log("Vault address:", balancerFetcher.vault());
         console.log("Router from registry:", router);
         console.log("First DEX address:", firstDex);
     }
-} 
+}

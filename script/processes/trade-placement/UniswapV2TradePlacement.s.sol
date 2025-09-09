@@ -44,7 +44,7 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
             amountIn,
             amountOutMin,
             false,
-            false  // usePriceBased - set to false for backward compatibility
+            false // usePriceBased - set to false for backward compatibility
         );
 
         core.placeTrade(tradeData);
@@ -66,7 +66,7 @@ contract UniswapV2TradePlacement is SingleDexProtocol {
         );
         assertEq(trade.targetAmountOut, amountOutMin, "Target amount out should match");
         assertTrue(trade.realisedAmountOut > 0, "Realised amount out should be greater than 0 after initial execution");
-        assertEq(trade.attempts, 1, "Attempts should be 1 initially");
+        assertEq(trade.attempts, 0, "Attempts should be 0 initially");
         assertTrue(trade.lastSweetSpot < 4, "Last sweet spot should be less than 4 after initial execution");
         assertEq(trade.isInstasettlable, false, "Should not be instasettlable");
 

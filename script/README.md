@@ -13,7 +13,6 @@ script/
 │   │   ├── SushiswapTradePlacement.s.sol
 │   │   ├── BalancerTradePlacement.s.sol
 │   │   ├── CurveTradePlacement.s.sol
-│   │   ├── PancakeSwapTradePlacement.s.sol
 │   │   ├── OneInchTradePlacement.s.sol
 │   │   └── TradePlacement.s.sol
 │   ├── deployment/              # Deployment and verification scripts
@@ -44,7 +43,6 @@ npm run test:uniswap-v2
 npm run test:sushiswap
 npm run test:balancer
 npm run test:curve
-npm run test:pancakeswap
 npm run test:oneinch
 
 # Test with Anvil fork

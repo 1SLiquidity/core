@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.30;
 
-import { Script, console } from "forge-std/Script.sol";
-import { Registry } from "src/Registry.sol";
-import { HelperConfig } from "./HelperConfig.s.sol";
+import {Script, console} from "forge-std/Script.sol";
+import {Registry} from "src/Registry.sol";
+import {HelperConfig} from "./HelperConfig.s.sol";
 
 contract DeployRegistry is Script {
     function run() external returns (Registry) {

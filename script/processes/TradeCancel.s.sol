@@ -33,7 +33,7 @@ contract TradeCancel is TradePlacement {
             amountIn,
             amountOutMin,
             false, // isInstasettlable
-            false  // usePriceBased - set to false for backward compatibility
+            false // usePriceBased - set to false for backward compatibility
         );
         core.placeTrade(tradeData);
 
@@ -56,7 +56,7 @@ contract TradeCancel is TradePlacement {
         uint256 realisedAmountOut = trade.realisedAmountOut;
 
         // Cancel trade
-        bool success = core._cancelTrade(tradeId);
+        bool success = core.cancelTrade(tradeId);
         assertTrue(success, "Trade cancellation failed");
 
         // Verify balances after cancellation
@@ -78,7 +78,7 @@ contract TradeCancel is TradePlacement {
 
     function test_RevertWhen_CancellingNonExistentTrade() public {
         vm.expectRevert("Trade does not exist");
-        core._cancelTrade(999_999);
+        core.cancelTrade(999_999);
     }
 
     function test_RevertWhen_CancellingOthersTrade() public {
@@ -95,7 +95,7 @@ contract TradeCancel is TradePlacement {
             amountIn,
             amountOutMin,
             false, // isInstasettlable
-            false  // usePriceBased - set to false for backward compatibility
+            false // usePriceBased - set to false for backward compatibility
         );
 
         // Place trade
@@ -109,6 +109,6 @@ contract TradeCancel is TradePlacement {
         // Try to cancel as a different address
         vm.prank(address(0x123));
         vm.expectRevert("Only trade owner can cancel");
-        core._cancelTrade(tradeId);
+        core.cancelTrade(tradeId);
     }
 }
