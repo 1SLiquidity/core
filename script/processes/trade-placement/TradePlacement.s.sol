@@ -12,6 +12,20 @@ contract TradePlacement is Protocol {
     function setUp() public virtual override {
         console.log("TradePlacement: setUp() start");
         super.setUp();
+        
+        // Fund the test contract with tokens from whales
+        vm.startPrank(WETH_WHALE);
+        IERC20(WETH).transfer(address(this), 100 * 1e18); // 100 WETH
+        vm.stopPrank();
+
+        vm.startPrank(USDC_WHALE);
+        IERC20(USDC).transfer(address(this), 200_000 * 1e6); // 200,000 USDC
+        vm.stopPrank();
+
+        // Approve Core to spend tokens
+        IERC20(WETH).forceApprove(address(core), type(uint256).max);
+        IERC20(USDC).forceApprove(address(core), type(uint256).max);
+        
         console.log("TradePlacement: setUp() end");
     }
 
@@ -200,7 +214,8 @@ contract TradePlacement is Protocol {
         uint256 amountIn = formatTokenAmount(WETH, 1);
         uint256 amountOutMin = formatTokenAmount(USDC, 1800);
 
-        // Don't approve tokens
+        // Reset allowance to 0 to test insufficient allowance
+        IERC20(WETH).approve(address(core), 0);
 
         vm.expectRevert();
         core.placeTrade(abi.encode(WETH, USDC, amountIn, amountOutMin, false, false));
