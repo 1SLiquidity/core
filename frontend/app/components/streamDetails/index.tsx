@@ -1,3 +1,5 @@
+'use client'
+
 import Image from 'next/image'
 import { formatWalletAddress } from '@/app/lib/helper'
 import AmountTag from '../amountTag'
@@ -14,6 +16,8 @@ import { useStreamTime } from '@/app/lib/hooks/useStreamTime'
 import { formatRelativeTime } from '@/app/lib/utils/time'
 import { cn } from '@/lib/utils'
 import { ArrowLeft } from 'lucide-react'
+import { useWallet } from '@/app/lib/hooks/useWallet'
+import { useCoreTrading } from '@/app/lib/hooks/useCoreTrading'
 
 type StreamDetailsProps = {
   onBack: () => void
@@ -34,6 +38,8 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
   onClose,
 }) => {
   const { tokens, isLoading: isLoadingTokens } = useTokenList()
+  const { placeTrade, loading, instasettle, cancelTrade } = useCoreTrading()
+  const { getSigner, isConnected: isConnectedWallet } = useWallet()
 
   if (!selectedStream) {
     return null
@@ -131,6 +137,42 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     : 0
 
   console.log('selectedStream ===>', selectedStream)
+  console.log('tokenIn ===>', tokenIn)
+  console.log('tokenOut ===>', tokenOut)
+
+  const handleInstasettleClick = async (item: any) => {
+    if (isConnectedWallet) {
+      const signer = getSigner()
+
+      if (signer) {
+        const res = await instasettle(
+          {
+            tradeId: Number(selectedStream.tradeId),
+            tokenInObj: tokenIn,
+            tokenOutObj: tokenOut,
+            tokenIn: selectedStream.tokenIn || '',
+            tokenOut: selectedStream.tokenOut || '',
+            amountIn: selectedStream.amountIn.toString(),
+            minAmountOut: selectedStream.minAmountOut.toString(),
+            isInstasettlable: true,
+            usePriceBased: false,
+            signer: signer,
+          },
+          signer
+        )
+      }
+    }
+  }
+
+  const handleCancelClick = async (item: any) => {
+    if (isConnectedWallet) {
+      const signer = getSigner()
+
+      if (signer) {
+        const res = await cancelTrade(Number(selectedStream.tradeId), signer)
+      }
+    }
+  }
 
   return (
     <>
@@ -437,7 +479,10 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             fee="$190.54"
             isEnabled={selectedStream.isInstasettlable}
             isUser={isUser}
-            isLoading={isLoading}
+            isLoading={isLoading || loading}
+            selectedStream={selectedStream}
+            handleInstasettleClick={handleInstasettleClick}
+            handleCancelClick={handleCancelClick}
           />
         </div>
 

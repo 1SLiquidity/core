@@ -1,6 +1,7 @@
 'use client'
 
 import { ethers } from 'ethers'
+import tokensListData from '@/app/lib/utils/tokens-list-04-09-2025.json'
 
 // Types for the JSON structure (unchanged)
 interface TokenResult {
@@ -49,22 +50,15 @@ export const initInfura = (): ethers.providers.JsonRpcProvider => {
 
 /**
  * Load whitelisted token addresses from the JSON file (unchanged)
- * @returns Array of lowercase token addresses that have success: true
  */
 const getWhitelistedTokens = (): string[] => {
   try {
-    // Dynamically require the JSON file
-    const tokensListData: TokensListData = require('./utils/tokens-list-04-09-2025.json')
     const whitelistedTokens: string[] = []
 
-    // Iterate through all test results
     tokensListData.testResults.forEach((testResult: TestResult) => {
       testResult.results.forEach((token: TokenResult) => {
-        // Only include tokens that have success: true
         if (token.success === true && token.tokenAddress) {
-          // Convert to lowercase for consistent comparison
           const address = token.tokenAddress.toLowerCase()
-          // Avoid duplicates
           if (!whitelistedTokens.includes(address)) {
             whitelistedTokens.push(address)
           }
@@ -78,33 +72,13 @@ const getWhitelistedTokens = (): string[] => {
     return whitelistedTokens
   } catch (error) {
     console.error('💥 Error loading whitelisted tokens from JSON:', error)
-    // Fallback to basic tokens if JSON loading fails
     return [
-      '0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT on Ethereum mainnet
-      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC on Ethereum mainnet
+      '0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT
+      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
       '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
     ]
   }
 }
-
-// Popular Ethereum tokens to check for balances
-const POPULAR_ETH_TOKENS = [
-  '0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT
-  '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
-  '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
-  '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', // WBTC
-  '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984', // UNI
-  '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0', // MATIC
-  '0x6b175474e89094c44da98b954eedeac495271d0f', // DAI
-  '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce', // SHIB
-  '0x514910771af9ca656af840dff83e8264ecf986ca', // LINK
-  '0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b', // CRO
-  '0x4fabb145d64652a948d72533023f6e7a623c7c53', // BUSD
-  '0xae7ab96520de3a18e5e111b5eaab095312d7fe84', // stETH
-  '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9', // AAVE
-  '0xc18360217d8f7ab5e7c516566761ea12ce7f9d72', // ENS
-  '0x6982508145454ce325ddbe47a25d4ec3d2311933', // PEPE
-]
 
 export interface TokenData {
   token_address: string
@@ -123,37 +97,25 @@ export interface TokenData {
   usdPrice24hrPercentChange?: number
 }
 
-interface CoinGeckoPriceResponse {
-  [address: string]: {
-    usd: number
-    usd_24h_change: number
-  }
-}
-
-interface CoinGeckoSimplePriceResponse {
-  [coinId: string]: {
-    usd: number
-    usd_24h_change: number
-  }
-}
-
 /**
- * Cache configuration (unchanged)
+ * Cache configuration - Shorter cache for balances, longer for price data
  */
 const CACHE_CONFIG = {
-  CACHE_DURATION: 24 * 60 * 60 * 1000, // 24 hours in milliseconds
+  BALANCE_CACHE_DURATION: 5 * 60 * 1000, // 5 minutes for balance data
+  PRICE_CACHE_DURATION: 2 * 60 * 60 * 1000, // 2 hours for price data
+  TOKEN_LIST_CACHE_DURATION: 5 * 60 * 60 * 1000, // 5 hours for token list
 }
 
 /**
  * Get cached data with TTL check (unchanged)
  */
-const getCachedWalletData = (
+const getCachedData = (
   cacheKey: string,
   timestampKey: string,
   duration: number
 ) => {
   try {
-    if (typeof window === 'undefined') return null // SSR safety
+    if (typeof window === 'undefined') return null
 
     const cachedData = localStorage.getItem(cacheKey)
     const cachedTimestamp = localStorage.getItem(timestampKey)
@@ -166,7 +128,7 @@ const getCachedWalletData = (
     }
     return null
   } catch (error) {
-    console.error('Error reading cached wallet data:', error)
+    console.error('Error reading cached data:', error)
     return null
   }
 }
@@ -174,18 +136,14 @@ const getCachedWalletData = (
 /**
  * Set cached data with timestamp (unchanged)
  */
-const setCachedWalletData = (
-  cacheKey: string,
-  timestampKey: string,
-  data: any
-) => {
+const setCachedData = (cacheKey: string, timestampKey: string, data: any) => {
   try {
-    if (typeof window === 'undefined') return // SSR safety
+    if (typeof window === 'undefined') return
 
     localStorage.setItem(cacheKey, JSON.stringify(data))
     localStorage.setItem(timestampKey, Date.now().toString())
   } catch (error) {
-    console.error('Error setting cached wallet data:', error)
+    console.error('Error setting cached data:', error)
   }
 }
 
@@ -239,81 +197,169 @@ const getTokenBalance = async (
 }
 
 /**
- * Fetch token prices from CoinGecko using contract addresses
+ * Get token prices from cached useTokenList data or fetch from CoinGecko
  */
-const getTokenPricesFromCoinGecko = async (
+const getTokenPricesFromCache = async (
   tokenAddresses: string[]
 ): Promise<{
   [address: string]: { usd_price: number; percent_change_24h: number }
 }> => {
   try {
-    if (tokenAddresses.length === 0) return {}
+    // Try to get token prices from useTokenList cache first
+    const tokenListCache = getCachedData(
+      'tokenMarketData_1', // Ethereum chain ID
+      'tokenMarketDataTimestamp_1',
+      CACHE_CONFIG.TOKEN_LIST_CACHE_DURATION
+    )
 
-    // CoinGecko API endpoint for Ethereum token prices
-    const addressesParam = tokenAddresses.join(',')
-    const url = `https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=${addressesParam}&vs_currencies=usd&include_24hr_change=true`
-
-    const response = await fetch(url)
-
-    if (!response.ok) {
-      throw new Error(
-        `CoinGecko API error: ${response.status} ${response.statusText}`
-      )
-    }
-
-    const data: CoinGeckoPriceResponse = await response.json()
-
-    // Transform the response to match our expected format
     const result: {
       [address: string]: { usd_price: number; percent_change_24h: number }
     } = {}
 
-    Object.entries(data).forEach(([address, priceData]) => {
-      result[address.toLowerCase()] = {
-        usd_price: priceData.usd || 0,
-        percent_change_24h: priceData.usd_24h_change || 0,
+    if (tokenListCache && Array.isArray(tokenListCache)) {
+      // Map token addresses to prices from cached token list
+      tokenAddresses.forEach((address) => {
+        const cachedToken = tokenListCache.find(
+          (token: any) =>
+            token.platforms?.ethereum?.toLowerCase() === address.toLowerCase()
+        )
+
+        if (cachedToken) {
+          result[address.toLowerCase()] = {
+            usd_price: cachedToken.current_price || 0,
+            percent_change_24h: cachedToken.price_change_percentage_24h || 0,
+          }
+        }
+      })
+    }
+
+    // For tokens not found in cache, fetch from CoinGecko
+    const missingTokens = tokenAddresses.filter(
+      (address) => !result[address.toLowerCase()]
+    )
+
+    if (missingTokens.length > 0) {
+      console.log(
+        `Fetching prices for ${missingTokens.length} tokens not found in cache`
+      )
+
+      const addressesParam = missingTokens.join(',')
+      const url = `https://api.coingecko.com/api/v3/simple/token_price/ethereum?contract_addresses=${addressesParam}&vs_currencies=usd&include_24hr_change=true`
+
+      try {
+        const response = await fetch(url)
+        if (response.ok) {
+          const data = await response.json()
+          Object.entries(data).forEach(
+            ([address, priceData]: [string, any]) => {
+              result[address.toLowerCase()] = {
+                usd_price: priceData.usd || 0,
+                percent_change_24h: priceData.usd_24h_change || 0,
+              }
+            }
+          )
+        }
+      } catch (error) {
+        console.warn('Error fetching missing token prices:', error)
       }
-    })
+    }
 
     return result
   } catch (error) {
-    console.error('Error fetching token prices from CoinGecko:', error)
+    console.error('Error getting token prices from cache:', error)
     return {}
   }
 }
 
 /**
- * Fetch ETH price from CoinGecko
+ * Get ETH price from cached useTokenList data or fetch from CoinGecko
  */
-const getEthPriceFromCoinGecko = async (): Promise<{
+const getEthPriceFromCache = async (): Promise<{
   usd_price: number
   percent_change_24h: number
 }> => {
   try {
+    // Try to get ETH price from cache first
+    const ethPriceCache = getCachedData(
+      'eth_price_cache',
+      'eth_price_timestamp',
+      CACHE_CONFIG.PRICE_CACHE_DURATION
+    )
+
+    if (ethPriceCache) {
+      return ethPriceCache
+    }
+
+    // Fetch from CoinGecko if not cached
     const url =
       'https://api.coingecko.com/api/v3/simple/price?ids=ethereum&vs_currencies=usd&include_24hr_change=true'
-
     const response = await fetch(url)
 
     if (!response.ok) {
-      throw new Error(
-        `CoinGecko API error: ${response.status} ${response.statusText}`
-      )
+      throw new Error(`CoinGecko API error: ${response.status}`)
     }
 
-    const data: CoinGeckoSimplePriceResponse = await response.json()
-
-    if (data.ethereum) {
-      return {
-        usd_price: data.ethereum.usd || 0,
-        percent_change_24h: data.ethereum.usd_24h_change || 0,
-      }
+    const data = await response.json()
+    const ethPrice = {
+      usd_price: data.ethereum?.usd || 0,
+      percent_change_24h: data.ethereum?.usd_24h_change || 0,
     }
 
-    return { usd_price: 0, percent_change_24h: 0 }
+    // Cache the ETH price
+    setCachedData('eth_price_cache', 'eth_price_timestamp', ethPrice)
+
+    return ethPrice
   } catch (error) {
     console.error('Error fetching ETH price:', error)
     return { usd_price: 0, percent_change_24h: 0 }
+  }
+}
+
+/**
+ * Get comprehensive token list from useTokenList cache
+ */
+const getTokenListFromCache = (): string[] => {
+  try {
+    // Get token list from useTokenList cache
+    const tokenListCache = getCachedData(
+      'tokenMarketData_1',
+      'tokenMarketDataTimestamp_1',
+      CACHE_CONFIG.TOKEN_LIST_CACHE_DURATION
+    )
+
+    if (tokenListCache && Array.isArray(tokenListCache)) {
+      return tokenListCache
+        .filter((token: any) => token.platforms?.ethereum)
+        .map((token: any) => token.platforms.ethereum.toLowerCase())
+        .filter(
+          (address: string) =>
+            address &&
+            address.startsWith('0x') &&
+            address.length === 42 &&
+            address !== '0x0000000000000000000000000000000000000000'
+        )
+    }
+
+    // Fallback to popular tokens if cache is empty
+    return [
+      '0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT
+      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
+      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
+      '0x2260fac5e5542a773aa44fbcfedf7c193bc2c599', // WBTC
+      '0x1f9840a85d5af5bf1d1762f925bdaddc4201f984', // UNI
+      '0x7d1afa7b718fb893db30a3abc0cfc608aacfebb0', // MATIC
+      '0x6b175474e89094c44da98b954eedeac495271d0f', // DAI
+      '0x95ad61b0a150d79219dcf64e1e6cc01f0b64c4ce', // SHIB
+      '0x514910771af9ca656af840dff83e8264ecf986ca', // LINK
+      '0xa0b73e1ff0b80914ab6fe0444e65848c4c34450b', // CRO
+    ]
+  } catch (error) {
+    console.error('Error getting token list from cache:', error)
+    return [
+      '0xdac17f958d2ee523a2206206994597c13d831ec7', // USDT
+      '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', // USDC
+      '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2', // WETH
+    ]
   }
 }
 
@@ -328,59 +374,81 @@ export const getWalletTokens = async (
   chain: string = 'eth'
 ): Promise<TokenData[]> => {
   try {
-    // Create cache keys for this specific address
-    const cacheKey = `wallet_tokens_${address.toLowerCase()}_eth`
-    const timestampKey = `wallet_tokens_timestamp_${address.toLowerCase()}_eth`
+    // Create cache keys for this specific address (shorter cache for balances)
+    const balanceCacheKey = `wallet_balances_${address.toLowerCase()}_eth`
+    const balanceTimestampKey = `wallet_balances_timestamp_${address.toLowerCase()}_eth`
 
-    // Check for cached data first
-    const cachedTokens = getCachedWalletData(
-      cacheKey,
-      timestampKey,
-      CACHE_CONFIG.CACHE_DURATION
+    // Check for cached balance data (with shorter TTL)
+    const cachedBalances = getCachedData(
+      balanceCacheKey,
+      balanceTimestampKey,
+      CACHE_CONFIG.BALANCE_CACHE_DURATION
     )
 
-    if (cachedTokens) {
+    if (cachedBalances) {
       console.log(
-        `🔍 DEBUG: Using cached wallet tokens for ${address} on Ethereum`
+        `🔍 DEBUG: Using cached wallet balances for ${address} (cached ${Math.round(
+          (Date.now() -
+            parseInt(localStorage.getItem(balanceTimestampKey) || '0')) /
+            1000
+        )}s ago)`
       )
-      return cachedTokens
+      return cachedBalances
     }
 
-    console.log(
-      `🔍 DEBUG: Fetching fresh wallet tokens for ${address} on Ethereum`
-    )
+    // console.log(
+    //   `🔍 DEBUG: Fetching fresh wallet balances for ${address} on Ethereum`
+    // )
 
     const provider = initInfura()
 
     // Get ETH balance
     const ethBalance = await provider.getBalance(address)
 
-    // Get all tokens to check (popular tokens + whitelisted tokens)
+    // Get comprehensive token list from useTokenList cache + whitelisted tokens
+    const tokenListFromCache = getTokenListFromCache()
     const whitelistedTokens = getWhitelistedTokens()
+
+    // Combine and deduplicate token addresses
     const allTokensToCheck = [
-      ...new Set([...POPULAR_ETH_TOKENS, ...whitelistedTokens]),
+      ...new Set([...tokenListFromCache, ...whitelistedTokens]),
     ]
 
     console.log(
       `🔍 DEBUG: Checking ${allTokensToCheck.length} tokens for balances`
     )
 
-    // Check balances for all tokens in parallel
-    const tokenBalancePromises = allTokensToCheck.map(async (tokenAddress) => {
-      try {
-        const balance = await getTokenBalance(tokenAddress, address, provider)
-        return { tokenAddress, balance }
-      } catch (error) {
-        console.warn(`Error checking balance for ${tokenAddress}:`, error)
-        return { tokenAddress, balance: '0' }
-      }
-    })
+    // Check balances for all tokens in parallel (with reasonable batch size)
+    const batchSize = 50 // Process in smaller batches to avoid overwhelming the provider
+    const tokenBalanceResults: { tokenAddress: string; balance: string }[] = []
 
-    const tokenBalanceResults = await Promise.all(tokenBalancePromises)
+    for (let i = 0; i < allTokensToCheck.length; i += batchSize) {
+      const batch = allTokensToCheck.slice(i, i + batchSize)
+      const batchPromises = batch.map(async (tokenAddress) => {
+        try {
+          const balance = await getTokenBalance(tokenAddress, address, provider)
+          return { tokenAddress, balance }
+        } catch (error) {
+          console.warn(`Error checking balance for ${tokenAddress}:`, error)
+          return { tokenAddress, balance: '0' }
+        }
+      })
+
+      const batchResults = await Promise.all(batchPromises)
+      tokenBalanceResults.push(...batchResults)
+
+      // Small delay between batches to avoid rate limiting
+      if (i + batchSize < allTokensToCheck.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+    }
 
     // Filter out tokens with zero balances
     const tokensWithBalance = tokenBalanceResults.filter(
-      (result) => result.balance !== '0' && result.balance !== '0x0'
+      (result) =>
+        result.balance !== '0' &&
+        result.balance !== '0x0' &&
+        parseFloat(result.balance) > 0
     )
 
     console.log(
@@ -406,16 +474,16 @@ export const getWalletTokens = async (
       (token) => token.tokenAddress
     )
 
-    // Get token prices from CoinGecko
+    // Get token prices from cache or CoinGecko
     let tokenPrices: {
       [address: string]: { usd_price: number; percent_change_24h: number }
     } = {}
     if (tokenAddressesForPricing.length > 0) {
-      tokenPrices = await getTokenPricesFromCoinGecko(tokenAddressesForPricing)
+      tokenPrices = await getTokenPricesFromCache(tokenAddressesForPricing)
     }
 
-    // Get ETH price
-    const ethPrice = await getEthPriceFromCoinGecko()
+    // Get ETH price from cache or CoinGecko
+    const ethPrice = await getEthPriceFromCache()
 
     // Create ETH token data
     const ethTokenData: TokenData = {
@@ -443,7 +511,7 @@ export const getWalletTokens = async (
         symbol: token.symbol,
         decimals: token.decimals,
         balance: token.balance,
-        possible_spam: false, // We'll filter manually
+        possible_spam: false,
         usd_price: priceData.usd_price,
         status:
           priceData.percent_change_24h >= 0
@@ -456,31 +524,28 @@ export const getWalletTokens = async (
     // Add ETH to the beginning of the array
     tokensWithPrices = [ethTokenData, ...tokensWithPrices]
 
-    // Apply the same filtering logic as before
+    // Apply filtering logic
     const validTokens = tokensWithPrices.filter((token) => {
       // Blacklist - tokens to always exclude
       const blacklistedTokens = [
-        '0xfaf87e196a29969094be35dfb0ab9d0b8518db84', // ACHIVX
-        '0xca51cf6867c156347fcc63531fb18e808f427e12', // $3800
-        '0xbac4cb8e7dd60f868cbc14b21a6dc249177d8bbe', // pepe
-        '0x95e8799b6c3c7942e321ff95ee0a656fefe20bda', // UNI
-        '0x8328ac89bffb92c928f0d60aecc593b801ed4c0b', // ETH-Tokens.us
+        '0xfaf87e196a29969094be35dfb0ab9d0b8518db84',
+        '0xca51cf6867c156347fcc63531fb18e808f427e12',
+        '0xbac4cb8e7dd60f868cbc14b21a6dc249177d8bbe',
+        '0x95e8799b6c3c7942e321ff95ee0a656fefe20bda',
+        '0x8328ac89bffb92c928f0d60aecc593b801ed4c0b',
       ]
 
-      // Always exclude blacklisted tokens
       if (blacklistedTokens.includes(token.token_address.toLowerCase())) {
         return false
       }
 
-      // Whitelist - tokens to always include regardless of other filters
-      const whitelistedTokens = getWhitelistedTokens()
-
       // Always include whitelisted tokens
+      const whitelistedTokens = getWhitelistedTokens()
       if (whitelistedTokens.includes(token.token_address.toLowerCase())) {
         return true
       }
 
-      // Skip tokens with suspicious names or symbols that contain URLs or common spam patterns
+      // Skip tokens with suspicious patterns
       const suspiciousPatterns = [
         'visit',
         'swap',
@@ -513,63 +578,34 @@ export const getWalletTokens = async (
         console.log(
           '🚫 DEBUG: Token has spam pattern:',
           token.symbol,
-          token.name,
-          token.token_address
+          token.name
         )
         return false
       }
 
-      // Keep tokens with price data or ETH or tokens with actual balance that passed spam checks
+      // Keep tokens with price data or ETH or tokens with balance
       const hasPrice = token.usd_price > 0
       const isEth =
         token.token_address === '0x0000000000000000000000000000000000000000'
       const hasBalance = parseFloat(token.balance) > 0
 
-      const shouldInclude = hasPrice || isEth || hasBalance
-
-      console.log('🔍 DEBUG: Token filter result:', {
-        symbol: token.symbol,
-        address: token.token_address,
-        hasPrice,
-        isEth,
-        hasBalance,
-        shouldInclude,
-        usd_price: token.usd_price,
-        balance: token.balance,
-      })
-
-      return shouldInclude
+      return hasPrice || isEth || hasBalance
     })
 
     console.log('📈 DEBUG: Total tokens after filtering:', validTokens.length)
-    console.log(
-      '📈 DEBUG: Valid tokens:',
-      validTokens.map((t) => ({
-        symbol: t.symbol,
-        address: t.token_address,
-        price: t.usd_price,
-      }))
-    )
 
-    // Cache the result before returning
-    setCachedWalletData(cacheKey, timestampKey, validTokens)
+    // Cache the result with shorter TTL for balance data
+    setCachedData(balanceCacheKey, balanceTimestampKey, validTokens)
 
     return validTokens
   } catch (error: any) {
     console.error('💥 Error fetching wallet tokens:', error)
-    console.error('💥 Error details:', {
-      message: error?.message,
-      code: error?.code,
-      response: error?.response?.data,
-    })
     return []
   }
 }
 
 /**
  * Calculate the total wallet balance in USD (unchanged)
- * @param tokens Array of token data
- * @returns Total wallet balance in USD
  */
 export const calculateWalletBalance = (tokens: TokenData[]): number => {
   return tokens.reduce((total, token) => {
@@ -581,12 +617,9 @@ export const calculateWalletBalance = (tokens: TokenData[]): number => {
 
 /**
  * Format tokens data to match the app's token format (unchanged)
- * @param tokens Array of token data
- * @returns Formatted token data matching the app's TOKENS_TYPE structure
  */
 export const formatTokensData = (tokens: TokenData[]) => {
   return tokens.map((token) => {
-    // Calculate token value in native units
     const tokenValue = parseFloat(token.balance) / 10 ** token.decimals
 
     return {
@@ -596,10 +629,10 @@ export const formatTokensData = (tokens: TokenData[]) => {
         token.thumbnail ||
         token.logo ||
         `/tokens/${token.symbol?.toLowerCase()}.svg`,
-      popular: false, // Default value, you may want to customize this based on your app logic
-      value: tokenValue, // Value in native token units (e.g., ETH, not USD)
-      status: token.status || 'increase', // Use token status from price data or default
-      statusAmount: token.statusAmount || 0, // Use status amount from price data or default
+      popular: false,
+      value: tokenValue,
+      status: token.status || 'increase',
+      statusAmount: token.statusAmount || 0,
       token_address: token.token_address,
       decimals: token.decimals,
       balance: token.balance,

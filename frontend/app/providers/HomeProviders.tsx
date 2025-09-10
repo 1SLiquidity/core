@@ -6,11 +6,11 @@ import { ReservePrefetchProvider } from '@/app/providers'
 export const HomeProviders = ({ children }: { children: React.ReactNode }) => {
   return (
     <ModalProvider>
-      <SidebarProvider>
-        <ToastProvider>
+      <ToastProvider>
+        <SidebarProvider>
           <ReservePrefetchProvider>{children}</ReservePrefetchProvider>
-        </ToastProvider>
-      </SidebarProvider>
+        </SidebarProvider>
+      </ToastProvider>
     </ModalProvider>
   )
 }

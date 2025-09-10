@@ -44,7 +44,7 @@ const getDefaultTokenIcon = (symbol: string): string => {
 
 // Check if a token should be marked as popular
 const isPopularToken = (symbol: string): boolean => {
-  const popularTokens = ['WETH', 'WBTC', 'USDT', 'USDC']
+  const popularTokens = ['ETH', 'WETH', 'WBTC', 'USDT', 'USDC']
   return popularTokens.includes(symbol.toUpperCase())
 }
 

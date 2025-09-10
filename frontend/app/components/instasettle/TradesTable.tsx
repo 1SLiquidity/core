@@ -665,6 +665,7 @@ const TradesTable = ({
                     (item.tokenOutDetails.usd_price || 0)
                   : 0
 
+                console.log('item ===>', item)
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium text-center">
@@ -731,7 +732,8 @@ const TradesTable = ({
                         }
                         disabled={
                           !isConnectedWallet ||
-                          address?.toLowerCase() !== item.user.toLowerCase()
+                          address?.toLowerCase() !== item.user.toLowerCase() ||
+                          loading
                         }
                         className="h-[2.15rem] hover:bg-primaryGradient hover:text-black"
                         onClick={() => handleInstasettleClick(item)}
