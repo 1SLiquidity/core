@@ -2,10 +2,10 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
-import "./TradePlacement.s.sol";
+import "./trade-placement/TradePlacement.s.sol";
 
 contract TradeCancel is TradePlacement {
-    function run() override external {
+    function run() external override {
         testCancelTrade();
         test_RevertWhen_CancellingNonExistentTrade();
         test_RevertWhen_CancellingOthersTrade();
@@ -28,15 +28,13 @@ contract TradeCancel is TradePlacement {
 
         // Create the trade data
         bytes memory tradeData = abi.encode(
-            WETH, // tokenIn
-            USDC, // tokenOut
-            amountIn, // amountIn
-            amountOutMin, // amountOutMin
+            WETH,
+            USDC,
+            amountIn,
+            amountOutMin,
             false, // isInstasettlable
-            0.0005 ether // botGasAllowance
+            false // usePriceBased - set to false for backward compatibility
         );
-
-        // Place trade
         core.placeTrade(tradeData);
 
         // Get trade ID
@@ -53,25 +51,12 @@ contract TradeCancel is TradePlacement {
         console.log("USDC:", initialUsdcBalance);
 
         // Get trade details before cancellation
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            uint256 amountRemaining,
-            ,
-            uint256 realisedAmountOut,
-            ,
-            ,
-            ,
-            ,
-            
-        ) = core.trades(tradeId);
+        Utils.Trade memory trade = core.getTrade(tradeId);
+        uint256 amountRemaining = trade.amountRemaining;
+        uint256 realisedAmountOut = trade.realisedAmountOut;
 
         // Cancel trade
-        bool success = core._cancelTrade(tradeId);
+        bool success = core.cancelTrade(tradeId);
         assertTrue(success, "Trade cancellation failed");
 
         // Verify balances after cancellation
@@ -87,13 +72,13 @@ contract TradeCancel is TradePlacement {
         assertEq(finalUsdcBalance, initialUsdcBalance + realisedAmountOut, "USDC not returned correctly");
 
         // Verify trade is deleted
-        (address owner,,,,,,,,,,,,,) = core.trades(tradeId);
-        assertEq(owner, address(0), "Trade not deleted");
+        vm.expectRevert();
+        core.getTrade(tradeId);
     }
 
     function test_RevertWhen_CancellingNonExistentTrade() public {
         vm.expectRevert("Trade does not exist");
-        core._cancelTrade(999999);
+        core.cancelTrade(999_999);
     }
 
     function test_RevertWhen_CancellingOthersTrade() public {
@@ -105,12 +90,12 @@ contract TradeCancel is TradePlacement {
 
         // Create the trade data
         bytes memory tradeData = abi.encode(
-            WETH, // tokenIn
-            USDC, // tokenOut
-            amountIn, // amountIn
-            amountOutMin, // amountOutMin
+            WETH,
+            USDC,
+            amountIn,
+            amountOutMin,
             false, // isInstasettlable
-            0.0005 ether // botGasAllowance
+            false // usePriceBased - set to false for backward compatibility
         );
 
         // Place trade
@@ -124,6 +109,6 @@ contract TradeCancel is TradePlacement {
         // Try to cancel as a different address
         vm.prank(address(0x123));
         vm.expectRevert("Only trade owner can cancel");
-        core._cancelTrade(tradeId);
+        core.cancelTrade(tradeId);
     }
 }

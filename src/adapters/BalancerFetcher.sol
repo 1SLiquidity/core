@@ -2,10 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../interfaces/IUniversalDexInterface.sol";
-
-interface IBalancerVault {
-    function getPoolTokens(bytes32 poolId) external view returns (address[] memory, uint256[] memory, uint256);
-}
+import "../interfaces/dex/IBalancerVault.sol";
 
 interface IBalancerPool {
     function getPoolId() external view returns (bytes32);
@@ -56,7 +53,8 @@ contract BalancerFetcher is IUniversalDexInterface {
     //     revert("Not implemented");
     // }
 
-    // function getSwapData(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address recipient)
+    // function getSwapData(address tokenIn, address tokenOut, uint256 amountIn, uint256 amountOutMin, address
+    // recipient)
     //     external
     //     view
     //     override
@@ -71,5 +69,18 @@ contract BalancerFetcher is IUniversalDexInterface {
 
     function getDexVersion() external pure override returns (string memory) {
         return "V2";
+    }
+
+    function getPrice(address tokenIn, address tokenOut, uint256 amountIn) external view override returns (uint256) {
+        // For Balancer, calculate price based on reserves
+        (uint256 reserveIn, uint256 reserveOut) = this.getReserves(tokenIn, tokenOut);
+
+        if (reserveIn == 0 || reserveOut == 0) {
+            return 0;
+        }
+
+        // Simple price calculation based on reserves ratio
+        // This is a simplified version - Balancer has more complex pricing
+        return (amountIn * reserveOut) / reserveIn;
     }
 }

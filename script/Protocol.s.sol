@@ -10,6 +10,7 @@ import "../src/adapters/UniswapV3Fetcher.sol";
 import "../src/adapters/SushiswapFetcher.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../src/Registry.sol";
 
 // Test contract to hold tokens
@@ -20,7 +21,9 @@ contract TokenHolder {
 }
 
 contract Protocol is Test {
+    using SafeERC20 for IERC20;
     // Core protocol contracts
+
     Core public core;
     StreamDaemon public streamDaemon;
     Executor public executor;
@@ -51,9 +54,9 @@ contract Protocol is Test {
     address constant WETH_WHALE = 0x2F0b23f53734252Bda2277357e97e1517d6B042A;
     address constant USDC_WHALE = 0x55FE002aefF02F77364de339a1292923A15844B8;
 
-    address public constant TEST_EOA = address(0xB0B);  // Easy to recognize test address
-    uint256 public constant TEST_EOA_WETH_AMOUNT = 10 ether;  // 10 WETH
-    uint256 public constant TEST_EOA_USDC_AMOUNT = 20_000e6;  // 20,000 USDC
+    address public constant TEST_EOA = address(0xB0B); // Easy to recognize test address
+    uint256 public constant TEST_EOA_WETH_AMOUNT = 10 ether; // 10 WETH
+    uint256 public constant TEST_EOA_USDC_AMOUNT = 20_000e6; // 20,000 USDC
 
     function setUp() public virtual {
         console.log("Protocol: setUp() start");
@@ -97,7 +100,7 @@ contract Protocol is Test {
         // Deploy Registry and configure routers
         registry = new Registry();
         console.log("Registry deployed");
-        
+
         // Configure all DEX routers
         console.log("Configuring DEX routers...");
         registry.setRouter("UniswapV2", UNISWAP_V2_ROUTER);
@@ -108,13 +111,8 @@ contract Protocol is Test {
         console.log("DEX routers configured");
 
         console.log("Deploying Core...");
-        // Deploy Core with all dependencies
-        core = new Core(
-            address(streamDaemon),
-            address(executor),
-            address(registry),
-            100000  // Initial gas estimate
-        );
+        // Deploy Core
+        core = new Core(address(streamDaemon), address(executor), address(registry));
         console.log("Core deployed");
 
         // Log deployment addresses
@@ -175,7 +173,7 @@ contract Protocol is Test {
 
     // Helper function to approve token spending
     function approveToken(address token, address spender, uint256 amount) public {
-        IERC20(token).approve(spender, amount);
+        IERC20(token).forceApprove(spender, amount);
     }
 
     // Basic test to verify setup
@@ -197,7 +195,7 @@ contract Protocol is Test {
         console.log("USDC Balance: %s", usdcBalance);
     }
 
-    function run() virtual external {
+    function run() external virtual {
         setUp();
         testSetup();
     }

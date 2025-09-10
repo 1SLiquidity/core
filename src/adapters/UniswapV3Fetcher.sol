@@ -23,7 +23,7 @@ interface IUniswapV3Pool {
     function liquidity() external view returns (uint128);
     function token0() external view returns (address);
     function token1() external view returns (address);
-    
+
     function swap(
         address recipient,
         bool zeroForOne,
@@ -74,9 +74,10 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
 
         // Calculate virtual reserves
         // Use fixed point arithmetic to avoid overflow
-        uint256 reserve0 = (uint256(liquidity) * 1e9) / sqrtPrice;
+        uint256 reserve0 = (uint256(liquidity) * 1e9) / sqrtPrice; // ! WARNING if sqrtPrice is 0, this will revert
         uint256 reserve1 = (uint256(liquidity) * sqrtPrice) / 1e9;
-        // @audit this should rather getSingleFixQuote() from the contract in order to determine the depth within ticks, +/- 1%.
+        // @audit this should rather getSingleFixQuote() from the contract in order to determine the depth within ticks,
+        // +/- 1%.
         // for testing purposes it is satisfactory but for productoin this need correcting
 
         // Adjust for token decimals
@@ -97,5 +98,18 @@ contract UniswapV3Fetcher is IUniversalDexInterface {
 
     function getDexVersion() external pure override returns (string memory) {
         return "V3";
+    }
+
+    function getPrice(address tokenIn, address tokenOut, uint256 amountIn) external view override returns (uint256) {
+        // For UniswapV3, calculate price based on reserves
+        (uint256 reserveIn, uint256 reserveOut) = this.getReserves(tokenIn, tokenOut);
+
+        if (reserveIn == 0 || reserveOut == 0) {
+            return 0;
+        }
+
+        // Simple price calculation based on reserves ratio
+        // This is a simplified version - UniswapV3 has more complex pricing with concentrated liquidity
+        return (amountIn * reserveOut) / reserveIn;
     }
 }

@@ -10,9 +10,12 @@ import "../src/adapters/UniswapV2Fetcher.sol";
 import "../src/adapters/SushiswapFetcher.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract SingleDexProtocol is Test {
+    using SafeERC20 for IERC20;
     // Core protocol contracts
+
     Core public core;
     StreamDaemon public streamDaemon;
     Executor public executor;
@@ -27,7 +30,7 @@ contract SingleDexProtocol is Test {
     address constant UNISWAP_V3_FACTORY = 0x1F98431c8aD98523631AE4a59f267346ea31F984;
     uint24 constant UNISWAP_V3_FEE = 3000; // 0.3% fee tier
     address constant BALANCER_VAULT = 0xBA12222222228d8Ba445958a75a0704d566BF2C8;
-    address constant CURVE_POOL = 0x4eBdF703948ddCEA3B11f675B4D1Fba9d2414A14; // USDC/USDT pool
+    address constant CURVE_POOL = 0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7; // Curve 3Pool (USDC/USDT/DAI)
 
     // Common token addresses for testing
     address constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -38,6 +41,7 @@ contract SingleDexProtocol is Test {
     // Real whale addresses
     address constant WETH_WHALE = 0x2F0b23f53734252Bda2277357e97e1517d6B042A;
     address constant USDC_WHALE = 0x55FE002aefF02F77364de339a1292923A15844B8;
+    address constant USDT_WHALE = 0x47aC0FCbF2F8022C2867dd2C6C3c9aC07B15e8ef; // Binance hot wallet
 
     // The single DEX fetcher and router to be used
     address public dexFetcher;
@@ -47,7 +51,7 @@ contract SingleDexProtocol is Test {
         console.log("SingleDexProtocol: Starting setUp for single DEX...");
         console.log("SingleDexProtocol: Fetcher address:", _dexFetcher);
         console.log("SingleDexProtocol: Router address:", _dexRouter);
-        
+
         dexFetcher = _dexFetcher;
         dexRouter = _dexRouter;
 
@@ -94,13 +98,17 @@ contract SingleDexProtocol is Test {
         console.log("SingleDexProtocol: Setting router in Registry for type", dexType);
         registry.setRouter(dexType, dexRouter);
 
+        // Also set up the router for the fetcher's DEX type if it's different
+        // This allows us to test DEX logic with compatible infrastructure
+        IUniversalDexInterface fetcher = IUniversalDexInterface(dexFetcher);
+        string memory fetcherDexType = fetcher.getDexType();
+        if (keccak256(abi.encodePacked(dexType)) != keccak256(abi.encodePacked(fetcherDexType))) {
+            console.log("SingleDexProtocol: Also setting router for fetcher type", fetcherDexType);
+            registry.setRouter(fetcherDexType, dexRouter);
+        }
+
         console.log("SingleDexProtocol: Deploying Core...");
-        core = new Core(
-            address(streamDaemon),
-            address(executor),
-            address(registry),
-            100000  // Initial gas estimate
-        );
+        core = new Core(address(streamDaemon), address(executor), address(registry));
 
         vm.startPrank(WETH_WHALE);
         IERC20(WETH).transfer(address(this), 100 * 1e18); // 100 WETH
@@ -110,8 +118,8 @@ contract SingleDexProtocol is Test {
         IERC20(USDC).transfer(address(this), 200_000 * 1e6); // 200,000 USDC
         vm.stopPrank();
 
-        IERC20(WETH).approve(address(core), type(uint256).max);
-        IERC20(USDC).approve(address(core), type(uint256).max);
+        IERC20(WETH).forceApprove(address(core), type(uint256).max);
+        IERC20(USDC).forceApprove(address(core), type(uint256).max);
     }
 
     function getTokenDecimals(address token) public view returns (uint8) {
@@ -127,6 +135,6 @@ contract SingleDexProtocol is Test {
     }
 
     function approveToken(address token, address spender, uint256 amount) public {
-        IERC20(token).approve(spender, amount);
+        IERC20(token).forceApprove(spender, amount);
     }
-} 
+}

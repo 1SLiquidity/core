@@ -7,21 +7,13 @@ import "./interfaces/ICore.sol";
 contract Router {
     ICore public core;
 
-    event InstaSettleConfigured(
-        uint256 indexed tradeId,
-        bool enabled,
-        uint256 instasettleBps
-    );
+    event InstaSettleConfigured(uint256 indexed tradeId, bool enabled, uint256 instasettleBps);
 
     constructor(address _core) {
         core = ICore(_core);
     }
 
-    function configureInstaSettle(
-        uint256 tradeId,
-        bool enabled,
-        uint256 instasettleBps
-    ) external {
+    function configureInstaSettle(uint256 tradeId, bool enabled, uint256 instasettleBps) external {
         // Implementation will be added later
         emit InstaSettleConfigured(tradeId, enabled, instasettleBps);
     }

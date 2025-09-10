@@ -36,4 +36,4 @@ interface IRegistry {
         uint256 minOut,
         address recipient
     ) external view returns (TradeData memory);
-} 
+}
