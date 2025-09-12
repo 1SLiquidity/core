@@ -23,10 +23,10 @@ jobs:
     env:
       # secrets — set these in GitHub → Settings → Secrets → Actions
       RPC_HTTP_URL: ${{ secrets.RPC_HTTP_URL }}
-      CONTRACT_ADDRESS: 0x3875b8b82e58733c1667224eb8bf5f449d7dbb74
-      DEPLOYMENT_BLOCK: 23291452
+      CONTRACT_ADDRESS: "0x3875b8b82e58733c1667224eb8bf5f449d7dbb74"
+      DEPLOYMENT_BLOCK: "23291452"
       PRIVATE_KEY: ${{ secrets.DFGSDFGTEH_PRIVATE_KEY }}
-      CHAIN_ID: 1
+      CHAIN_ID: "1"
 
       # optional non-secret config (can also be repo variables)
       # LOG_CHUNK: ${{ vars.LOG_CHUNK || '2000' }}
