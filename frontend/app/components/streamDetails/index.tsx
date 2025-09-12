@@ -1,3 +1,5 @@
+'use client'
+
 import Image from 'next/image'
 import { formatWalletAddress } from '@/app/lib/helper'
 import AmountTag from '../amountTag'
@@ -13,7 +15,9 @@ import { Trade } from '@/app/lib/graphql/types/trade'
 import { useStreamTime } from '@/app/lib/hooks/useStreamTime'
 import { formatRelativeTime } from '@/app/lib/utils/time'
 import { cn } from '@/lib/utils'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, X } from 'lucide-react'
+import { useWallet } from '@/app/lib/hooks/useWallet'
+import { useCoreTrading } from '@/app/lib/hooks/useCoreTrading'
 
 type StreamDetailsProps = {
   onBack: () => void
@@ -22,6 +26,7 @@ type StreamDetailsProps = {
   isUser?: boolean
   isLoading?: boolean
   onClose: () => void
+  showBackIcon?: boolean
 }
 
 const TIMER_DURATION = 10 // 10 seconds
@@ -32,8 +37,11 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
   isUser = false,
   isLoading = false,
   onClose,
+  showBackIcon = true,
 }) => {
   const { tokens, isLoading: isLoadingTokens } = useTokenList()
+  const { placeTrade, loading, instasettle, cancelTrade } = useCoreTrading()
+  const { getSigner, isConnected: isConnectedWallet } = useWallet()
 
   if (!selectedStream) {
     return null
@@ -131,6 +139,42 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     : 0
 
   console.log('selectedStream ===>', selectedStream)
+  console.log('tokenIn ===>', tokenIn)
+  console.log('tokenOut ===>', tokenOut)
+
+  const handleInstasettleClick = async (item: any) => {
+    if (isConnectedWallet) {
+      const signer = getSigner()
+
+      if (signer) {
+        const res = await instasettle(
+          {
+            tradeId: Number(selectedStream.tradeId),
+            tokenInObj: tokenIn,
+            tokenOutObj: tokenOut,
+            tokenIn: selectedStream.tokenIn || '',
+            tokenOut: selectedStream.tokenOut || '',
+            amountIn: selectedStream.amountIn.toString(),
+            minAmountOut: selectedStream.minAmountOut.toString(),
+            isInstasettlable: true,
+            usePriceBased: false,
+            signer: signer,
+          },
+          signer
+        )
+      }
+    }
+  }
+
+  const handleCancelClick = async (item: any) => {
+    if (isConnectedWallet) {
+      const signer = getSigner()
+
+      if (signer) {
+        const res = await cancelTrade(Number(selectedStream.tradeId), signer)
+      }
+    }
+  }
 
   return (
     <>
@@ -146,11 +190,16 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
           <p>Back</p>
         </div> */}
         <div
-          onClick={onBack}
+          onClick={showBackIcon ? onBack : onClose}
           className={cn(
             'bg-[#232624] cursor-pointer rounded-full p-2 z-50 group hover:bg-[#373D3F] transition-all duration-300'
           )}
         >
+          {showBackIcon ? (
+            <ArrowLeft className="w-3 h-3 text-[#666666] group-hover:text-white transition-all duration-300" />
+          ) : (
+            <X className="w-3 h-3 text-[#666666] group-hover:text-white transition-all duration-300" />
+          )}
           {/* <Image
             src={'/icons/close.svg'}
             alt="close"
@@ -159,8 +208,6 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             height={1000}
             onClick={onBack}
           /> */}
-
-          <ArrowLeft className="w-3 h-3 text-[#666666] group-hover:text-white transition-all duration-300" />
         </div>
         {/* <div className="text-white52 leading-none">Stream ID</div> */}
 
@@ -437,7 +484,10 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             fee="$190.54"
             isEnabled={selectedStream.isInstasettlable}
             isUser={isUser}
-            isLoading={isLoading}
+            isLoading={isLoading || loading}
+            selectedStream={selectedStream}
+            handleInstasettleClick={handleInstasettleClick}
+            handleCancelClick={handleCancelClick}
           />
         </div>
 

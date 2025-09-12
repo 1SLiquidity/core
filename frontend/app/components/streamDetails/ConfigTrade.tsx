@@ -1,3 +1,5 @@
+'use client'
+
 import Image from 'next/image'
 import React, { useState } from 'react'
 import AmountTag from '../amountTag'
@@ -21,6 +23,9 @@ type Props = {
   isEnabled: boolean
   isUser: boolean
   isLoading?: boolean
+  selectedStream: any
+  handleInstasettleClick: (selectedStream: any) => void
+  handleCancelClick: (selectedStream: any) => void
 }
 
 const ConfigTrade: React.FC<Props> = ({
@@ -29,9 +34,11 @@ const ConfigTrade: React.FC<Props> = ({
   isEnabled,
   isUser,
   isLoading = false,
+  selectedStream,
+  handleInstasettleClick,
+  handleCancelClick,
 }) => {
   const [showDetails, setShowDetails] = useState(false)
-
   const toggleDetails = () => setShowDetails(!showDetails)
 
   const LoadingSkeleton = () => (
@@ -120,7 +127,12 @@ const ConfigTrade: React.FC<Props> = ({
               </div>
             </div>
             <div className="mt-0">
-              <Button text="ENABLE INSTASETTLE" className="h-[2.25rem]" />
+              <Button
+                text="ENABLE INSTASETTLE"
+                className="h-[2.25rem]"
+                disabled={isLoading}
+                onClick={() => handleInstasettleClick(selectedStream)}
+              />
             </div>
           </div>
         ) : (
@@ -152,9 +164,12 @@ const ConfigTrade: React.FC<Props> = ({
               text="CANCEL SWAP"
               theme="destructive"
               className="h-[2.25rem]"
+              disabled={isLoading}
+              onClick={() => handleCancelClick(selectedStream)}
             />
           ) : (
-            <Button text="ECECUTE INSTASETTLE" className="h-[2.25rem]" />
+            ''
+            // <Button text="EXECUTE INSTASETTLE" className="h-[2.25rem]" />
           )}
         </div>
       </div>

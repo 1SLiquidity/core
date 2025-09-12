@@ -255,17 +255,24 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
 
     if (addressMatch) return addressMatch
 
-    // Case 2: ETH special handling
-    if (
-      selectedToken.symbol === 'ETH' ||
-      selectedToken.token_address?.toLowerCase() ===
-        '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-    ) {
-      return walletTokens.find(
+    // Case 2: ETH special handling - ETH token uses WETH address but should show ETH balance
+    if (selectedToken.symbol.toLowerCase() === 'eth') {
+      // First try to find native ETH balance
+      const nativeEth = walletTokens.find(
         (token) =>
           token.token_address ===
             '0x0000000000000000000000000000000000000000' ||
           token.symbol === 'ETH'
+      )
+
+      if (nativeEth) return nativeEth
+
+      // If no native ETH found, use WETH balance (since ETH token uses WETH address)
+      return walletTokens.find(
+        (token) =>
+          token.token_address?.toLowerCase() ===
+            '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' ||
+          token.symbol.toLowerCase() === 'weth'
       )
     }
 

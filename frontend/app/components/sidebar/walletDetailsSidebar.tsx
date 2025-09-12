@@ -1,3 +1,5 @@
+'use client'
+
 import { TOKENS, WALLET_TABS } from '@/app/lib/constants'
 import { formatWalletAddress } from '@/app/lib/helper'
 import Image from 'next/image'
@@ -16,7 +18,6 @@ import {
 } from '../../lib/constants/streams'
 import { useTrades } from '@/app/lib/hooks/useTrades'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
-import { formatUnits } from 'viem'
 import { SwitchOffIcon } from '@/app/lib/icons'
 import { CircleCheckBigIcon, CopyIcon, X } from 'lucide-react'
 import { useDisconnect } from '@reown/appkit/react'
@@ -56,8 +57,8 @@ const CHAIN_NAMES: { [key: string]: string } = {
   // Add more chains as needed
 }
 
-// Mapping from chain IDs to Moralis chain identifiers
-const CHAIN_ID_TO_MORALIS: { [key: string]: string } = {
+// Mapping from chain IDs to chain identifiers
+const CHAIN_ID_TO_PLATFORM: { [key: string]: string } = {
   '1': 'eth',
   // '42161': 'arbitrum',
   // '137': 'polygon',
@@ -104,10 +105,9 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   const chainId = chainIdWithPrefix.split(':')[1]
 
   // Map chainId to Moralis chain format
-  const moralisChain = CHAIN_ID_TO_MORALIS[chainId] || 'eth'
-  const chainName = CHAIN_NAMES[chainId] || moralisChain
+  const chain = CHAIN_ID_TO_PLATFORM[chainId] || 'eth'
 
-  // Use the Moralis hook with React Query to fetch wallet tokens for the selected chain
+  // Use the hook with React Query to fetch wallet tokens for the selected chain
   const {
     tokens: walletTokens,
     rawTokens,
@@ -115,7 +115,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     error: tokensError,
     refetch,
     isFetching,
-  } = useWalletTokens(address, moralisChain)
+  } = useWalletTokens(address, chain)
 
   // Fetch trades data
   const {
@@ -210,6 +210,8 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   const ongoingStreams = getOngoingStreams()
   const completedStreams = getCompletedStreams()
 
+  console.log('selectedStream ===>', selectedStream)
+
   return (
     <Sidebar isOpen={isOpen} onClose={onClose}>
       {/* close icon - hide when stream details are open */}
@@ -237,6 +239,9 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
             onBack={() => setIsStreamDetailsOpen(false)}
             selectedStream={selectedStream}
             walletAddress={address}
+            // isUser={
+            //   selectedStream?.user?.toLowerCase() === address?.toLowerCase()
+            // }
             isUser={true}
             onClose={() => {
               setIsStreamDetailsOpen(false)
@@ -514,7 +519,12 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                               <div className="flex gap-[12px]">
                                 <div className="relative h-fit">
                                   <ImageFallback
-                                    src={token.icon}
+                                    src={
+                                      token.symbol.toLocaleLowerCase() ===
+                                      'weth'
+                                        ? 'https://assets.coingecko.com/coins/images/2518/large/weth.png'
+                                        : token.icon
+                                    }
                                     alt={token.name}
                                     className="w-[40px] h-[40px] rounded-full overflow-hidden object-cover"
                                     width={1000}

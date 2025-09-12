@@ -1,11 +1,12 @@
 // hooks/useCoreTrading.ts
 import { useState, useCallback } from 'react'
 import { ethers } from 'ethers'
-import { erc20Abi } from 'viem'
+import { erc20Abi, parseUnits } from 'viem'
 import { toast } from 'react-hot-toast'
 import coreAbi from '../config/trade-core-abi.json'
 import { useToast } from '../context/toastProvider'
 import NotifiSwapStream from '@/app/components/toasts/notifiSwapStream'
+import wethAbi from '../config/eth-contract-abi.json'
 
 // Types
 export interface TradeData {
@@ -52,6 +53,7 @@ export interface ContractInfo {
 
 // Constants - You should move these to environment variables
 const CORE_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CORE_ADDRESS || ''
+const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
 
 export const useCoreTrading = () => {
   const [loading, setLoading] = useState(false)
@@ -73,6 +75,22 @@ export const useCoreTrading = () => {
     }
 
     return new ethers.Contract(CORE_CONTRACT_ADDRESS, coreAbi, signer)
+  }, [])
+
+  const getWethContract = useCallback((signer?: ethers.Signer) => {
+    if (!WETH_ADDRESS) {
+      throw new Error('Weth contract address not configured')
+    }
+
+    if (!signer) {
+      // For read-only operations
+      const provider = new ethers.providers.Web3Provider(
+        (window as any).ethereum
+      )
+      return new ethers.Contract(WETH_ADDRESS, wethAbi, provider)
+    }
+
+    return new ethers.Contract(WETH_ADDRESS, wethAbi, signer)
   }, [])
 
   // Helper function to get token decimals
@@ -342,6 +360,16 @@ export const useCoreTrading = () => {
           amountInWei: amountInWei.toString(),
           minAmountOutWei: minAmountOutWei.toString(),
         })
+
+        if (tokenOutObj.symbol === 'ETH' || tokenInObj.symbol === 'ETH') {
+          let amountInEth = parseUnits(amountIn, 18)
+          if (tokenOutObj.symbol === 'ETH') {
+            amountInEth = parseUnits(minAmountOut, 18)
+          }
+          const wethContract = getWethContract(signer)
+          const wrapTx = await wethContract.deposit({ value: amountInEth })
+          await wrapTx.wait()
+        }
 
         // Step 3: Check and handle token allowance
         updateToastProgress('Checking token allowance...', 40, 3)

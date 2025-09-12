@@ -492,6 +492,9 @@ const SELSection = () => {
     }
   }
 
+  console.log('selectedTokenFrom ===>', selectedTokenFrom)
+  console.log('selectedTokenTo ===>', selectedTokenTo)
+
   // console.log('isCalculating ===>', isCalculating)
   // console.log('buyAmount ===>', buyAmount)
   // console.log('sellAmount ===>', sellAmount)

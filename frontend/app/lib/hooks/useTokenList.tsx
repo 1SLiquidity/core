@@ -85,7 +85,8 @@ const NATIVE_TOKEN_ADDRESSES = [
 const isERC20Token = (
   tokenAddress: string,
   platforms: { [key: string]: string } | undefined,
-  targetPlatform: string
+  targetPlatform: string,
+  tokenSymbol?: string // Add optional tokenSymbol parameter
 ): boolean => {
   // No address or no platforms object means it's not a valid ERC20 token
   if (!tokenAddress || !platforms) {
@@ -96,6 +97,11 @@ const isERC20Token = (
   const platformAddress = platforms[targetPlatform]
   if (!platformAddress) {
     return false
+  }
+
+  // Special handling for ETH - allow it even though it uses WETH address
+  if (tokenSymbol?.toLowerCase() === 'eth') {
+    return true
   }
 
   // Special handling for BNB which is not an ERC20 token on Ethereum
@@ -189,7 +195,8 @@ const formatCoingeckoTokens = (
       // Get the token address for the specific platform/chain
       let tokenAddress = getTokenAddressForPlatform(
         token.platforms,
-        targetPlatform
+        targetPlatform,
+        token.symbol
       )
 
       // Skip tokens that don't have an address on the target platform
@@ -198,7 +205,14 @@ const formatCoingeckoTokens = (
       }
 
       // Skip non-ERC20 tokens using improved function
-      if (!isERC20Token(tokenAddress, token.platforms, targetPlatform)) {
+      if (
+        !isERC20Token(
+          tokenAddress,
+          token.platforms,
+          targetPlatform,
+          token.symbol
+        )
+      ) {
         // console.log(
         //   `Skipping non-ERC20 token: ${token.symbol} (${tokenAddress}) on platform ${targetPlatform}`
         // )
@@ -223,6 +237,7 @@ const formatCoingeckoTokens = (
 
       // Determine if token is popular based on market cap rank and symbol
       const isPopularToken =
+        token.symbol.toLowerCase() === 'eth' ||
         token.symbol.toLowerCase() === 'weth' ||
         token.symbol.toLowerCase() === 'wbtc' ||
         token.symbol.toLowerCase() === 'usdt' ||
@@ -436,11 +451,17 @@ const fetchMarketData = async (
 // Function to safely get a token address from platforms object
 const getTokenAddressForPlatform = (
   platforms: { [key: string]: string } | undefined,
-  targetPlatform: string
+  targetPlatform: string,
+  tokenSymbol?: string // Add optional tokenSymbol parameter
 ): string => {
   if (!platforms || !platforms[targetPlatform]) return ''
 
   const address = platforms[targetPlatform].toLowerCase()
+
+  // Special handling for ETH - allow it to use WETH address
+  if (tokenSymbol?.toLowerCase() === 'eth') {
+    return address
+  }
 
   // Special handling for BNB which is not an ERC20 token on Ethereum
   if (
@@ -491,6 +512,24 @@ const topTokens: EssentialToken[] = [
       'arbitrum-one': {
         decimal_place: 18,
         contract_address: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
+      },
+    },
+  },
+  {
+    id: 'eth',
+    symbol: 'eth',
+    name: 'Ethereum',
+    platforms: {
+      ethereum: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    },
+    image: '/tokens/eth-blue.png',
+    current_price: 0,
+    price_change_percentage_24h: 0,
+    market_cap_rank: 1,
+    detail_platforms: {
+      ethereum: {
+        decimal_place: 18,
+        contract_address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
       },
     },
   },
@@ -633,11 +672,12 @@ export const useTokenList = () => {
         let essentialTokens = topTokens.filter((t) => {
           const tokenAddress = getTokenAddressForPlatform(
             t.platforms,
-            targetPlatform
+            targetPlatform,
+            t.symbol
           )
           return (
             tokenAddress &&
-            isERC20Token(tokenAddress, t.platforms, targetPlatform)
+            isERC20Token(tokenAddress, t.platforms, targetPlatform, t.symbol)
           )
         })
 
@@ -753,11 +793,12 @@ export const useTokenList = () => {
           topTokens.filter((t: EssentialToken) => {
             const tokenAddress = getTokenAddressForPlatform(
               t.platforms,
-              targetPlatform
+              targetPlatform,
+              t.symbol
             )
             return (
               tokenAddress &&
-              isERC20Token(tokenAddress, t.platforms, targetPlatform)
+              isERC20Token(tokenAddress, t.platforms, targetPlatform, t.symbol)
             )
           }),
           targetPlatform

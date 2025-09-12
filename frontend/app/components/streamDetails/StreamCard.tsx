@@ -60,7 +60,7 @@ const StreamCard: React.FC<Props> = ({
   )
 
   return (
-    <div className="w-full p-4 border-[1px] border-white12 rounded-[15px] mt-2.5 hover:bg-tabsGradient transition-all duration-300">
+    <div className="w-full p-4 border-[1px] border-white12 bg-white005 rounded-[15px] mt-2.5 hover:bg-tabsGradient transition-all duration-300">
       <div className="w-full flex justify-between gap-1 items-center">
         <div
           className={`${
