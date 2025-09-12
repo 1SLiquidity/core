@@ -519,7 +519,12 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
                               <div className="flex gap-[12px]">
                                 <div className="relative h-fit">
                                   <ImageFallback
-                                    src={token.icon}
+                                    src={
+                                      token.symbol.toLocaleLowerCase() ===
+                                      'weth'
+                                        ? 'https://assets.coingecko.com/coins/images/2518/large/weth.png'
+                                        : token.icon
+                                    }
                                     alt={token.name}
                                     className="w-[40px] h-[40px] rounded-full overflow-hidden object-cover"
                                     width={1000}

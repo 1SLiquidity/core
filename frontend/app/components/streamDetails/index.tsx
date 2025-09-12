@@ -15,7 +15,7 @@ import { Trade } from '@/app/lib/graphql/types/trade'
 import { useStreamTime } from '@/app/lib/hooks/useStreamTime'
 import { formatRelativeTime } from '@/app/lib/utils/time'
 import { cn } from '@/lib/utils'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, X } from 'lucide-react'
 import { useWallet } from '@/app/lib/hooks/useWallet'
 import { useCoreTrading } from '@/app/lib/hooks/useCoreTrading'
 
@@ -26,6 +26,7 @@ type StreamDetailsProps = {
   isUser?: boolean
   isLoading?: boolean
   onClose: () => void
+  showBackIcon?: boolean
 }
 
 const TIMER_DURATION = 10 // 10 seconds
@@ -36,6 +37,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
   isUser = false,
   isLoading = false,
   onClose,
+  showBackIcon = true,
 }) => {
   const { tokens, isLoading: isLoadingTokens } = useTokenList()
   const { placeTrade, loading, instasettle, cancelTrade } = useCoreTrading()
@@ -188,11 +190,16 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
           <p>Back</p>
         </div> */}
         <div
-          onClick={onBack}
+          onClick={showBackIcon ? onBack : onClose}
           className={cn(
             'bg-[#232624] cursor-pointer rounded-full p-2 z-50 group hover:bg-[#373D3F] transition-all duration-300'
           )}
         >
+          {showBackIcon ? (
+            <ArrowLeft className="w-3 h-3 text-[#666666] group-hover:text-white transition-all duration-300" />
+          ) : (
+            <X className="w-3 h-3 text-[#666666] group-hover:text-white transition-all duration-300" />
+          )}
           {/* <Image
             src={'/icons/close.svg'}
             alt="close"
@@ -201,8 +208,6 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             height={1000}
             onClick={onBack}
           /> */}
-
-          <ArrowLeft className="w-3 h-3 text-[#666666] group-hover:text-white transition-all duration-300" />
         </div>
         {/* <div className="text-white52 leading-none">Stream ID</div> */}
 

@@ -21,6 +21,7 @@ type GlobalStreamSidebarProps = {
   onClose: () => void
   initialStream?: any // We'll type this properly later
   className?: string
+  showBackIcon?: boolean
 }
 
 const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
@@ -28,6 +29,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   onClose,
   initialStream,
   className,
+  showBackIcon = true,
 }) => {
   const [isStreamSelected, setIsStreamSelected] = useState(false)
   const [selectedStream, setSelectedStream] = useState<any>(
@@ -136,6 +138,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                 setSelectedStream(null)
                 onClose()
               }}
+              showBackIcon={showBackIcon}
             />
           </>
         ) : (

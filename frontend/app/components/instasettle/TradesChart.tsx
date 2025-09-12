@@ -89,7 +89,8 @@ export default function TradesChart({
   })
 
   // Get token list for proper volume calculations
-  const { tokens: tokenList } = useCustomTokenList()
+  const { tokens: tokenList, isLoading: isLoadingTokenList } =
+    useCustomTokenList()
 
   // Combine data into chart data points
   const chartData = useMemo(() => {
@@ -110,13 +111,40 @@ export default function TradesChart({
     return filteredTrades.map((trade: Trade): ChartDataPoint => {
       try {
         // Find token information for this trade (same logic as TradesTable)
-        const tokenIn = tokenList.find(
-          (t: TOKENS_TYPE) =>
-            t.token_address?.toLowerCase() === trade.tokenIn?.toLowerCase()
+        // const tokenIn = tokenList.find(
+        //   (t: TOKENS_TYPE) =>
+        //     t.token_address?.toLowerCase() === trade.tokenIn?.toLowerCase()
+        // )
+        // const tokenOut = tokenList.find(
+        //   (t: TOKENS_TYPE) =>
+        //     t.token_address?.toLowerCase() === trade.tokenOut?.toLowerCase()
+
+        // Special case for ETH/WETH: if ETH is selected, prioritize ETH over WETH
+        const findTokenForTrade = (
+          address: string,
+          selectedToken: TOKENS_TYPE | null
+        ) => {
+          const ethWethAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+          if (
+            address?.toLowerCase() === ethWethAddress &&
+            selectedToken?.symbol.toLowerCase() === 'eth'
+          ) {
+            return selectedToken // Return the selected ETH token directly
+          }
+          // For all other cases, use normal address matching
+          return tokenList.find(
+            (t: TOKENS_TYPE) =>
+              t.token_address?.toLowerCase() === address?.toLowerCase()
+          )
+        }
+
+        const tokenIn = findTokenForTrade(
+          trade.tokenIn,
+          selectedTokenFrom || null
         )
-        const tokenOut = tokenList.find(
-          (t: TOKENS_TYPE) =>
-            t.token_address?.toLowerCase() === trade.tokenOut?.toLowerCase()
+        const tokenOut = findTokenForTrade(
+          trade.tokenOut,
+          selectedTokenTo || null
         )
 
         // Format amounts using token decimals - default to 18 decimals if not found
@@ -329,7 +357,7 @@ export default function TradesChart({
   }, [handleScroll])
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || isLoadingTokenList) {
     return (
       <div className="mt-32 mb-16">
         <div className="dark">

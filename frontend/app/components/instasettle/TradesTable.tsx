@@ -178,13 +178,40 @@ const TradesTable = ({
     let filteredTrades = [...trades].map((trade) => {
       try {
         // Find token information for this trade
-        const tokenIn = tokenList.find(
-          (t: TOKENS_TYPE) =>
-            t.token_address?.toLowerCase() === trade.tokenIn?.toLowerCase()
+        // const tokenIn = tokenList.find(
+        //   (t: TOKENS_TYPE) =>
+        //     t.token_address?.toLowerCase() === trade.tokenIn?.toLowerCase()
+        // )
+        // const tokenOut = tokenList.find(
+        //   (t: TOKENS_TYPE) =>
+        //     t.token_address?.toLowerCase() === trade.tokenOut?.toLowerCase()
+
+        // Special case for ETH/WETH: if ETH is selected, return ETH token directly
+        const findTokenForTrade = (
+          address: string,
+          selectedToken: TOKENS_TYPE | null
+        ) => {
+          const ethWethAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+          if (
+            address?.toLowerCase() === ethWethAddress &&
+            selectedToken?.symbol.toLowerCase() === 'eth'
+          ) {
+            return selectedToken // Return the selected ETH token directly
+          }
+          // For all other cases, use normal address matching
+          return tokenList.find(
+            (t: TOKENS_TYPE) =>
+              t.token_address?.toLowerCase() === address?.toLowerCase()
+          )
+        }
+
+        const tokenIn = findTokenForTrade(
+          trade.tokenIn,
+          selectedTokenFrom || null
         )
-        const tokenOut = tokenList.find(
-          (t: TOKENS_TYPE) =>
-            t.token_address?.toLowerCase() === trade.tokenOut?.toLowerCase()
+        const tokenOut = findTokenForTrade(
+          trade.tokenOut,
+          selectedTokenTo || null
         )
 
         // Format amounts using token decimals - default to 18 decimals if not found
@@ -437,8 +464,11 @@ const TradesTable = ({
     }
   }
 
+  console.log('selectedTokenFrom ======>', selectedTokenFrom)
+  console.log('selectedTokenTo ======>', selectedTokenTo)
+
   // Loading skeleton
-  if (isLoading && !displayData.length) {
+  if ((isLoading && !displayData.length) || isLoadingTokenList) {
     return (
       <Table className="min-w-[800px]">
         <TableHeader>
@@ -787,10 +817,11 @@ const TradesTable = ({
         <GlobalStreamSidebar
           isOpen={isSidebarOpen}
           onClose={() => {
-            setIsSidebarOpen(false)
             setInitialStream(undefined)
+            setIsSidebarOpen(false)
           }}
           initialStream={initialStream}
+          showBackIcon={false}
         />
       )}
     </div>

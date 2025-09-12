@@ -38,3 +38,7 @@ script/processes/deployment/Deploy.s.sol
 script/processes/deployment/DeployCrossChain.s.sol
 script/processes/deployment/VerifyDeployment.s.sol
 script/processes/deployment/AddPancakeSwap.s.sol
+
+# Ignore only Postgres + IPFS data
+data/postgres/
+data/ipfs/
