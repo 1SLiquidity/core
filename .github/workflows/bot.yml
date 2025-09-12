@@ -40,9 +40,13 @@ jobs:
 
       - name: Verify bot directory exists
         run: |
+          echo "Current directory: $(pwd)"
+          echo "Contents of current directory:"
           ls -la
-          ls -la bot/ || echo "Bot directory not found"
-          ls -la bot/src/ || echo "Bot src directory not found"
+          echo "Looking for bot directory:"
+          find . -name "bot" -type d 2>/dev/null || echo "No bot directory found"
+          echo "Looking for bot files:"
+          find . -name "package.json" -path "*/bot/*" 2>/dev/null || echo "No bot package.json found"
 
       - uses: actions/setup-node@v4
         with:
@@ -52,16 +56,33 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd bot
-          npm ci
+          if [ -d "bot" ]; then
+            cd bot
+            npm ci
+          else
+            echo "Bot directory not found, checking if we need to create it"
+            find . -name "package.json" -path "*/bot/*" -exec dirname {} \;
+          fi
 
       - name: Build bot
         run: |
-          cd bot
-          npm run build
+          if [ -d "bot" ]; then
+            cd bot
+            npm run build
+          else
+            echo "Cannot build - bot directory not found"
+            exit 1
+          fi
 
       - name: Run bot
-        run: node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
+        run: |
+          if [ -d "bot" ]; then
+            cd bot
+            node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
+          else
+            echo "Cannot run - bot directory not found"
+            exit 1
+          fi
 
       - name: Upload state.json
         if: always()
