@@ -38,6 +38,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Verify bot directory exists
+        run: |
+          ls -la
+          ls -la bot/ || echo "Bot directory not found"
+          ls -la bot/src/ || echo "Bot src directory not found"
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -62,5 +68,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: state-${{ github.run_id }}
-          path: bot/${{ env.STATE_FILE }}
+          path: bot/state.json
           if-no-files-found: warn
