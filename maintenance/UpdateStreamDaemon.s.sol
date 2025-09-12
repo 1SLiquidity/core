@@ -7,7 +7,6 @@ import {StreamDaemon} from "../src/StreamDaemon.sol";
 import {Core} from "../src/Core.sol";
 import {UniswapV2Fetcher} from "../src/adapters/UniswapV2Fetcher.sol";
 import {SushiswapFetcher} from "../src/adapters/SushiswapFetcher.sol";
-import {PancakeSwapFetcher} from "../src/adapters/PancakeSwapFetcher.sol";
 
 /**
  * @title UpdateStreamDaemon
@@ -25,12 +24,10 @@ contract UpdateStreamDaemon is Script {
     // DEX Fetchers
     address public uniswapV2Fetcher;
     address public sushiswapFetcher;
-    address public pancakeswapFetcher;
     
     // DEX Routers
     address constant UNISWAP_V2_ROUTER = 0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D;
     address constant SUSHISWAP_ROUTER = 0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F;
-    address constant PANCAKESWAP_ROUTER = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     
     function setUp() public {
         // Load existing contract addresses from environment
@@ -38,7 +35,6 @@ contract UpdateStreamDaemon is Script {
         currentStreamDaemon = vm.envAddress("STREAMDAEMON_ADDRESS");
         uniswapV2Fetcher = vm.envAddress("UNISWAP_V2_FETCHER_ADDRESS");
         sushiswapFetcher = vm.envAddress("SUSHISWAP_FETCHER_ADDRESS");
-        pancakeswapFetcher = vm.envAddress("PANCAKESWAP_FETCHER_ADDRESS");
         core = vm.envAddress("CORE_ADDRESS"); // Load Core address
     }
     
@@ -50,7 +46,6 @@ contract UpdateStreamDaemon is Script {
         console.log("Current StreamDaemon:", currentStreamDaemon);
         console.log("UniswapV2Fetcher:", uniswapV2Fetcher);
         console.log("SushiswapFetcher:", sushiswapFetcher);
-        console.log("PancakeSwapFetcher:", pancakeswapFetcher);
         console.log("");
         
         // Step 1: Pre-update validation
@@ -101,7 +96,6 @@ contract UpdateStreamDaemon is Script {
         require(Address.isContract(address(factory)), "CREATE2 Factory not found");
         require(Address.isContract(uniswapV2Fetcher), "UniswapV2Fetcher not found");
         require(Address.isContract(sushiswapFetcher), "SushiswapFetcher not found");
-        require(Address.isContract(pancakeswapFetcher), "PancakeSwapFetcher not found");
         require(Address.isContract(core), "Core contract not found"); // Verify Core exists
         
         // Test current StreamDaemon functionality
@@ -140,12 +134,6 @@ contract UpdateStreamDaemon is Script {
             console.log("    Warning: SushiswapFetcher may have issues");
         }
         
-        // Test PancakeSwapFetcher
-        try PancakeSwapFetcher(pancakeswapFetcher).router() {
-            console.log("    PancakeSwapFetcher accessible");
-        } catch {
-            console.log("    Warning: PancakeSwapFetcher may have issues");
-        }
     }
     
     function _backupCurrentState() internal view {
@@ -153,7 +141,6 @@ contract UpdateStreamDaemon is Script {
         console.log("  Current StreamDaemon:", currentStreamDaemon);
         console.log("  UniswapV2Fetcher:", uniswapV2Fetcher);
         console.log("  SushiswapFetcher:", sushiswapFetcher);
-        console.log("  PancakeSwapFetcher:", pancakeswapFetcher);
         console.log("  CREATE2 Factory:", address(factory));
         console.log("  Core:", core); // Add Core to backup
         
@@ -172,15 +159,13 @@ contract UpdateStreamDaemon is Script {
         bytes32 streamDaemonSalt = keccak256(abi.encodePacked(baseSalt, "StreamDaemon"));
         
         // Prepare DEX arrays for constructor
-        address[] memory dexes = new address[](3);
+        address[] memory dexes = new address[](2);
         dexes[0] = uniswapV2Fetcher;
         dexes[1] = sushiswapFetcher;
-        dexes[2] = pancakeswapFetcher;
         
-        address[] memory routers = new address[](3);
+        address[] memory routers = new address[](2);
         routers[0] = UNISWAP_V2_ROUTER;
         routers[1] = SUSHISWAP_ROUTER;
-        routers[2] = PANCAKESWAP_ROUTER;
         
         // Deploy new StreamDaemon with same DEX configuration
         newStreamDaemon = factory.deployWithName(
@@ -309,7 +294,6 @@ contract UpdateStreamDaemon is Script {
         console.log("Dependencies:");
         console.log("  UniswapV2Fetcher:", uniswapV2Fetcher);
         console.log("  SushiswapFetcher:", sushiswapFetcher);
-        console.log("  PancakeSwapFetcher:", pancakeswapFetcher);
         console.log("");
         console.log("Next Steps:");
         console.log("  1. Test new StreamDaemon functionality");

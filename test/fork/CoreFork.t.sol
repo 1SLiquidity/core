@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.30;
 
-import { Fork_Test } from "test/fork/Fork.t.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Config } from "../../config/Config.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { IUniversalDexInterface } from "src/interfaces/IUniversalDexInterface.sol";
+import {Fork_Test} from "test/fork/Fork.t.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Config} from "../../config/Config.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IUniversalDexInterface} from "src/interfaces/IUniversalDexInterface.sol";
 
 import "forge-std/console.sol";
 
@@ -129,9 +129,7 @@ contract CoreForkTest is Fork_Test {
         address[] memory pairAddresses,
         address baseToken,
         address whaleAddress
-    )
-        internal
-    {
+    ) internal {
         console.log("Test with", tokenSymbol, "pair tokens");
 
         uint8 maxTestCount = 50;
@@ -311,10 +309,7 @@ contract CoreForkTest is Fork_Test {
         string[] memory successfulTrades,
         string[] memory failedTrades,
         string[] memory failureReasons
-    )
-        internal
-        view
-    {
+    ) internal view {
         if (successCount > 0) {
             console.log("\n--- SUCCESSFUL TRADES ---");
             for (uint256 i = 0; i < successCount; i++) {
@@ -395,11 +390,7 @@ contract CoreForkTest is Fork_Test {
      * @dev Test a specific trade between two tokens
      * Usage: test_TradeSpecificPair("usdc", "uni", 1000)
      */
-    function test_TradeSpecificPair(
-        string memory fromToken,
-        string memory toToken,
-        uint256 readableTokenInAmount
-    )
+    function test_TradeSpecificPair(string memory fromToken, string memory toToken, uint256 readableTokenInAmount)
         public
     {
         address fromAddress = getTokenByName(fromToken);
@@ -459,10 +450,7 @@ contract CoreForkTest is Fork_Test {
         return keccak256(abi.encodePacked(a)) == keccak256(abi.encodePacked(b));
     }
 
-    function getAggreateTokenInAmount(
-        address tokenIn,
-        address tokenOut
-    )
+    function getAggreateTokenInAmount(address tokenIn, address tokenOut)
         public
         view
         returns (uint256 aggregateTokenInAmount)

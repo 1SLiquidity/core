@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.30;
 
-import { Test } from "forge-std/Test.sol";
-import { Deploys } from "test/shared/Deploys.sol";
-import { console } from "forge-std/console.sol";
-import { StreamDaemon } from "src/StreamDaemon.sol";
+import {Test} from "forge-std/Test.sol";
+import {Deploys} from "test/shared/Deploys.sol";
+import {console} from "forge-std/console.sol";
+import {StreamDaemon} from "src/StreamDaemon.sol";
 
 // Test contract that exposes the internal sqrt function
 contract StreamDaemonTest is StreamDaemon {
-    constructor() StreamDaemon(new address[](0), new address[](0)) { }
+    constructor() StreamDaemon(new address[](0), new address[](0)) {}
 
     function testSqrt(uint256 y) public view returns (uint256) {
         return sqrt(y);

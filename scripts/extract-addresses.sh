@@ -8,8 +8,8 @@ OUTPUT_FILE="deployment-addresses.json"
 
 echo "🔍 Looking for deployment broadcast files..."
 
-# Find the most recent deployment file
-LATEST_DEPLOYMENT=$(find "$BROADCAST_DIR" -name "run-latest.json" -type f 2>/dev/null | head -1)
+# Find the most recent DeployBarebones deployment file (excluding dry-run)
+LATEST_DEPLOYMENT=$(find "$BROADCAST_DIR/DeployBarebones.s.sol" -name "run-latest.json" -type f -not -path "*/dry-run/*" 2>/dev/null | head -1)
 
 if [ -z "$LATEST_DEPLOYMENT" ]; then
     echo "❌ No deployment broadcast files found."

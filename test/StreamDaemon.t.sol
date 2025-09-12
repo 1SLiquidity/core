@@ -51,7 +51,7 @@ pragma solidity ^0.8.13;
 //         // Deploy StreamDaemon with the mock interface
 //         streamDaemon = new StreamDaemon(dexAddresses, routers);
 //     }
- 
+
 //     function testConstructorInitialization() public view {
 //         // Check that the universalDexInterface was set correctly
 //         // assertEq(address(streamDaemon.universalDexInterface()), address(mockDex)); DEPRECATED
@@ -116,7 +116,6 @@ pragma solidity ^0.8.13;
 //         (, uint256 maxReserveIn, uint256 maxReserveOut) =
 //             streamDaemon.findHighestReservesForTokenPair(TOKEN_A, TOKEN_B);
 //         uint256 alpha = maxReserveIn / (maxReserveOut * maxReserveOut);
-        
 
 //         // Calculate the expected sweet spot using our own sqrt implementation
 //         // The formula is: volume / sqrt(reserves * effectiveGas)

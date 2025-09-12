@@ -24,7 +24,7 @@ One click and the **DECAStream Protocol** will route your trade across the DEX w
 
 ### 🎯 Smart Trade Routing
 
-- **Multi-DEX Support**: Integrates with UniswapV2, UniswapV3, Sushiswap, PancakeSwap, Balancer, Curve, and 1inch
+- **Multi-DEX Support**: Integrates with UniswapV2, UniswapV3, Sushiswap, Balancer, Curve, and 1inch
 - **Price Optimization**: Automatically selects the DEX offering the best price for each trade
 - **Liquidity Analysis**: Evaluates pool depths to determine optimal trade sizes
 

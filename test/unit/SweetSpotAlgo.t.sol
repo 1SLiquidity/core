@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.30;
 
-import { console } from "forge-std/console.sol";
-import { Deploys } from "test/shared/Deploys.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { MockERC20 } from "test/mock/MockERC20.sol";
+import {console} from "forge-std/console.sol";
+import {Deploys} from "test/shared/Deploys.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {MockERC20} from "test/mock/MockERC20.sol";
 
 contract SweetSpotAlgoTest is Deploys {
     MockERC20 tokenIn;

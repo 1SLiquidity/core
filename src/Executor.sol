@@ -155,7 +155,7 @@ contract Executor {
         console.log("router:", router);
 
         // Approve the token being traded, not the pool
-        IERC20(tokenIn).approve(router, amountIn); // @audit should we reset approval to 0 first?
+        IERC20(tokenIn).forceApprove(router, amountIn); // @audit should we reset approval to 0 first?
 
         // Get initial balance of output token to calculate difference
         uint256 initialBalance = IERC20(tokenOut).balanceOf(address(this));
@@ -207,7 +207,7 @@ contract Executor {
         if (amountIn == 0) revert ZeroAmount();
 
         // Approve the token being traded to the 1inch router
-        IERC20(tokenIn).approve(router, amountIn);
+        IERC20(tokenIn).forceApprove(router, amountIn);
 
         // Get initial balance of output token to calculate difference
         uint256 initialBalance = IERC20(tokenOut).balanceOf(address(this));

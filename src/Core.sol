@@ -244,7 +244,7 @@ contract Core is Ownable, ReentrancyGuard /*, UUPSUpgradeable */ {
         // @audit may be better to abstract sweetSpot algo to here and pass the value along, since small (<0.001% pool depth) trades shouldn't be split at all and would save hefty logic
         // @audit edge cases wrt pool depths (specifically extremely small volume to volume reserves) create anomalies in the algo output
         // @audit similarly for the sake of OPTIMISTIC and DETERMINISTIC placement patterns, we should abstract the calculation of sweetSpot nad the definition of appropriate DEX into seperated, off contract functions
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
 
         uint256 tradeId = lastTradeId++;
         bytes32 pairId = keccak256(abi.encode(tokenIn, tokenOut)); //@audit optimise this

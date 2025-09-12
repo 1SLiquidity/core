@@ -16,7 +16,6 @@ For the initial mainnet launch, we are deploying with only **3 core DEXs**:
 
 - **UniswapV2** - Ethereum's most established DEX
 - **Sushiswap** - High liquidity alternative
-- **PancakeSwap** - Popular DEX with unique features
 
 **Why this approach?**
 
@@ -41,14 +40,13 @@ Storage    DEX Management   Reserve Fetching   Router Config   Trade Execution
 
 ## 📋 **Current Supported DEXes**
 
-| DEX         | Fetcher | Router | Status                             |
-| ----------- | ------- | ------ | ---------------------------------- |
-| UniswapV2   | ✅      | ✅     | Active                             |
-| Sushiswap   | ✅      | ✅     | Active                             |
-| PancakeSwap | ✅      | ✅     | Active                             |
-| UniswapV3   | 🔧      | 🔧     | Available (not in initial mainnet) |
-| Balancer    | 🔧      | 🔧     | Available (not in initial mainnet) |
-| Curve       | 🔧      | 🔧     | Available (not in initial mainnet) |
+| DEX       | Fetcher | Router | Status                             |
+| --------- | ------- | ------ | ---------------------------------- |
+| UniswapV2 | ✅      | ✅     | Active                             |
+| Sushiswap | ✅      | ✅     | Active                             |
+| UniswapV3 | 🔧      | 🔧     | Available (not in initial mainnet) |
+| Balancer  | 🔧      | 🔧     | Available (not in initial mainnet) |
+| Curve     | 🔧      | 🔧     | Available (not in initial mainnet) |
 
 **Legend**: ✅ = Initial Mainnet Deployment, 🔧 = Available for Retroactive Addition
 
@@ -57,8 +55,8 @@ Storage    DEX Management   Reserve Fetching   Router Config   Trade Execution
 ### **Step 1: Create DEX Fetcher**
 
 ```solidity
-// this example is solely for making a PancakeSwap fetcher. Different DEXs require custom implementations!!!
-contract PancakeSwapFetcher is IUniversalDexInterface {
+// Example fetcher implementation for a UniswapV2-compatible DEX
+contract ExampleFetcher is IUniversalDexInterface {
     address public factory;
 
     constructor(address _factory) {
@@ -71,7 +69,7 @@ contract PancakeSwapFetcher is IUniversalDexInterface {
         override
         returns (uint256 reserveA, uint256 reserveB)
     {
-        // N.B this is DEX specific, the following is simply an example for Pancake swap
+        // N.B this is DEX specific, the following is simply an example for UniswapV2-compatible DEX
         address pair = IUniswapV2Factory(factory).getPair(tokenA, tokenB);
         require(pair != address(0), "Pair does not exist");
 
@@ -95,7 +93,7 @@ contract PancakeSwapFetcher is IUniversalDexInterface {
     }
 
     function getDexType() external pure override returns (string memory) {
-        return "PancakeSwap"; // Must match Registry configuration
+        return "ExampleDEX"; // Must match Registry configuration
     }
 
     function getDexVersion() external pure override returns (string memory) {

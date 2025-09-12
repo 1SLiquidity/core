@@ -38,3 +38,10 @@ script/processes/deployment/Deploy.s.sol
 script/processes/deployment/DeployCrossChain.s.sol
 script/processes/deployment/VerifyDeployment.s.sol
 script/processes/deployment/AddPancakeSwap.s.sol
+
+decabot/node_modules
+alpha/node_modules
+bot/.env.example
+bot/node_modules
+bot/dist    
+.env.backup

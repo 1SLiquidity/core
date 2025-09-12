@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.30;
 
-import { Deploys } from "test/shared/Deploys.sol";
-import { MockERC20 } from "test/mock/MockERC20.sol";
+import {Deploys} from "test/shared/Deploys.sol";
+import {MockERC20} from "test/mock/MockERC20.sol";
 
 contract SweetSpotAlgo_Fuzz_Test is Deploys {
     MockERC20 tokenIn;
@@ -17,12 +17,7 @@ contract SweetSpotAlgo_Fuzz_Test is Deploys {
     }
 
     // Test fuzz pour les paramètres valides de sweetSpotAlgo
-    function testFuzz_SweetSpotAlgo_ValidInputs(
-        uint96 reserveIn,
-        uint96 reserveOut,
-        uint96 volume,
-        uint96 effectiveGas
-    )
+    function testFuzz_SweetSpotAlgo_ValidInputs(uint96 reserveIn, uint96 reserveOut, uint96 volume, uint96 effectiveGas)
         public
     {
         // Utiliser bound pour contrôler les plages de valeurs
@@ -47,9 +42,7 @@ contract SweetSpotAlgo_Fuzz_Test is Deploys {
         uint256 reserveOut,
         uint256 volume,
         uint256 effectiveGas
-    )
-        public
-    {
+    ) public {
         // Test avec reserveIn = 0
         if (reserveIn == 0 && reserveOut > 0 && effectiveGas > 0) {
             vm.expectRevert("No reserves or appropriate gas estimation");
@@ -82,9 +75,7 @@ contract SweetSpotAlgo_Fuzz_Test is Deploys {
         uint96 volume1,
         uint96 volume2,
         uint96 effectiveGas
-    )
-        public
-    {
+    ) public {
         // Utiliser bound pour contrôler les plages de valeurs
         uint256 boundedReserveIn = bound(uint256(reserveIn), 10 ** 18, type(uint96).max);
         uint256 boundedReserveOut = bound(uint256(reserveOut), 10 ** 18, type(uint96).max);
@@ -127,9 +118,7 @@ contract SweetSpotAlgo_Fuzz_Test is Deploys {
         uint96 reserveOut,
         uint96 volume,
         uint96 effectiveGas
-    )
-        public
-    {
+    ) public {
         // Utiliser bound pour contrôler les plages de valeurs
         uint256 boundedReserveIn = bound(uint256(reserveIn), 10 ** 18, type(uint96).max);
         uint256 boundedReserveOut = bound(uint256(reserveOut), 10 ** 18, type(uint96).max);
@@ -155,9 +144,7 @@ contract SweetSpotAlgo_Fuzz_Test is Deploys {
         uint96 reserveOut,
         uint96 volume,
         uint96 effectiveGas
-    )
-        public
-    {
+    ) public {
         // Utiliser bound pour contrôler les plages de valeurs
         uint256 boundedReserveIn = bound(uint256(reserveIn), 10 ** 18, type(uint96).max);
         uint256 boundedReserveOut = bound(uint256(reserveOut), 10 ** 18, type(uint96).max);
@@ -188,5 +175,4 @@ contract SweetSpotAlgo_Fuzz_Test is Deploys {
             "Different decimals sweet spot out of bounds"
         );
     }
-
 }
