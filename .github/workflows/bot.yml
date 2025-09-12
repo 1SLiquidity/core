@@ -17,9 +17,7 @@ jobs:
   run-bot:
     runs-on: ubuntu-latest
     timeout-minutes: 25
-    defaults:
-      run:
-        working-directory: bot # 👈 run commands inside your /bot dir
+    # Removed working-directory to avoid conflicts with cd commands
     env:
       # secrets — set these in GitHub → Settings → Secrets → Actions
       RPC_HTTP_URL: ${{ secrets.RPC_HTTP_URL }}
@@ -38,16 +36,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Verify bot directory exists
-        run: |
-          echo "Current directory: $(pwd)"
-          echo "Contents of current directory:"
-          ls -la
-          echo "Looking for bot directory:"
-          find . -name "bot" -type d 2>/dev/null || echo "No bot directory found"
-          echo "Looking for bot files:"
-          find . -name "package.json" -path "*/bot/*" 2>/dev/null || echo "No bot package.json found"
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -56,33 +44,18 @@ jobs:
 
       - name: Install dependencies
         run: |
-          if [ -d "bot" ]; then
-            cd bot
-            npm ci
-          else
-            echo "Bot directory not found, checking if we need to create it"
-            find . -name "package.json" -path "*/bot/*" -exec dirname {} \;
-          fi
+          cd bot
+          npm ci
 
       - name: Build bot
         run: |
-          if [ -d "bot" ]; then
-            cd bot
-            npm run build
-          else
-            echo "Cannot build - bot directory not found"
-            exit 1
-          fi
+          cd bot
+          npm run build
 
       - name: Run bot
         run: |
-          if [ -d "bot" ]; then
-            cd bot
-            node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
-          else
-            echo "Cannot run - bot directory not found"
-            exit 1
-          fi
+          cd bot
+          node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
 
       - name: Upload state.json
         if: always()
