@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.30;
 
-import { Test } from "forge-std/Test.sol";
-import { Deploys } from "test/shared/Deploys.sol";
-import { console } from "forge-std/console.sol";
-import { MockFetcher1, MockFetcher2 } from "test/mock/MockFetcher.sol";
-import { MockERC20 } from "test/mock/MockERC20.sol";
-import { StreamDaemon } from "src/StreamDaemon.sol";
+import {Test} from "forge-std/Test.sol";
+import {Deploys} from "test/shared/Deploys.sol";
+import {console} from "forge-std/console.sol";
+import {MockFetcher1, MockFetcher2} from "test/mock/MockFetcher.sol";
+import {MockERC20} from "test/mock/MockERC20.sol";
+import {StreamDaemon} from "src/StreamDaemon.sol";
 
 contract BestFetcherTest is Deploys {
     MockFetcher1 dex1;

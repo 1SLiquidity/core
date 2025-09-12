@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.30;
 
-import { Test } from "forge-std/Test.sol";
-import { DeployExecutor } from "script/deployment/DeployExecutor.s.sol";
-import { DeployStreamDaemon } from "script/deployment/DeployStreamDaemon.s.sol";
-import { HelperConfig } from "script/deployment/HelperConfig.s.sol";
-import { DeployRegistry } from "script/deployment/DeployRegistry.s.sol";
-import { DeployCore } from "script/deployment/DeployCore.s.sol";
-import { StreamDaemon } from "src/StreamDaemon.sol";
-import { Executor } from "src/Executor.sol";
-import { Registry } from "src/Registry.sol";
-import { Core } from "src/Core.sol";
+import {Test} from "forge-std/Test.sol";
+import {DeployExecutor} from "script/deployment/DeployExecutor.s.sol";
+import {DeployStreamDaemon} from "script/deployment/DeployStreamDaemon.s.sol";
+import {HelperConfig} from "script/deployment/HelperConfig.s.sol";
+import {DeployRegistry} from "script/deployment/DeployRegistry.s.sol";
+import {DeployCore} from "script/deployment/DeployCore.s.sol";
+import {StreamDaemon} from "src/StreamDaemon.sol";
+import {Executor} from "src/Executor.sol";
+import {Registry} from "src/Registry.sol";
+import {Core} from "src/Core.sol";
 
 contract Deploys is Test {
     HelperConfig.DexTypeRouter[] public activeDexTypesRouters;
