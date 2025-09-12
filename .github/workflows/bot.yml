@@ -44,9 +44,18 @@ jobs:
           cache: "npm"
           cache-dependency-path: bot/package.json
 
-      - run: npm ci
-      - run: npm run build
-      - run: node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
+      - name: Install dependencies
+        run: |
+          cd bot
+          npm ci
+
+      - name: Build bot
+        run: |
+          cd bot
+          npm run build
+
+      - name: Run bot
+        run: node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
 
       - name: Upload state.json
         if: always()
