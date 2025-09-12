@@ -30,7 +30,7 @@ jobs:
 
       # optional non-secret config (can also be repo variables)
       # LOG_CHUNK: ${{ vars.LOG_CHUNK || '2000' }}
-      # STATE_FILE: ${{ vars.STATE_FILE || './state.json' }}
+      STATE_FILE: ${{ vars.STATE_FILE || './state.json' }}
       # MAX_PARALLEL_TX: ${{ vars.MAX_PARALLEL_TX || '3' }}
       # GAS_MULTIPLIER: ${{ vars.GAS_MULTIPLIER || '1.1' }}
       # CONFIRMATIONS: ${{ vars.CONFIRMATIONS || '2' }}
@@ -62,5 +62,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: state-${{ github.run_id }}
-          path: ${{ env.STATE_FILE }}
+          path: bot/${{ env.STATE_FILE }}
           if-no-files-found: warn
