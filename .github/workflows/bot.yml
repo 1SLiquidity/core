@@ -1,66 +1,66 @@
-# .github/workflows/settlement-bot.yml
-name: Settlement Bot (cron)
+# # .github/workflows/settlement-bot.yml
+# name: Settlement Bot (cron)
 
-on:
-  schedule:
-    - cron: "*/1 * * * *" # run every 5 minutes
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: "Run mode (only 'once' supported in CI)"
-        required: true
-        default: "once"
-        type: choice
-        options: ["once"]
+# on:
+#   schedule:
+#     - cron: "*/1 * * * *" # run every 5 minutes
+#   workflow_dispatch:
+#     inputs:
+#       mode:
+#         description: "Run mode (only 'once' supported in CI)"
+#         required: true
+#         default: "once"
+#         type: choice
+#         options: ["once"]
 
-jobs:
-  run-bot:
-    runs-on: ubuntu-latest
-    timeout-minutes: 25
-    # Removed working-directory to avoid conflicts with cd commands
-    env:
-      # secrets — set these in GitHub → Settings → Secrets → Actions
-      RPC_HTTP_URL: ${{ secrets.RPC_HTTP_URL }}
-      CONTRACT_ADDRESS: "0x3875b8b82e58733c1667224eb8bf5f449d7dbb74"
-      DEPLOYMENT_BLOCK: "23291452"
-      PRIVATE_KEY: ${{ secrets.DFGSDFGTEH_PRIVATE_KEY }}
-      CHAIN_ID: "1"
+# jobs:
+#   run-bot:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 25
+#     # Removed working-directory to avoid conflicts with cd commands
+#     env:
+#       # secrets — set these in GitHub → Settings → Secrets → Actions
+#       RPC_HTTP_URL: ${{ secrets.RPC_HTTP_URL }}
+#       CONTRACT_ADDRESS: "0x3875b8b82e58733c1667224eb8bf5f449d7dbb74"
+#       DEPLOYMENT_BLOCK: "23291452"
+#       PRIVATE_KEY: ${{ secrets.DFGSDFGTEH_PRIVATE_KEY }}
+#       CHAIN_ID: "1"
 
-      # optional non-secret config (can also be repo variables)
-      # LOG_CHUNK: ${{ vars.LOG_CHUNK || '2000' }}
-      STATE_FILE: ${{ vars.STATE_FILE || './state.json' }}
-      # MAX_PARALLEL_TX: ${{ vars.MAX_PARALLEL_TX || '3' }}
-      # GAS_MULTIPLIER: ${{ vars.GAS_MULTIPLIER || '1.1' }}
-      # CONFIRMATIONS: ${{ vars.CONFIRMATIONS || '2' }}
-      WS_URL: ${{ secrets.WS_URL }} # not needed in cron mode
-    steps:
-      - uses: actions/checkout@v4
+#       # optional non-secret config (can also be repo variables)
+#       # LOG_CHUNK: ${{ vars.LOG_CHUNK || '2000' }}
+#       STATE_FILE: ${{ vars.STATE_FILE || './state.json' }}
+#       # MAX_PARALLEL_TX: ${{ vars.MAX_PARALLEL_TX || '3' }}
+#       # GAS_MULTIPLIER: ${{ vars.GAS_MULTIPLIER || '1.1' }}
+#       # CONFIRMATIONS: ${{ vars.CONFIRMATIONS || '2' }}
+#       WS_URL: ${{ secrets.WS_URL }} # not needed in cron mode
+#     steps:
+#       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
-          cache-dependency-path: bot/package.json
+#       - uses: actions/setup-node@v4
+#         with:
+#           node-version: 20
+#           cache: "npm"
+#           cache-dependency-path: bot/package.json
 
-      - name: Install dependencies
-        run: |
-          cd bot
-          npm ci
+#       - name: Install dependencies
+#         run: |
+#           cd bot
+#           npm ci
 
-      - name: Build bot
-        run: |
-          cd bot
-          npm run build
+#       - name: Build bot
+#         run: |
+#           cd bot
+#           npm run build
 
-      - name: Run bot
-        run: |
-          cd bot
-          node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
+#       - name: Run bot
+#         run: |
+#           cd bot
+#           node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
 
-      - name: Upload state.json
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: state-${{ github.run_id }}
-          path: bot/state.json
-          if-no-files-found: warn
+#       - name: Upload state.json
+#         if: always()
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: state-${{ github.run_id }}
+#           path: bot/state.json
+#           if-no-files-found: warn
