@@ -1,7 +1,13 @@
 import { ethers } from 'ethers';
 import pLimit from 'p-limit';
 import type { BotState, StateStore } from './state.js';
-import CoreABI from './abi/Core.min.json';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const CoreABI = JSON.parse(readFileSync(join(__dirname, 'abi', 'Core.min.json'), 'utf8'));
 
 export class Executor {
   private read: ethers.Contract;
