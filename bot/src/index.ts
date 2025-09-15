@@ -40,6 +40,7 @@ async function main() {
   if (mode === 'once') {
     console.log('[mode] once (cron-friendly)');
     await executor.executeOutstanding(state, store);
+    console.log('[main] execution completed successfully');
     return;
   }
 

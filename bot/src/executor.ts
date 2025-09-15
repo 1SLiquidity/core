@@ -25,12 +25,20 @@ export class Executor {
   async executeOutstanding(state: BotState, store: StateStore) {
     const limit = pLimit(this.maxParallelTx);
     const pairIds = Object.keys(state.pairs);
+    
+    console.log(`[execute] processing ${pairIds.length} pairs: ${pairIds.slice(0, 5).join(', ')}${pairIds.length > 5 ? '...' : ''}`);
 
     await Promise.all(
       pairIds.map((pid) =>
         limit(async () => {
           const P = state.pairs[pid];
-          if (P.tradeIds.every((tid) => P.trades[tid].completed)) return;
+          const incompleteTrades = P.tradeIds.filter(tid => !P.trades[tid].completed);
+          console.log(`[execute] pairId=${pid}: ${incompleteTrades.length}/${P.tradeIds.length} incomplete trades`);
+          
+          if (P.tradeIds.every((tid) => P.trades[tid].completed)) {
+            console.log(`[execute] pairId=${pid}: all trades completed, skipping`);
+            return;
+          }
 
           const queue: bigint[] = await this.read.getPairIdTradeIds(pid);
           if (queue.length === 0) {

@@ -18,10 +18,17 @@ export async function coldScan(
 ) {
   const latest = await provider.getBlockNumber();
   let start = Number(state.lastScannedBlock > 0n ? state.lastScannedBlock : fromBlock);
+  
+  console.log(`[scan] starting from block ${start} to ${latest} (${latest - start + 1} blocks)`);
+  console.log(`[scan] using chunk size: ${chunk}`);
 
   while (start <= latest) {
     const end = Math.min(start + chunk - 1, latest);
+    console.log(`[scan] processing blocks ${start}-${end} (${end - start + 1} blocks)`);
+    
     const logs = await provider.getLogs({ address, fromBlock: start, toBlock: end });
+    console.log(`[scan] found ${logs.length} logs in blocks ${start}-${end}`);
+    
     for (const log of logs) {
       let ev: ethers.LogDescription | null = null;
       try {
@@ -42,6 +49,7 @@ export async function coldScan(
         const realisedAmountOut = BigInt(ev.args.realisedAmountOut.toString());
         const lastSweetSpot = BigInt(ev.args.lastSweetSpot.toString());
         const completed = lastSweetSpot === 0n && amountRemaining === 0n;
+        console.log(`[scan] TradeCreated: tradeId=${tradeId}, pairId=${pairId}, completed=${completed}`);
         store.upsertTrade(state, {
           tradeId,
           pairId,
@@ -77,6 +85,10 @@ export async function coldScan(
     }
     state.lastScannedBlock = BigInt(end + 1);
     store.save(state);
+    console.log(`[scan] completed blocks ${start}-${end}, saved state`);
     start = end + 1;
   }
+  
+  console.log(`[scan] cold scan completed! Scanned from ${fromBlock} to ${latest}`);
+  console.log(`[scan] found ${Object.keys(state.pairs).length} pairs with trades`);
 }
