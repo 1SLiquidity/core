@@ -49,6 +49,16 @@ jobs:
           path: bot/
         continue-on-error: true
 
+      - name: Check state download
+        run: |
+          echo "Checking if state was downloaded..."
+          if [ -f bot/state.json ]; then
+            echo "✅ State file found! Contents:"
+            cat bot/state.json
+          else
+            echo "❌ No state file found, will start from deployment block"
+          fi
+
       - name: Install dependencies
         run: |
           cd bot
