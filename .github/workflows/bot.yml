@@ -54,18 +54,36 @@ jobs:
           echo "Building bot in $(pwd)"
           echo "Contents before build:"
           ls -la
-          npm run build
+          echo "Running npm run build with verbose output:"
+          npm run build 2>&1 || {
+            echo "Build failed! Checking for errors:"
+            echo "TypeScript config:"
+            cat tsconfig.json || echo "No tsconfig.json found"
+            echo "Package.json scripts:"
+            cat package.json | grep -A 5 -B 5 "scripts" || echo "No scripts found"
+            exit 1
+          }
           echo "Contents after build:"
           ls -la
           echo "Checking dist directory:"
           ls -la dist/ || echo "dist directory not found"
+          echo "Checking if dist/index.js exists:"
+          test -f dist/index.js && echo "dist/index.js exists" || echo "dist/index.js missing"
 
       - name: Run bot
         run: |
           cd bot
           echo "Running bot in $(pwd)"
           echo "Checking if dist/index.js exists:"
-          ls -la dist/index.js || echo "dist/index.js not found"
+          if [ ! -f dist/index.js ]; then
+            echo "ERROR: dist/index.js not found! Build must have failed."
+            echo "Contents of bot directory:"
+            ls -la
+            echo "Contents of dist directory:"
+            ls -la dist/ || echo "dist directory does not exist"
+            exit 1
+          fi
+          echo "dist/index.js found, running bot..."
           node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
 
       - name: Upload state.json
