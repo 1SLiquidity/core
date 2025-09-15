@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
 import pLimit from 'p-limit';
 import type { BotState, StateStore } from './state.js';
-import CoreABI from './abi/Core.min.json' assert { type: 'json' };
+import CoreABI from './abi/Core.min.json';
 
 export class Executor {
   private read: ethers.Contract;

@@ -67,24 +67,26 @@ jobs:
           ls -la
           echo "Checking dist directory:"
           ls -la dist/ || echo "dist directory not found"
-          echo "Checking if dist/index.js exists:"
-          test -f dist/index.js && echo "dist/index.js exists" || echo "dist/index.js missing"
+          echo "Checking if dist/src/index.js exists:"
+          test -f dist/src/index.js && echo "dist/src/index.js exists" || echo "dist/src/index.js missing"
 
       - name: Run bot
         run: |
           cd bot
           echo "Running bot in $(pwd)"
-          echo "Checking if dist/index.js exists:"
-          if [ ! -f dist/index.js ]; then
-            echo "ERROR: dist/index.js not found! Build must have failed."
+          echo "Checking if dist/src/index.js exists:"
+          if [ ! -f dist/src/index.js ]; then
+            echo "ERROR: dist/src/index.js not found! Build must have failed."
             echo "Contents of bot directory:"
             ls -la
             echo "Contents of dist directory:"
             ls -la dist/ || echo "dist directory does not exist"
+            echo "Contents of dist/src directory:"
+            ls -la dist/src/ || echo "dist/src directory does not exist"
             exit 1
           fi
-          echo "dist/index.js found, running bot..."
-          node dist/index.js --mode ${{ github.event.inputs.mode || 'once' }}
+          echo "dist/src/index.js found, running bot..."
+          node dist/src/index.js --mode ${{ github.event.inputs.mode || 'once' }}
 
       - name: Upload state.json
         if: always()
