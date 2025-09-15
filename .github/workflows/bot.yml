@@ -42,6 +42,13 @@ jobs:
           cache: "npm"
           cache-dependency-path: bot/package.json
 
+      - name: Download previous state
+        uses: actions/download-artifact@v4
+        with:
+          name: state-${{ github.run_id - 1 }}
+          path: bot/
+        continue-on-error: true
+
       - name: Install dependencies
         run: |
           cd bot
