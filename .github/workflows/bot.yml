@@ -27,7 +27,7 @@ jobs:
       CHAIN_ID: "1"
 
       # optional non-secret config (can also be repo variables)
-      # LOG_CHUNK: ${{ vars.LOG_CHUNK || '2000' }}
+      LOG_CHUNK: ${{ vars.LOG_CHUNK || '500' }}
       STATE_FILE: ${{ vars.STATE_FILE || './state.json' }}
       # MAX_PARALLEL_TX: ${{ vars.MAX_PARALLEL_TX || '3' }}
       # GAS_MULTIPLIER: ${{ vars.GAS_MULTIPLIER || '1.1' }}

@@ -8,6 +8,32 @@ const I = new ethers.Interface([
   'event TradeSettled(uint256 indexed tradeId, address indexed settler, uint256 totalAmountIn, uint256 totalAmountOut, uint256 totalFees)',
 ]);
 
+// Helper function to add delay between requests
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to retry requests with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error: any) {
+      if (error.code === 'BAD_DATA' && error.value?.[1]?.code === -32005) {
+        // Rate limit error
+        const delayMs = baseDelay * Math.pow(2, attempt);
+        console.log(`[scan] rate limited, retrying in ${delayMs}ms (attempt ${attempt + 1}/${maxRetries})`);
+        await delay(delayMs);
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error(`Failed after ${maxRetries} attempts`);
+}
+
 export async function coldScan(
   provider: ethers.JsonRpcProvider,
   address: string,
@@ -18,17 +44,22 @@ export async function coldScan(
 ) {
   const latest = await provider.getBlockNumber();
   let start = Number(state.lastScannedBlock > 0n ? state.lastScannedBlock : fromBlock);
-  
+
   console.log(`[scan] starting from block ${start} to ${latest} (${latest - start + 1} blocks)`);
   console.log(`[scan] using chunk size: ${chunk}`);
 
   while (start <= latest) {
     const end = Math.min(start + chunk - 1, latest);
     console.log(`[scan] processing blocks ${start}-${end} (${end - start + 1} blocks)`);
-    
-    const logs = await provider.getLogs({ address, fromBlock: start, toBlock: end });
+
+    const logs = await retryWithBackoff(async () => {
+      const result = await provider.getLogs({ address, fromBlock: start, toBlock: end });
+      // Add small delay between requests to avoid rate limits
+      await delay(100);
+      return result;
+    });
     console.log(`[scan] found ${logs.length} logs in blocks ${start}-${end}`);
-    
+
     for (const log of logs) {
       let ev: ethers.LogDescription | null = null;
       try {
@@ -49,7 +80,9 @@ export async function coldScan(
         const realisedAmountOut = BigInt(ev.args.realisedAmountOut.toString());
         const lastSweetSpot = BigInt(ev.args.lastSweetSpot.toString());
         const completed = lastSweetSpot === 0n && amountRemaining === 0n;
-        console.log(`[scan] TradeCreated: tradeId=${tradeId}, pairId=${pairId}, completed=${completed}`);
+        console.log(
+          `[scan] TradeCreated: tradeId=${tradeId}, pairId=${pairId}, completed=${completed}`,
+        );
         store.upsertTrade(state, {
           tradeId,
           pairId,
@@ -88,7 +121,7 @@ export async function coldScan(
     console.log(`[scan] completed blocks ${start}-${end}, saved state`);
     start = end + 1;
   }
-  
+
   console.log(`[scan] cold scan completed! Scanned from ${fromBlock} to ${latest}`);
   console.log(`[scan] found ${Object.keys(state.pairs).length} pairs with trades`);
 }
