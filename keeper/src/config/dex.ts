@@ -1,4 +1,5 @@
 import { ethers } from 'ethers';
+import { CURVE_POOL_METADATA } from '../../data/curve-config';
 
 // Contract Addresses
 export const CONTRACT_ADDRESSES = {
@@ -13,8 +14,13 @@ export const CONTRACT_ADDRESSES = {
   SUSHISWAP: {
     ROUTER: '0xd9e1cE17f2641f24aE83637ab66a2cca9C378B9F',
     FACTORY: '0xC0AEe478e3658e2610c5F7A4A2E1777cE9e4f2Ac'
+  },
+  CURVE: {
+    REGISTRY: '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5'
   }
 };
+
+export { CURVE_POOL_METADATA };
 
 // Contract ABIs
 export const CONTRACT_ABIS = {
@@ -62,6 +68,22 @@ export const CONTRACT_ABIS = {
       'function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
       'function token0() external view returns (address)',
       'function token1() external view returns (address)'
+    ]
+  },
+  CURVE: {
+    POOL: [
+      'function get_dy(int128 i, int128 j, uint256 dx) external view returns (uint256)',
+      'function balances(uint256 arg0) external view returns (uint256)',
+      'function coins(uint256 i) external view returns (address)',
+      'function coins(uint256 i) external view returns (address)',
+      'function A() external view returns (uint256)',
+      'function fee() external view returns (uint256)'
+    ],
+    REGISTRY: [
+      'function get_pool_from_lp_token(address lp_token) external view returns (address)',
+      'function get_lp_token(address pool) external view returns (address)',
+      'function get_coins(address pool) external view returns (address[8] memory)',
+      'function get_underlying_coins(address pool) external view returns (address[8] memory)'
     ]
   }
 };
