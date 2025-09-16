@@ -6,7 +6,9 @@ import {
   StreamFeesTaken,
   InstasettleFeeTaken,
   FeesClaimed,
-  FeeRatesUpdated
+  FeeRatesUpdated,
+  LowLevelError,
+  DataError
 } from '../generated/Core/Core'
 import {
   DEXRouteAdded,
@@ -21,7 +23,9 @@ import {
   InstasettleFee,
   DEXRoute,
   FeeClaim,
-  FeeRateUpdate
+  FeeRateUpdate,
+  LowLevelError as LowLevelErrorEntity,
+  DataError as DataErrorEntity
 } from '../generated/schema'
 import { BigInt, Bytes } from '@graphprotocol/graph-ts'
 
@@ -44,11 +48,11 @@ export function handleTradeCreated(event: TradeCreated): void {
 }
 
 export function handleTradeStreamExecuted(event: TradeStreamExecuted): void {
-  let trade = Trade.load(event.params.tradeId.toString())
-  if (trade == null) return
+  // let trade = Trade.load(event.params.tradeId.toString())
+  // if (trade == null) return
 
   let execution = new TradeExecution(event.transaction.hash.toHexString() + '-' + event.logIndex.toString())
-  execution.trade = trade.id
+  execution.trade = event.params.tradeId.toString()
   execution.amountIn = event.params.amountIn
   execution.realisedAmountOut = event.params.realisedAmountOut
   execution.lastSweetSpot = event.params.lastSweetSpot
@@ -56,10 +60,10 @@ export function handleTradeStreamExecuted(event: TradeStreamExecuted): void {
   execution.save()
 
   // Update trade state
-  trade.amountRemaining = trade.amountRemaining.minus(event.params.amountIn)
-  trade.realisedAmountOut = trade.realisedAmountOut.plus(event.params.realisedAmountOut)
-  trade.lastSweetSpot = event.params.lastSweetSpot
-  trade.save()
+  // trade.amountRemaining = trade.amountRemaining.minus(event.params.amountIn)
+  // trade.realisedAmountOut = trade.realisedAmountOut.plus(event.params.realisedAmountOut)
+  // trade.lastSweetSpot = event.params.lastSweetSpot
+  // trade.save()
 }
 
 export function handleTradeCancelled(event: TradeCancelled): void {
@@ -162,4 +166,18 @@ export function handleFeeRatesUpdated(event: FeeRatesUpdated): void {
   feeRateUpdate.instasettleProtocolFeeBps = event.params.instasettleProtocolFeeBps
   feeRateUpdate.timestamp = event.block.timestamp
   feeRateUpdate.save()
+}
+
+export function handleLowLevelError(event: LowLevelError): void {
+  let lowLevelError = new LowLevelErrorEntity(event.transaction.hash.toHexString() + '-' + event.logIndex.toString())
+  lowLevelError.error = event.params.error
+  lowLevelError.timestamp = event.block.timestamp
+  lowLevelError.save()
+}
+
+export function handleDataError(event: DataError): void {
+  let dataError = new DataErrorEntity(event.transaction.hash.toHexString() + '-' + event.logIndex.toString())
+  dataError.error = event.params.error
+  dataError.timestamp = event.block.timestamp
+  dataError.save()
 } 

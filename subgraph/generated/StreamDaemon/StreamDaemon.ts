@@ -505,38 +505,6 @@ export class StreamDaemon extends ethereum.SmartContract {
     );
   }
 
-  findLowestPriceForTokenPair(tokenIn: Address, tokenOut: Address): BigInt {
-    let result = super.call(
-      "findLowestPriceForTokenPair",
-      "findLowestPriceForTokenPair(address,address):(uint256)",
-      [
-        ethereum.Value.fromAddress(tokenIn),
-        ethereum.Value.fromAddress(tokenOut),
-      ],
-    );
-
-    return result[0].toBigInt();
-  }
-
-  try_findLowestPriceForTokenPair(
-    tokenIn: Address,
-    tokenOut: Address,
-  ): ethereum.CallResult<BigInt> {
-    let result = super.tryCall(
-      "findLowestPriceForTokenPair",
-      "findLowestPriceForTokenPair(address,address):(uint256)",
-      [
-        ethereum.Value.fromAddress(tokenIn),
-        ethereum.Value.fromAddress(tokenOut),
-      ],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(value[0].toBigInt());
-  }
-
   owner(): Address {
     let result = super.call("owner", "owner():(address)", []);
 

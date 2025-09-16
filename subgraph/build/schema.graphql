@@ -91,4 +91,16 @@ type FeeRateUpdate @entity {
   streamBotFeeBps: Int!
   instasettleProtocolFeeBps: Int!
   timestamp: BigInt!
+}
+
+type LowLevelError @entity {
+  id: ID!
+  error: String!
+  timestamp: BigInt!
+}
+
+type DataError @entity {
+  id: ID!
+  error: Bytes!
+  timestamp: BigInt!
 } 

@@ -2,9 +2,14 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { ethers } from 'ethers';
 import { PriceAggregator, DexType } from '../../services/price-aggregator';
 import { getCache, setCache, generateCacheKey } from '../../utils/redis';
+import { initializeCurveFiltering } from '../../services/curve-initializer';
+import { CURVE_POOL_METADATA } from '../../../data/curve-config';
 
 const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
 const priceAggregator = new PriceAggregator(provider);
+
+// Initialize Curve smart filtering (only price aggregator needed)
+priceAggregator.initializeCurvePoolFilter(CURVE_POOL_METADATA);
 
 // Cache TTL in seconds
 const CACHE_TTL = 10;
@@ -13,6 +18,7 @@ interface PriceRequest {
   tokenA: string;
   tokenB: string;
   dex?: DexType; // Optional: specify which DEX to query
+  poolAddress?: string; // Optional: specify pool address for Curve DEX
 }
 
 function validateTokenAddress(address: string): boolean {
@@ -33,12 +39,14 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
     let tokenA: string | undefined;
     let tokenB: string | undefined;
     let dex: DexType | undefined;
+    let poolAddress: string | undefined;
 
     // Handle both GET and POST requests
     if (event.httpMethod === 'GET') {
       tokenA = event.queryStringParameters?.tokenA;
       tokenB = event.queryStringParameters?.tokenB;
       dex = event.queryStringParameters?.dex as DexType | undefined;
+      poolAddress = event.queryStringParameters?.poolAddress;
     } else if (event.httpMethod === 'POST') {
       const body = parseRequestBody(event);
       if (!body) {
@@ -54,6 +62,7 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
       tokenA = body.tokenA;
       tokenB = body.tokenB;
       dex = body.dex;
+      poolAddress = body.poolAddress;
     }
 
     if (!tokenA || !tokenB) {
@@ -101,7 +110,7 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
     
     if (dex) {
       // Fetch price from specific DEX
-      response = await priceAggregator.getPriceFromDex(tokenA, tokenB, dex);
+      response = await priceAggregator.getPriceFromDex(tokenA, tokenB, dex, poolAddress);
       if (!response) {
         return {
           statusCode: 404,
@@ -109,7 +118,7 @@ export const main = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxy
             'Content-Type': 'application/json',
             'Access-Control-Allow-Origin': '*'
           },
-          body: JSON.stringify({ error: `No price found for ${tokenA}-${tokenB} on ${dex}` })
+          body: JSON.stringify({ error: `No price found for ${tokenA}-${tokenB} on ${dex}${poolAddress ? ` (${poolAddress})` : ''}` })
         };
       }
     } else {
