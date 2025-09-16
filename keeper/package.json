@@ -17,6 +17,7 @@
     "db:studio": "npx prisma studio",
     "db:push": "npx prisma db push",
     "db:test": "ts-node -e \"import DatabaseService from './src/services/database-service'; DatabaseService.getInstance().testConnection().then(() => console.log('✅ Database connection successful')).catch(console.error)\"",
+    "curve:fetch": "ts-node src/scripts/fetch-curve-pools.ts",
     "deploy:dev": "serverless deploy --stage dev",
     "deploy:prod": "serverless deploy --stage prod",
     "api:dev": "ts-node src/api/server.ts",

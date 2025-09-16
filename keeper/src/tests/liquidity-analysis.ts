@@ -1,12 +1,16 @@
 import { createProvider } from '../utils/provider'
 import { ReservesAggregator } from '../services/reserves-aggregator'
 import { TokenService } from '../services/token-service'
-import DatabaseService from '../services/database-service'
+// import DatabaseService from '../services/database-service'
 import * as dotenv from 'dotenv'
 import * as XLSX from 'xlsx'
 import * as fs from 'fs'
 import * as path from 'path'
-import { CONTRACT_ABIS, CONTRACT_ADDRESSES } from '../config/dex'
+import {
+  CONTRACT_ABIS,
+  CONTRACT_ADDRESSES,
+  CURVE_POOL_METADATA,
+} from '../config/dex'
 import { ethers } from 'ethers'
 
 // Load environment variables
@@ -16,6 +20,9 @@ dotenv.config()
 const provider = createProvider()
 const reservesAggregator = new ReservesAggregator(provider)
 const tokenService = TokenService.getInstance(provider)
+
+// Initialize Curve smart filtering
+reservesAggregator.initializeCurvePoolFilter(CURVE_POOL_METADATA)
 
 // Base tokens to test against (Ethereum addresses)
 const BASE_TOKENS = {
@@ -87,6 +94,7 @@ function calculateTotalReserves(
     ? [
         'reservesAUniswapV2',
         'reservesASushiswap',
+        'reservesACurve',
         // 'reservesAUniswapV3_500',
         // 'reservesAUniswapV3_3000',
         // 'reservesAUniswapV3_10000',
@@ -94,6 +102,7 @@ function calculateTotalReserves(
     : [
         'reservesBUniswapV2',
         'reservesBSushiswap',
+        'reservesBCurve',
         // 'reservesBUniswapV3_500',
         // 'reservesBUniswapV3_3000',
         // 'reservesBUniswapV3_10000',
@@ -674,6 +683,7 @@ async function getAllReservesForPair(
     // { name: 'uniswap-v3-10000', fee: 10000 },
     { name: 'uniswapV2', fee: null },
     { name: 'sushiswap', fee: null },
+    { name: 'curve', fee: null },
   ]
 
   for (const dex of dexes) {
@@ -687,7 +697,7 @@ async function getAllReservesForPair(
           `uniswapV3_${dex.fee}` as any
         )
       } else {
-        // Uniswap V2 or SushiSwap
+        // Uniswap V2, SushiSwap, or Curve
         reserves = await reservesAggregator.getReservesFromDex(
           tokenA,
           tokenB,
@@ -759,58 +769,58 @@ async function saveTokenToJson(
 }
 
 // Database saving function - transforms row-based data to column-based format with upsert functionality
-async function saveToDatabase(
-  results: TokenLiquiditySummary[],
-  timestamp: string
-): Promise<void> {
-  console.log('\nSaving liquidity data to database...')
+// async function saveToDatabase(
+//   results: TokenLiquiditySummary[],
+//   timestamp: string
+// ): Promise<void> {
+//   console.log('\nSaving liquidity data to database...')
 
-  const dbService = DatabaseService.getInstance()
+//   const dbService = DatabaseService.getInstance()
 
-  try {
-    await dbService.connect()
+//   try {
+//     await dbService.connect()
 
-    // Transform data from row-based (one row per DEX) to column-based (one row per token pair)
-    const transformedData = await transformToColumnFormat(results, timestamp)
+//     // Transform data from row-based (one row per DEX) to column-based (one row per token pair)
+//     const transformedData = await transformToColumnFormat(results, timestamp)
 
-    console.log('transformedData =====>', transformedData)
-    console.log(
-      `📊 Transformed ${results.length} token summaries into ${transformedData.length} database records`
-    )
+//     console.log('transformedData =====>', transformedData)
+//     console.log(
+//       `📊 Transformed ${results.length} token summaries into ${transformedData.length} database records`
+//     )
 
-    // Save data in batches with upsert functionality
-    const batchSize = 50
-    let saved = 0
+//     // Save data in batches with upsert functionality
+//     const batchSize = 50
+//     let saved = 0
 
-    for (let i = 0; i < transformedData.length; i += batchSize) {
-      const batch = transformedData.slice(i, i + batchSize)
+//     for (let i = 0; i < transformedData.length; i += batchSize) {
+//       const batch = transformedData.slice(i, i + batchSize)
 
-      console.log(
-        `💾 Saving batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(
-          transformedData.length / batchSize
-        )} (${batch.length} records)`
-      )
+//       console.log(
+//         `💾 Saving batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(
+//           transformedData.length / batchSize
+//         )} (${batch.length} records)`
+//       )
 
-      // Use upsert functionality to update existing records or create new ones
-      await dbService.upsertBatchLiquidityData(batch)
-      saved += batch.length
+//       // Use upsert functionality to update existing records or create new ones
+//       await dbService.upsertBatchLiquidityData(batch)
+//       saved += batch.length
 
-      // Small delay between batches
-      if (i + batchSize < transformedData.length) {
-        await new Promise((resolve) => setTimeout(resolve, 100))
-      }
-    }
+//       // Small delay between batches
+//       if (i + batchSize < transformedData.length) {
+//         await new Promise((resolve) => setTimeout(resolve, 100))
+//       }
+//     }
 
-    console.log(
-      `✅ Successfully upserted ${saved} liquidity records to database`
-    )
-  } catch (error) {
-    console.error('❌ Error saving to database:', error)
-    throw error
-  } finally {
-    await dbService.disconnect()
-  }
-}
+//     console.log(
+//       `✅ Successfully upserted ${saved} liquidity records to database`
+//     )
+//   } catch (error) {
+//     console.error('❌ Error saving to database:', error)
+//     throw error
+//   } finally {
+//     await dbService.disconnect()
+//   }
+// }
 
 // Transform the liquidity data from row-based format to column-based format for database
 async function transformToColumnFormat(
@@ -845,6 +855,8 @@ async function transformToColumnFormat(
           reservesBUniswapV2: null,
           reservesASushiswap: null,
           reservesBSushiswap: null,
+          reservesACurve: null,
+          reservesBCurve: null,
           reservesAUniswapV3_500: null,
           reservesBUniswapV3_500: null,
           reservesAUniswapV3_3000: null,
@@ -866,6 +878,12 @@ async function transformToColumnFormat(
           record.reservesASushiswap = pair.reserves.token0
           record.reservesBSushiswap = pair.reserves.token1
           break
+        case 'curve':
+        case 'curve-':
+          // Handle both 'curve' and 'curve-{poolAddress}' formats
+          record.reservesACurve = pair.reserves.token0
+          record.reservesBCurve = pair.reserves.token1
+          break
         // case 'uniswap-v3-500':
         //   record.reservesAUniswapV3_500 = pair.reserves.token0
         //   record.reservesBUniswapV3_500 = pair.reserves.token1
@@ -879,7 +897,13 @@ async function transformToColumnFormat(
         //   record.reservesBUniswapV3_10000 = pair.reserves.token1
         //   break
         default:
-          console.warn(`⚠️  Unknown DEX: ${pair.dex}`)
+          // Handle Curve pools with specific addresses (curve-{address})
+          if (pair.dex.startsWith('curve-')) {
+            record.reservesACurve = pair.reserves.token0
+            record.reservesBCurve = pair.reserves.token1
+          } else {
+            console.warn(`⚠️  Unknown DEX: ${pair.dex}`)
+          }
       }
     })
   })
@@ -908,6 +932,7 @@ async function transformToColumnFormat(
     const reservesA = [
       { dex: 'uniswap-v2', reserve: record.reservesAUniswapV2 },
       { dex: 'sushiswap', reserve: record.reservesASushiswap },
+      { dex: 'curve', reserve: record.reservesACurve },
       // { dex: 'uniswap-v3-500', reserve: record.reservesAUniswapV3_500 },
       // { dex: 'uniswap-v3-3000', reserve: record.reservesAUniswapV3_3000 },
       // { dex: 'uniswap-v3-10000', reserve: record.reservesAUniswapV3_10000 },
@@ -916,6 +941,7 @@ async function transformToColumnFormat(
     const reservesB = [
       { dex: 'uniswap-v2', reserve: record.reservesBUniswapV2 },
       { dex: 'sushiswap', reserve: record.reservesBSushiswap },
+      { dex: 'curve', reserve: record.reservesBCurve },
       // { dex: 'uniswap-v3-500', reserve: record.reservesBUniswapV3_500 },
       // { dex: 'uniswap-v3-3000', reserve: record.reservesBUniswapV3_3000 },
       // { dex: 'uniswap-v3-10000', reserve: record.reservesBUniswapV3_10000 },
@@ -1325,19 +1351,19 @@ async function runLiquidityAnalysisFromJson(
     )
 
     // Save data to database
-    if (process.env.DATABASE_URL) {
-      try {
-        await saveToDatabase(existingData, timestamp)
-      } catch (error) {
-        console.error(
-          '⚠️  Failed to save to database, but analysis completed:',
-          error
-        )
-        // Don't throw error to avoid failing the entire analysis
-      }
-    } else {
-      console.log('💡 DATABASE_URL not configured, skipping database save')
-    }
+    // if (process.env.DATABASE_URL) {
+    //   try {
+    //     await saveToDatabase(existingData, timestamp)
+    //   } catch (error) {
+    //     console.error(
+    //       '⚠️  Failed to save to database, but analysis completed:',
+    //       error
+    //     )
+    //     // Don't throw error to avoid failing the entire analysis
+    //   }
+    // } else {
+    //   console.log('💡 DATABASE_URL not configured, skipping database save')
+    // }
 
     // Print summary
     console.log('\n=== SUMMARY ===')
@@ -1504,20 +1530,20 @@ async function runLiquidityAnalysis(jsonFilePath?: string): Promise<void> {
       `\nAnalysis complete! Total tokens processed: ${existingData.length}`
     )
 
-    // Save data to database
-    if (process.env.DATABASE_URL) {
-      try {
-        await saveToDatabase(existingData, timestamp)
-      } catch (error) {
-        console.error(
-          '⚠️  Failed to save to database, but analysis completed:',
-          error
-        )
-        // Don't throw error to avoid failing the entire analysis
-      }
-    } else {
-      console.log('💡 DATABASE_URL not configured, skipping database save')
-    }
+    // // Save data to database
+    // if (process.env.DATABASE_URL) {
+    //   try {
+    //     await saveToDatabase(existingData, timestamp)
+    //   } catch (error) {
+    //     console.error(
+    //       '⚠️  Failed to save to database, but analysis completed:',
+    //       error
+    //     )
+    //     // Don't throw error to avoid failing the entire analysis
+    //   }
+    // } else {
+    //   console.log('💡 DATABASE_URL not configured, skipping database save')
+    // }
 
     // Print summary
     console.log('\n=== SUMMARY ===')
@@ -1576,6 +1602,304 @@ async function main() {
 // Run the analysis
 if (require.main === module) {
   main().catch(console.error)
+}
+
+// Comprehensive function to analyze liquidity for a specific token pair
+export async function analyzeTokenPairLiquidityComprehensive(
+  tokenAAddress: string,
+  tokenBAddress: string
+): Promise<{
+  success: boolean
+  data?: {
+    tokenA: {
+      address: string
+      symbol: string
+      name: string
+      decimals: number
+    }
+    tokenB: {
+      address: string
+      symbol: string
+      name: string
+      decimals: number
+    }
+    dexes: Array<{
+      name: string
+      reserves: {
+        tokenA: string
+        tokenB: string
+      }
+      reservesNormal: {
+        tokenA: number
+        tokenB: number
+      }
+      totalLiquidity: number
+    }>
+    totalReserves: {
+      tokenA: string
+      tokenB: string
+    }
+    totalReservesNormal: {
+      tokenA: number
+      tokenB: number
+    }
+    sweetSpot: number
+    slippageAnalysis: {
+      dex: string
+      slippageSavings: number
+      percentageSavings: number
+    }
+    summary: {
+      totalDexes: number
+      totalLiquidityUSD: number
+      bestDex: string
+      highestLiquidity: number
+    }
+  }
+  error?: string
+}> {
+  try {
+    console.log(`\n🔍 Starting comprehensive liquidity analysis...`)
+    console.log(`Token A: ${tokenAAddress}`)
+    console.log(`Token B: ${tokenBAddress}`)
+
+    // Validate addresses using existing function
+    if (!validateTokenAddress(tokenAAddress)) {
+      return {
+        success: false,
+        error: `Invalid token A address format: ${tokenAAddress}`,
+      }
+    }
+
+    if (!validateTokenAddress(tokenBAddress)) {
+      return {
+        success: false,
+        error: `Invalid token B address format: ${tokenBAddress}`,
+      }
+    }
+
+    // Get token information
+    const [tokenAInfo, tokenBInfo] = await Promise.all([
+      tokenService.getTokenInfo(tokenAAddress),
+      tokenService.getTokenInfo(tokenBAddress),
+    ])
+
+    if (!tokenAInfo) {
+      return {
+        success: false,
+        error: `Token A not found or invalid: ${tokenAAddress}`,
+      }
+    }
+
+    if (!tokenBInfo) {
+      return {
+        success: false,
+        error: `Token B not found or invalid: ${tokenBAddress}`,
+      }
+    }
+
+    console.log(
+      `✅ Token A: ${tokenAInfo.symbol} - ${tokenAInfo.decimals} decimals`
+    )
+    console.log(
+      `✅ Token B: ${tokenBInfo.symbol} - ${tokenBInfo.decimals} decimals`
+    )
+
+    // Use existing getAllReservesForPair function
+    const allReserves = await getAllReservesForPair(
+      tokenAAddress,
+      tokenBAddress,
+      tokenAInfo.symbol,
+      tokenBInfo.symbol
+    )
+
+    if (allReserves.length === 0) {
+      return {
+        success: false,
+        error: 'No liquidity found for this token pair across any DEX',
+      }
+    }
+
+    // Transform to the expected format
+    const dexResults = allReserves.map((reserve) => ({
+      name: reserve.dex,
+      reserves: {
+        tokenA: reserve.reserves.token0,
+        tokenB: reserve.reserves.token1,
+      },
+      reservesNormal: {
+        tokenA: weiToNormal(reserve.reserves.token0, reserve.decimals.token0),
+        tokenB: weiToNormal(reserve.reserves.token1, reserve.decimals.token1),
+      },
+      totalLiquidity:
+        weiToNormal(reserve.reserves.token0, reserve.decimals.token0) +
+        weiToNormal(reserve.reserves.token1, reserve.decimals.token1),
+    }))
+
+    // Calculate total reserves using existing logic
+    let totalReservesA = BigInt(0)
+    let totalReservesB = BigInt(0)
+
+    allReserves.forEach((reserve) => {
+      totalReservesA += BigInt(reserve.reserves.token0)
+      totalReservesB += BigInt(reserve.reserves.token1)
+    })
+
+    // Use existing calculateSweetSpot function
+    const sweetSpot = calculateSweetSpot(
+      totalReservesA,
+      totalReservesA, // Using total reserves as trade volume
+      totalReservesB,
+      tokenAInfo.decimals,
+      tokenBInfo.decimals
+    )
+
+    console.log(`Sweet spot: ${sweetSpot} streams`)
+
+    // Find best DEX and calculate slippage savings using existing logic
+    const bestDex = dexResults.reduce((prev, curr) =>
+      curr.totalLiquidity > prev.totalLiquidity ? curr : prev
+    )
+
+    const feeTier = bestDex.name.startsWith('uniswap-v3')
+      ? parseInt(bestDex.name.split('-')[2])
+      : 3000
+
+    const { slippageSavings, percentageSavings } =
+      await calculateSlippageSavings(
+        totalReservesA,
+        bestDex.name,
+        feeTier,
+        BigInt(bestDex.reserves.tokenA),
+        BigInt(bestDex.reserves.tokenB),
+        tokenAInfo.decimals,
+        tokenBInfo.decimals,
+        tokenAAddress,
+        tokenBAddress,
+        sweetSpot
+      )
+
+    // Calculate summary statistics
+    const totalLiquidityUSD = dexResults.reduce(
+      (sum, dex) => sum + dex.totalLiquidity,
+      0
+    )
+    const highestLiquidity = Math.max(
+      ...dexResults.map((d) => d.totalLiquidity)
+    )
+
+    const result = {
+      success: true,
+      data: {
+        tokenA: {
+          address: tokenAAddress,
+          symbol: tokenAInfo.symbol,
+          name: tokenAInfo.symbol,
+          decimals: tokenAInfo.decimals,
+        },
+        tokenB: {
+          address: tokenBAddress,
+          symbol: tokenBInfo.symbol,
+          name: tokenBInfo.symbol,
+          decimals: tokenBInfo.decimals,
+        },
+        dexes: dexResults,
+        totalReserves: {
+          tokenA: totalReservesA.toString(),
+          tokenB: totalReservesB.toString(),
+        },
+        totalReservesNormal: {
+          tokenA: weiToNormal(totalReservesA.toString(), tokenAInfo.decimals),
+          tokenB: weiToNormal(totalReservesB.toString(), tokenBInfo.decimals),
+        },
+        sweetSpot,
+        slippageAnalysis: {
+          dex: bestDex.name,
+          slippageSavings,
+          percentageSavings,
+        },
+        summary: {
+          totalDexes: dexResults.length,
+          totalLiquidityUSD,
+          bestDex: bestDex.name,
+          highestLiquidity,
+        },
+      },
+    }
+
+    // Print summary
+    console.log(`\n📋 COMPREHENSIVE LIQUIDITY ANALYSIS RESULTS`)
+    console.log(`===============================================`)
+    console.log(`Token Pair: ${tokenAInfo.symbol}/${tokenBInfo.symbol}`)
+    console.log(`Token A: ${tokenAInfo.symbol} (${tokenAAddress})`)
+    console.log(`Token B: ${tokenBInfo.symbol} (${tokenBAddress})`)
+    console.log(`\nDEX Analysis:`)
+    dexResults.forEach((dex) => {
+      console.log(
+        `  ${dex.name}: ${dex.reservesNormal.tokenA.toFixed(6)} ${
+          tokenAInfo.symbol
+        } / ${dex.reservesNormal.tokenB.toFixed(6)} ${
+          tokenBInfo.symbol
+        } (Total: ${dex.totalLiquidity.toFixed(6)})`
+      )
+    })
+    console.log(
+      `\nTotal Reserves: ${weiToNormal(
+        totalReservesA.toString(),
+        tokenAInfo.decimals
+      ).toFixed(6)} ${tokenAInfo.symbol} / ${weiToNormal(
+        totalReservesB.toString(),
+        tokenBInfo.decimals
+      ).toFixed(6)} ${tokenBInfo.symbol}`
+    )
+    console.log(`\nSweet Spot: ${sweetSpot} streams`)
+    console.log(`\nSlippage Analysis (${bestDex.name}):`)
+    console.log(
+      `  Slippage Savings: ${slippageSavings.toFixed(6)} ${tokenBInfo.symbol}`
+    )
+    console.log(`  Percentage Savings: ${percentageSavings.toFixed(3)}%`)
+    console.log(`\nSummary:`)
+    console.log(`  Total DEXes: ${dexResults.length}`)
+    console.log(`  Best DEX: ${bestDex.name}`)
+    console.log(`  Highest Liquidity: ${highestLiquidity.toFixed(6)}`)
+
+    return result
+  } catch (error) {
+    console.error('Error in comprehensive liquidity analysis:', error)
+    return {
+      success: false,
+      error: `Analysis failed: ${error}`,
+    }
+  }
+}
+
+// Helper function to validate token addresses
+export function validateTokenAddress(address: string): boolean {
+  return /^0x[a-fA-F0-9]{40}$/.test(address)
+}
+
+// Example usage function
+export async function exampleUsage() {
+  console.log('🚀 Example: Analyzing USDC/WETH liquidity...')
+
+  const result = await analyzeTokenPairLiquidityComprehensive(
+    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
+    '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' // WETH
+  )
+
+  if (result.success) {
+    console.log('✅ Analysis completed successfully!')
+    console.log(`Found ${result.data!.dexes.length} DEXes with liquidity`)
+    console.log(`Sweet spot: ${result.data!.sweetSpot} streams`)
+    console.log(`Best DEX: ${result.data!.summary.bestDex}`)
+    console.log(
+      `Slippage savings: ${result.data!.slippageAnalysis.percentageSavings.toFixed(
+        3
+      )}%`
+    )
+  } else {
+    console.log('❌ Analysis failed:', result.error)
+  }
 }
 
 export { runLiquidityAnalysis, runLiquidityAnalysisFromJson }

@@ -2,6 +2,8 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { ReservesAggregator, DexType } from '../../services/reserves-aggregator'
 import { getCache, setCache, generateCacheKey } from '../../utils/redis'
 import { createProvider } from '../../utils/provider'
+import { initializeCurveFiltering } from '../../services/curve-initializer'
+import { CURVE_POOL_METADATA } from '../../../data/curve-config'
 
 // Create provider with better throttling and retry settings
 const provider = createProvider()
@@ -12,10 +14,14 @@ const CACHE_TTL = 300 // 5 minutes fresh cache
 const STALE_CACHE_TTL = 900 // 15 minutes stale cache (still usable)
 const BACKGROUND_REFRESH_THRESHOLD = 240 // 4 minutes - start background refresh
 
+// Initialize Curve smart filtering (only reserves aggregator needed)
+reservesService.initializeCurvePoolFilter(CURVE_POOL_METADATA)
+
 interface ReserveRequest {
   tokenA: string
   tokenB: string
   dex?: DexType // Optional: specify which DEX to query
+  poolAddress?: string // Optional: specify pool address for Curve DEX
 }
 
 function validateTokenAddress(address: string): boolean {
@@ -127,12 +133,14 @@ export const main = async (
     let tokenA: string | undefined
     let tokenB: string | undefined
     let dex: DexType | undefined
+    let poolAddress: string | undefined
 
     // Handle both GET and POST requests
     if (event.httpMethod === 'GET') {
       tokenA = event.queryStringParameters?.tokenA
       tokenB = event.queryStringParameters?.tokenB
       dex = event.queryStringParameters?.dex as DexType | undefined
+      poolAddress = event.queryStringParameters?.poolAddress
     } else if (event.httpMethod === 'POST') {
       const body = parseRequestBody(event)
       if (!body) {
@@ -148,6 +156,7 @@ export const main = async (
       tokenA = body.tokenA
       tokenB = body.tokenB
       dex = body.dex
+      poolAddress = body.poolAddress
     }
 
     if (!tokenA || !tokenB) {
@@ -230,7 +239,8 @@ export const main = async (
           reservesData = await reservesService.getReservesFromDex(
             tokenA,
             tokenB,
-            dex
+            dex,
+            poolAddress
           )
         } else {
           reservesData = await reservesService.getAllReserves(tokenA, tokenB)
@@ -241,8 +251,11 @@ export const main = async (
             statusCode: 404,
             headers,
             body: JSON.stringify({
-              error: 'No liquidity',
-              message: 'No liquidity found for the token pair',
+              error: 'No reserves',
+              // message: 'No liquidity found for the token pair',
+              message: `No reserves found for ${tokenA}-${tokenB} on ${dex}${
+                poolAddress ? ` (${poolAddress})` : ''
+              }`,
             }),
           }
         }

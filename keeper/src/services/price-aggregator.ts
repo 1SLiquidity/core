@@ -1,8 +1,10 @@
 import { ethers } from 'ethers';
-import { UniswapV2Service, UniswapV3Service, SushiSwapService } from '../dex';
+import { UniswapV2Service, UniswapV3Service, SushiSwapService, CurveService } from '../dex';
 import { PriceResult } from '../types/price';
+import { CONTRACT_ADDRESSES } from '../config/dex';
+import { CurvePoolFilter, createCurvePoolFilter } from './curve-pool-filter';
 
-export type DexType = 'uniswapV2' | 'uniswapV3_500' | 'uniswapV3_3000' | 'uniswapV3_10000' | 'sushiswap';
+export type DexType = 'uniswapV2' | 'uniswapV3_500' | 'uniswapV3_3000' | 'uniswapV3_10000' | 'sushiswap' | 'curve';
 
 export class PriceAggregator {
   private uniswapV2: UniswapV2Service;
@@ -10,13 +12,35 @@ export class PriceAggregator {
   private uniswapV3_3000: UniswapV3Service;
   private uniswapV3_10000: UniswapV3Service;
   private sushiswap: SushiSwapService;
+  private curveServices: Map<string, CurveService>;
+  private curvePoolFilter: CurvePoolFilter | null = null;
+  private provider: ethers.Provider;
 
   constructor(provider: ethers.Provider) {
+    this.provider = provider;
     this.uniswapV2 = new UniswapV2Service(provider);
     this.uniswapV3_500 = new UniswapV3Service(provider);
     this.uniswapV3_3000 = new UniswapV3Service(provider);
     this.uniswapV3_10000 = new UniswapV3Service(provider);
     this.sushiswap = new SushiSwapService(provider);
+    this.curveServices = new Map();
+    
+    // Curve services will be initialized dynamically when pool filter is set up
+  }
+
+  /**
+   * Initialize Curve pool filter with metadata
+   * Call this after loading CURVE_POOL_METADATA
+   */
+  initializeCurvePoolFilter(poolMetadata: Record<string, any>) {
+    this.curvePoolFilter = createCurvePoolFilter(poolMetadata);
+    
+    // Initialize Curve services for all pools in metadata
+    Object.keys(poolMetadata).forEach(poolAddress => {
+      this.curveServices.set(poolAddress, new CurveService(this.provider, poolAddress));
+    });
+    
+    console.log(`Initialized ${Object.keys(poolMetadata).length} Curve services`);
   }
 
   // Helper method for fetching with retries
@@ -44,7 +68,7 @@ export class PriceAggregator {
     return null;
   }
 
-  async getPriceFromDex(tokenA: string, tokenB: string, dex: DexType): Promise<PriceResult | null> {
+  async getPriceFromDex(tokenA: string, tokenB: string, dex: DexType, poolAddress?: string): Promise<PriceResult | null> {
     switch (dex) {
       case 'uniswapV2':
         return await this.fetchWithRetry(
@@ -71,6 +95,36 @@ export class PriceAggregator {
           () => this.sushiswap.getPrice(tokenA, tokenB),
           'SushiSwap'
         );
+      case 'curve':
+        if (this.curvePoolFilter) {
+          // Use smart filtering to find the best Curve pool
+          const candidatePools = this.curvePoolFilter.findBestPools(tokenA, tokenB, 1);
+          if (candidatePools.length === 0) {
+            console.log(`No suitable Curve pools found for ${tokenA}/${tokenB}`);
+            return null;
+          }
+          
+          const bestPoolAddress = candidatePools[0];
+          const curveService = this.curveServices.get(bestPoolAddress);
+          if (!curveService) {
+            console.log(`Curve service not found for pool ${bestPoolAddress}`);
+            return null;
+          }
+          
+          const price = await this.fetchWithRetry(
+            () => curveService.getPrice(tokenA, tokenB),
+            `Curve ${bestPoolAddress}`
+          );
+          
+          if (price) {
+            price.dex = `curve-${bestPoolAddress}`;
+          }
+          
+          return price;
+        } else {
+          console.log('Curve pool filter not initialized - skipping Curve pools');
+          return null;
+        }
       default:
         throw new Error(`Unsupported DEX type: ${dex}`);
     }
@@ -105,6 +159,38 @@ export class PriceAggregator {
     console.log('Fetching SushiSwap price...');
     const sushiswapPrice = await this.getPriceFromDex(tokenA, tokenB, 'sushiswap');
     if (sushiswapPrice) results.push(sushiswapPrice);
+
+    // Add short delay before making more calls to avoid rate limits
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Try Curve pools for the token pair with smart filtering
+    console.log('Fetching Curve prices...');
+    if (this.curvePoolFilter) {
+      // Use smart filtering to find relevant pools
+      const candidatePools = this.curvePoolFilter.findBestPools(tokenA, tokenB, 5);
+      console.log(`Found ${candidatePools.length} candidate Curve pools for ${tokenA}/${tokenB}`);
+      
+      for (const poolAddress of candidatePools) {
+        const curveService = this.curveServices.get(poolAddress);
+        if (!curveService) continue;
+        
+        try {
+          const curvePrice = await this.fetchWithRetry(
+            () => curveService.getPrice(tokenA, tokenB),
+            `Curve ${poolAddress}`
+          );
+          if (curvePrice) {
+            // Update the dex name to include pool address
+            curvePrice.dex = `curve-${poolAddress}`;
+            results.push(curvePrice);
+          }
+        } catch (error) {
+          console.log(`Curve ${poolAddress} price fetch failed:`, error);
+        }
+      }
+    } else {
+      console.log('Curve pool filter not initialized - skipping Curve pools');
+    }
 
     return results;
   }
