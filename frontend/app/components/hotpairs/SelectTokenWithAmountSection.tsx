@@ -168,7 +168,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
   } = useWalletTokens(address)
 
   // Get token list from useTokenList hook
-  const { tokens: allTokens, isLoading: isLoadingTokenList } = useTokenList()
+  const { tokens: allTokens, isLoading: isLoadingTokensList } = useTokenList()
 
   const [showTooltip, setShowTooltip] = useState(false)
   const [tokenBalance, setTokenBalance] = useState('0')
@@ -255,28 +255,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
 
     if (addressMatch) return addressMatch
 
-    // Case 2: ETH special handling - ETH token uses WETH address but should show ETH balance
-    if (selectedToken.symbol.toLowerCase() === 'eth') {
-      // First try to find native ETH balance
-      const nativeEth = walletTokens.find(
-        (token) =>
-          token.token_address ===
-            '0x0000000000000000000000000000000000000000' ||
-          token.symbol === 'ETH'
-      )
-
-      if (nativeEth) return nativeEth
-
-      // If no native ETH found, use WETH balance (since ETH token uses WETH address)
-      return walletTokens.find(
-        (token) =>
-          token.token_address?.toLowerCase() ===
-            '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' ||
-          token.symbol.toLowerCase() === 'weth'
-      )
-    }
-
-    // Case 3: Symbol match as fallback (less reliable)
+    // Case 2: Symbol match as fallback (less reliable)
     return walletTokens.find(
       (token) =>
         token.symbol.toLowerCase() === selectedToken.symbol.toLowerCase()
@@ -321,7 +300,16 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
 
   // Get token balance - uses the pre-calculated state value for efficiency
   const getTokenBalance = () => {
-    return parseFloat(tokenBalance).toFixed(4)
+    const balance = parseFloat(tokenBalance)
+    if (balance === 0) return '0'
+
+    // For very small numbers, show more decimal places
+    if (balance < 0.0001) {
+      return balance.toFixed(8).replace(/\.?0+$/, '') // Remove trailing zeros
+    }
+
+    // For normal numbers, use 4 decimal places
+    return balance.toFixed(4)
   }
 
   // Set the amount to the max available balance (for "sell" field only)
@@ -459,7 +447,7 @@ const SelectTokenWithAmountSection: React.FC<InputAmountProps> = ({
             <TopTokens
               tokens={topTokens}
               isVisible={
-                showTopTokens && !isLoadingTokenList && topTokens.length > 0
+                showTopTokens && !isLoadingTokensList && topTokens.length > 0
               }
               onTokenSelect={handleQuickTokenSelect}
               selectedTokenFrom={selectedTokenFrom}
