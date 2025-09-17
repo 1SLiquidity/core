@@ -2,23 +2,20 @@ import { createProvider } from '../utils/provider'
 import { ReservesAggregator } from '../services/reserves-aggregator'
 import { TokenService } from '../services/token-service'
 // import DatabaseService from '../services/database-service'
-import * as dotenv from 'dotenv'
 import * as XLSX from 'xlsx'
 import * as fs from 'fs'
 import * as path from 'path'
-import { CONTRACT_ABIS, CONTRACT_ADDRESSES, CURVE_POOL_METADATA } from '../config/dex'
+import { CONTRACT_ABIS, CONTRACT_ADDRESSES, CURVE_POOL_METADATA, BALANCER_POOL_METADATA } from '../config/dex'
 import { ethers } from 'ethers'
-
-// Load environment variables
-dotenv.config()
 
 // Create provider
 const provider = createProvider()
 const reservesAggregator = new ReservesAggregator(provider)
 const tokenService = TokenService.getInstance(provider)
 
-// Initialize Curve smart filtering
+// Initialize Curve and Balancer smart filtering
 reservesAggregator.initializeCurvePoolFilter(CURVE_POOL_METADATA)
+reservesAggregator.initializeBalancerPoolFilter(BALANCER_POOL_METADATA)
 
 // Base tokens to test against (Ethereum addresses)
 const BASE_TOKENS = {
@@ -91,6 +88,7 @@ function calculateTotalReserves(
         'reservesAUniswapV2',
         'reservesASushiswap',
         'reservesACurve',
+        'reservesABalancer',
         'reservesAUniswapV3_500',
         'reservesAUniswapV3_3000',
         'reservesAUniswapV3_10000',
@@ -99,6 +97,7 @@ function calculateTotalReserves(
         'reservesBUniswapV2',
         'reservesBSushiswap',
         'reservesBCurve',
+        'reservesBBalancer',
         'reservesBUniswapV3_500',
         'reservesBUniswapV3_3000',
         'reservesBUniswapV3_10000',
@@ -680,6 +679,7 @@ async function getAllReservesForPair(
     { name: 'uniswapV2', fee: null },
     { name: 'sushiswap', fee: null },
     { name: 'curve', fee: null },
+    { name: 'balancer', fee: null },
   ]
 
   for (const dex of dexes) {
@@ -693,7 +693,7 @@ async function getAllReservesForPair(
           `uniswapV3_${dex.fee}` as any
         )
       } else {
-        // Uniswap V2, SushiSwap, or Curve
+        // Uniswap V2, SushiSwap, Curve, or Balancer
         reserves = await reservesAggregator.getReservesFromDex(
           tokenA,
           tokenB,
@@ -853,6 +853,8 @@ async function transformToColumnFormat(
           reservesBSushiswap: null,
           reservesACurve: null,
           reservesBCurve: null,
+          reservesABalancer: null,
+          reservesBBalancer: null,
           reservesAUniswapV3_500: null,
           reservesBUniswapV3_500: null,
           reservesAUniswapV3_3000: null,
@@ -875,10 +877,14 @@ async function transformToColumnFormat(
           record.reservesBSushiswap = pair.reserves.token1
           break
         case 'curve':
-        case 'curve-':
-          // Handle both 'curve' and 'curve-{poolAddress}' formats
+          // Handle generic 'curve' format
           record.reservesACurve = pair.reserves.token0
           record.reservesBCurve = pair.reserves.token1
+          break
+        case 'balancer':
+          // Handle generic 'balancer' format
+          record.reservesABalancer = pair.reserves.token0
+          record.reservesBBalancer = pair.reserves.token1
           break
         case 'uniswap-v3-500':
           record.reservesAUniswapV3_500 = pair.reserves.token0
@@ -893,10 +899,13 @@ async function transformToColumnFormat(
           record.reservesBUniswapV3_10000 = pair.reserves.token1
           break
         default:
-          // Handle Curve pools with specific addresses (curve-{address})
+          // Handle Curve and Balancer pools with specific addresses
           if (pair.dex.startsWith('curve-')) {
             record.reservesACurve = pair.reserves.token0
             record.reservesBCurve = pair.reserves.token1
+          } else if (pair.dex.startsWith('balancer-')) {
+            record.reservesABalancer = pair.reserves.token0
+            record.reservesBBalancer = pair.reserves.token1
           } else {
             console.warn(`⚠️  Unknown DEX: ${pair.dex}`)
           }
@@ -929,6 +938,7 @@ async function transformToColumnFormat(
       { dex: 'uniswap-v2', reserve: record.reservesAUniswapV2 },
       { dex: 'sushiswap', reserve: record.reservesASushiswap },
       { dex: 'curve', reserve: record.reservesACurve },
+      { dex: 'balancer', reserve: record.reservesABalancer },
       { dex: 'uniswap-v3-500', reserve: record.reservesAUniswapV3_500 },
       { dex: 'uniswap-v3-3000', reserve: record.reservesAUniswapV3_3000 },
       { dex: 'uniswap-v3-10000', reserve: record.reservesAUniswapV3_10000 },
@@ -938,6 +948,7 @@ async function transformToColumnFormat(
       { dex: 'uniswap-v2', reserve: record.reservesBUniswapV2 },
       { dex: 'sushiswap', reserve: record.reservesBSushiswap },
       { dex: 'curve', reserve: record.reservesBCurve },
+      { dex: 'balancer', reserve: record.reservesBBalancer },
       { dex: 'uniswap-v3-500', reserve: record.reservesBUniswapV3_500 },
       { dex: 'uniswap-v3-3000', reserve: record.reservesBUniswapV3_3000 },
       { dex: 'uniswap-v3-10000', reserve: record.reservesBUniswapV3_10000 },
@@ -1254,17 +1265,56 @@ export async function calculateSlippageSavings(
       // const percentageSavings = (slippageSavings / dexQuoteAmountOutInETH) * 100
 
       let raw = slippageSavings / dexQuoteAmountOutInETH
-      // Instead of raw * 100, do (1 - raw) * 100
       let percentageSavings = (1 - raw) * 100
       percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
       percentageSavings = Number(percentageSavings.toFixed(3))
 
-      // console.log('slippageSavings =====>', slippageSavings)
-      // console.log('percentageSavings =====>', percentageSavings)
-
       return { slippageSavings, percentageSavings }
     }
 
+    // if (dex.startsWith('balancer-') || dex === 'balancer') {
+    //   // For Balancer pools, use a simplified calculation based on constant product formula
+    //   // Balancer pools are more complex but we can approximate using the same logic as Uniswap V2
+    //   console.log('Calculating slippage for Balancer pool...')
+      
+    //   // Calculate price using constant product formula: price = reserveB / reserveA
+    //   const price = Number(reserveB) / Number(reserveA)
+      
+    //   // Calculate amount out for full trade
+    //   const amountOut = Number(tradeVolume) * price
+    //   const amountOutInETH = amountOut / 10 ** decimalsB
+      
+    //   // Calculate amount out for sweet spot trade
+    //   const sweetSpotAmountOut = (Number(tradeVolume) / sweetSpot) * price
+    //   const sweetSpotAmountOutInETH = sweetSpotAmountOut / 10 ** decimalsB
+    //   const scaledSweetSpotAmountOutInETH = sweetSpotAmountOutInETH * sweetSpot
+      
+    //   const slippageSavings = scaledSweetSpotAmountOutInETH - amountOutInETH
+      
+    //   let raw = slippageSavings / amountOutInETH
+    //   let percentageSavings = (1 - raw) * 100
+    //   percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+    //   percentageSavings = Number(percentageSavings.toFixed(3))
+      
+    //   console.log(`Balancer slippage calculation: ${percentageSavings.toFixed(3)}% savings`)
+    //   return { slippageSavings, percentageSavings }
+    // }
+
+    // if (dex.startsWith('curve-') || dex === 'curve') {
+    //   // For Curve pools, use a simplified calculation
+    //   // Curve pools are stablecoin-focused and have different mechanics
+    //   console.log('Calculating slippage for Curve pool...')
+      
+    //   // Curve pools typically have very low slippage for stablecoin pairs
+    //   // Use a conservative estimate
+    //   const slippageSavings = 0
+    //   const percentageSavings = 0
+      
+    //   console.log(`Curve pool: ${percentageSavings}% savings (stablecoin pools have minimal slippage)`)
+    //   return { slippageSavings, percentageSavings }
+    // }
+
+    console.log(`Slippage calculation not implemented for DEX: ${dex}`)
     return { slippageSavings: 0, percentageSavings: 0 }
   } catch (error) {
     console.error('Error calculating slippage savings:', error)
@@ -1752,9 +1802,17 @@ export async function analyzeTokenPairLiquidityComprehensive(
       curr.totalLiquidity > prev.totalLiquidity ? curr : prev
     )
 
-    const feeTier = bestDex.name.startsWith('uniswap-v3') 
-      ? parseInt(bestDex.name.split('-')[2]) 
-      : 3000
+    // Calculate fee tier based on DEX type
+    let feeTier = 3000 // Default fee tier
+    if (bestDex.name.startsWith('uniswap-v3')) {
+      feeTier = parseInt(bestDex.name.split('-')[2])
+    } else if (bestDex.name.startsWith('balancer-') || bestDex.name === 'balancer') {
+      feeTier = 0 // Balancer pools don't use fee tiers like Uniswap V3
+    } else if (bestDex.name.startsWith('curve-') || bestDex.name === 'curve') {
+      feeTier = 0 // Curve pools don't use fee tiers
+    } else if (bestDex.name === 'uniswapV2' || bestDex.name === 'sushiswap') {
+      feeTier = 3000 // Use 0.3% fee for V2-style AMMs
+    }
 
     const { slippageSavings, percentageSavings } = await calculateSlippageSavings(
       totalReservesA,

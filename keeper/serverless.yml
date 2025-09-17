@@ -15,6 +15,8 @@ provider:
     REDIS_HOST: ${env:REDIS_HOST, 'localhost'}
     REDIS_PORT: ${env:REDIS_PORT, 6379}
     REDIS_PASSWORD: ${env:REDIS_PASSWORD, ''}
+    BALANCER_SUBGRAPH: ${env:BALANCER_SUBGRAPH, 'https://gateway.thegraph.com/api/subgraphs/id/C4ayEZP2yTXRAB8vSaTrgN4m9anTe9Mdm2ViyiAuV9TV'}
+    GRAPH_API_KEY: ${env:GRAPH_API_KEY, ''}
 
 functions:
   reserves:
@@ -64,3 +66,5 @@ custom:
       - REDIS_HOST
       - REDIS_PORT
       - REDIS_PASSWORD
+      - BALANCER_SUBGRAPH
+      - GRAPH_API_KEY

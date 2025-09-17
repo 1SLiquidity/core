@@ -2,21 +2,23 @@ import { createProvider } from '../utils/provider'
 import { CurveService } from '../dex/curve'
 import { CURVE_POOL_METADATA } from '../../data/curve-config'
 import * as dotenv from 'dotenv'
+import * as path from 'path'
 
-// Load environment variables
-dotenv.config()
-
-// Create provider
-const provider = createProvider()
+// Load environment variables from keeper/.env
+const envPath = path.join(__dirname, '../../.env')
+dotenv.config({ path: envPath })
 
 async function testCurveService() {
   console.log('Testing Curve Service Integration...\n')
 
+  // Create provider after environment variables are loaded
+  const provider = createProvider()
+
   // Get a test pool from the generated metadata (3CRV pool)
   const poolAddresses = Object.keys(CURVE_POOL_METADATA)
   const testPoolAddress = poolAddresses.find(addr => 
-    CURVE_POOL_METADATA[addr].name?.includes('3CRV') || 
-    CURVE_POOL_METADATA[addr].tokens?.length >= 3
+    (CURVE_POOL_METADATA as any)[addr]?.name?.includes('3CRV') || 
+    (CURVE_POOL_METADATA as any)[addr]?.tokens?.length >= 3
   ) || poolAddresses[0]
   
   if (!testPoolAddress) {
@@ -25,7 +27,7 @@ async function testCurveService() {
   }
 
   console.log('Using test pool:', testPoolAddress)
-  console.log('Pool metadata:', CURVE_POOL_METADATA[testPoolAddress])
+  console.log('Pool metadata:', (CURVE_POOL_METADATA as any)[testPoolAddress])
   
   const curveService = new CurveService(provider, testPoolAddress)
 
@@ -51,7 +53,7 @@ async function testCurveService() {
   // Test getReserves with tokens from the pool
   console.log('\n2. Testing getReserves...')
   try {
-    const poolTokens = CURVE_POOL_METADATA[testPoolAddress].tokens
+    const poolTokens = (CURVE_POOL_METADATA as any)[testPoolAddress].tokens
     if (poolTokens && poolTokens.length >= 2) {
       const tokenA = poolTokens[0]
       const tokenB = poolTokens[1]
@@ -78,7 +80,7 @@ async function testCurveService() {
   // Test getPrice with tokens from the pool
   console.log('\n3. Testing getPrice...')
   try {
-    const poolTokens = CURVE_POOL_METADATA[testPoolAddress].tokens
+    const poolTokens = (CURVE_POOL_METADATA as any)[testPoolAddress].tokens
     if (poolTokens && poolTokens.length >= 2) {
       const tokenA = poolTokens[0]
       const tokenB = poolTokens[1]
@@ -107,10 +109,13 @@ async function testCurveService() {
 async function testCurveIntegration() {
   console.log('\nTesting Curve Integration with Aggregators...\n')
 
+  // Create provider after environment variables are loaded
+  const provider = createProvider()
+
   // Get test tokens from a pool
   const poolAddresses = Object.keys(CURVE_POOL_METADATA)
   const testPoolAddress = poolAddresses.find(addr => 
-    CURVE_POOL_METADATA[addr].tokens?.length >= 2
+    (CURVE_POOL_METADATA as any)[addr]?.tokens?.length >= 2
   ) || poolAddresses[0]
   
   if (!testPoolAddress) {
@@ -118,7 +123,7 @@ async function testCurveIntegration() {
     return
   }
 
-  const poolTokens = CURVE_POOL_METADATA[testPoolAddress].tokens
+  const poolTokens = (CURVE_POOL_METADATA as any)[testPoolAddress].tokens
   if (!poolTokens || poolTokens.length < 2) {
     console.log('Pool does not have enough tokens for testing')
     return
@@ -138,7 +143,7 @@ async function testCurveIntegration() {
     
     // Test specific Curve pool
     console.log(`Testing price for ${tokenA}/${tokenB} on pool ${testPoolAddress}`)
-    const curvePrice = await priceAggregator.getPriceFromDex(tokenA, tokenB, 'curve', testPoolAddress)
+    const curvePrice = await priceAggregator.getPriceFromDex(tokenA, tokenB, 'curve')
     if (curvePrice) {
       console.log('Curve price from aggregator:', curvePrice)
     } else {
@@ -158,7 +163,7 @@ async function testCurveIntegration() {
     reservesAggregator.initializeCurvePoolFilter(CURVE_POOL_METADATA)
     
     console.log(`Testing reserves for ${tokenA}/${tokenB} on pool ${testPoolAddress}`)
-    const curveReserves = await reservesAggregator.getReservesFromDex(tokenA, tokenB, 'curve', testPoolAddress)
+    const curveReserves = await reservesAggregator.getReservesFromDex(tokenA, tokenB, 'curve')
     if (curveReserves) {
       console.log('Curve reserves from aggregator:', curveReserves)
     } else {

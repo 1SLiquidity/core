@@ -1,5 +1,6 @@
 import { ethers } from 'ethers';
 import { CURVE_POOL_METADATA } from '../../data/curve-config';
+import { BALANCER_POOL_METADATA } from '../../data/balancer-config';
 
 // Contract Addresses
 export const CONTRACT_ADDRESSES = {
@@ -17,10 +18,13 @@ export const CONTRACT_ADDRESSES = {
   },
   CURVE: {
     REGISTRY: '0x90E00ACe148ca3b23Ac1bC8C240C2a7Dd9c2d7f5'
+  },
+  BALANCER: {
+    VAULT: '0xBA12222222228d8Ba445958a75a0704d566BF2C8',
   }
 };
 
-export { CURVE_POOL_METADATA };
+export { CURVE_POOL_METADATA, BALANCER_POOL_METADATA };
 
 // Contract ABIs
 export const CONTRACT_ABIS = {
@@ -84,6 +88,19 @@ export const CONTRACT_ABIS = {
       'function get_lp_token(address pool) external view returns (address)',
       'function get_coins(address pool) external view returns (address[8] memory)',
       'function get_underlying_coins(address pool) external view returns (address[8] memory)'
+    ]
+  },
+  BALANCER: {
+    VAULT: [
+      'function getPoolTokens(bytes32 poolId) external view returns (address[] memory tokens, uint256[] memory balances, uint256 lastChangeBlock)',
+      'function getPool(bytes32 poolId) external view returns (address, uint8)'
+    ],
+    POOL: [
+      'function getPoolId() external view returns (bytes32)',
+      'function getSwapFeePercentage() external view returns (uint256)',
+      'function getPoolType() external view returns (uint256)',
+      'function getNormalizedWeights() external view returns (uint256[] memory)',
+      'function getTotalSupply() external view returns (uint256)'
     ]
   }
 };

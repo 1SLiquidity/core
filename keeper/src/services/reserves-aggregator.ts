@@ -1,12 +1,13 @@
 import { ethers } from 'ethers'
-import { UniswapV2Service, UniswapV3Service, SushiSwapService, CurveService } from '../dex'
+import { UniswapV2Service, UniswapV3Service, SushiSwapService, CurveService, BalancerService } from '../dex'
 import { ReserveResult } from '../types/reserves'
 import { TokenInfo } from '../types/token'
 import { TokenService } from './token-service'
 import { CONTRACT_ADDRESSES } from '../config/dex'
 import { CurvePoolFilter, createCurvePoolFilter } from './curve-pool-filter'
+import { BalancerPoolFilter, createBalancerPoolFilter } from './balancer-pool-filter'
 
-export type DexType = 'uniswapV2' | 'uniswapV3_500' | 'uniswapV3_3000' | 'uniswapV3_10000' | 'sushiswap' | 'curve'
+export type DexType = 'uniswapV2' | 'uniswapV3_500' | 'uniswapV3_3000' | 'uniswapV3_10000' | 'sushiswap' | 'curve' | 'balancer'
 
 export class ReservesAggregator {
   private uniswapV2: UniswapV2Service
@@ -16,6 +17,8 @@ export class ReservesAggregator {
   private sushiswap: SushiSwapService
   private curveServices: Map<string, CurveService>
   private curvePoolFilter: CurvePoolFilter | null = null
+  private balancerServices: Map<string, BalancerService>
+  private balancerPoolFilter: BalancerPoolFilter | null = null
   private tokenService: TokenService
   private provider: ethers.Provider
 
@@ -27,9 +30,10 @@ export class ReservesAggregator {
     this.uniswapV3_10000 = new UniswapV3Service(provider)
     this.sushiswap = new SushiSwapService(provider)
     this.curveServices = new Map()
+    this.balancerServices = new Map()
     this.tokenService = TokenService.getInstance(provider)
     
-    // Curve services will be initialized dynamically when pool filter is set up
+    // Balancer and Curve services will be initialized dynamically when pool filters are set up
   }
 
   /**
@@ -45,6 +49,21 @@ export class ReservesAggregator {
     })
     
     console.log(`Initialized ${Object.keys(poolMetadata).length} Curve services`)
+  }
+
+  /**
+   * Initialize Balancer pool filter with metadata
+   * Call this after loading BALANCER_POOL_METADATA
+   */
+  initializeBalancerPoolFilter(poolMetadata: Record<string, any>) {
+    this.balancerPoolFilter = createBalancerPoolFilter(poolMetadata)
+    
+    // Initialize Balancer services for all pools in metadata
+    Object.keys(poolMetadata).forEach(poolAddress => {
+      this.balancerServices.set(poolAddress, new BalancerService(this.provider, poolAddress))
+    })
+    
+    console.log(`Initialized ${Object.keys(poolMetadata).length} Balancer services`)
   }
 
   // Helper method for fetching with retries
@@ -114,7 +133,7 @@ export class ReservesAggregator {
     return x
   }
 
-  async getReservesFromDex(tokenA: string, tokenB: string, dex: DexType, poolAddress?: string): Promise<ReserveResult | null> {
+  async getReservesFromDex(tokenA: string, tokenB: string, dex: DexType): Promise<ReserveResult | null> {
     // Get token decimals
     const [token0Info, token1Info] = await Promise.all([
       this.tokenService.getTokenInfo(tokenA),
@@ -183,6 +202,40 @@ export class ReservesAggregator {
           return null
         }
         break
+      case 'balancer':
+        if (this.balancerPoolFilter) {
+          // Use smart filtering to find the best Balancer pool
+          const candidatePools = await this.balancerPoolFilter.findBestPools(tokenA, tokenB, 1)
+          if (candidatePools.length === 0) {
+            console.log(`No suitable Balancer pools found for ${tokenA}/${tokenB}`)
+            return null
+          }
+          
+          const bestPoolAddress = candidatePools[0]
+          const balancerService = this.balancerServices.get(bestPoolAddress)
+          if (!balancerService) {
+            console.log(`Balancer service not found for pool ${bestPoolAddress}`)
+            return null
+          }
+          
+          const balancerResult = await balancerService.getReserves(tokenA, tokenB)
+          if (balancerResult) {
+            reserves = {
+              dex: balancerResult.dex,
+              pairAddress: balancerResult.pairAddress,
+              reserves: balancerResult.reserves,
+              decimals: {
+                token0: token0Info.decimals,
+                token1: token1Info.decimals
+              },
+              timestamp: balancerResult.timestamp
+            }
+          }
+        } else {
+          console.log('Balancer pool filter not initialized - skipping Balancer pools')
+          return null
+        }
+        break
       default:
         throw new Error(`Unsupported DEX type: ${dex}`)
     }
@@ -220,6 +273,7 @@ export class ReservesAggregator {
       'Uniswap V3 (500)'
     )
     if (uniswapV3_500Reserves) {
+      console.log('Uniswap V3 (500) reserves:', uniswapV3_500Reserves.reserves)
       const meanReserves = this.calculateGeometricMean(uniswapV3_500Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
       // console.log('Uniswap V3 (500) meanReserves:', meanReserves.toString())
       results.push({
@@ -234,6 +288,7 @@ export class ReservesAggregator {
       'Uniswap V3 (3000)' 
     )
     if (uniswapV3_3000Reserves) {
+      console.log('Uniswap V3 (3000) reserves:', uniswapV3_3000Reserves.reserves)
       const meanReserves = this.calculateGeometricMean(uniswapV3_3000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
       // console.log('Uniswap V3 (3000) meanReserves:', meanReserves.toString())
       results.push({
@@ -248,6 +303,7 @@ export class ReservesAggregator {
       'Uniswap V3 (10000)'
     )
     if (uniswapV3_10000Reserves) {
+      console.log('Uniswap V3 (10000) reserves:', uniswapV3_10000Reserves.reserves)
       const meanReserves = this.calculateGeometricMean(uniswapV3_10000Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
       // console.log('Uniswap V3 (10000) meanReserves:', meanReserves.toString())
       results.push({
@@ -265,6 +321,7 @@ export class ReservesAggregator {
       'Uniswap V2'
     )
     if (uniswapV2Reserves) {
+      console.log('Uniswap V2 reserves:', uniswapV2Reserves.reserves)
       const meanReserves = this.calculateGeometricMean(uniswapV2Reserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
       // console.log('Uniswap V2 meanReserves:', meanReserves.toString())
       results.push({
@@ -283,7 +340,7 @@ export class ReservesAggregator {
     )
     if (sushiswapReserves) {
       const meanReserves = this.calculateGeometricMean(sushiswapReserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-      console.log('SushiSwap meanReserves:', meanReserves.toString())
+      // console.log('SushiSwap meanReserves:', meanReserves.toString())
       results.push({
         result: sushiswapReserves,
         meanReserves: meanReserves
@@ -311,7 +368,7 @@ export class ReservesAggregator {
           )
           if (curveReserves) {
             const meanReserves = this.calculateGeometricMean(curveReserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals })
-            console.log(`Curve ${poolAddress} meanReserves:`, meanReserves.toString())
+            // console.log(`Curve ${poolAddress} meanReserves:`, meanReserves.toString())
             // Update the dex name to include pool address
             curveReserves.dex = `curve-${poolAddress}`
             results.push({
@@ -325,6 +382,48 @@ export class ReservesAggregator {
       }
     } else {
       console.log('Curve pool filter not initialized - skipping Curve pools')
+    }
+
+    // Add short delay before making more calls to avoid rate limits
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Try Balancer pools for the token pair with smart filtering
+    console.log('Fetching Balancer reserves...');
+    if (this.balancerPoolFilter) {
+      // Use smart filtering to find relevant pools
+      const candidatePools = await this.balancerPoolFilter.findBestPools(tokenA, tokenB, 5);
+      console.log(`Found ${candidatePools.length} candidate Balancer pools for ${tokenA}/${tokenB}`);
+      
+      for (const poolAddress of candidatePools) {
+        const balancerService = this.balancerServices.get(poolAddress);
+        if (!balancerService) continue;
+        
+        try {
+          const balancerResult = await balancerService.getReserves(tokenA, tokenB);
+          if (balancerResult) {
+            const balancerReserves = {
+              dex: balancerResult.dex,
+              pairAddress: balancerResult.pairAddress,
+              reserves: balancerResult.reserves,
+              decimals: {
+                token0: token0Info.decimals,
+                token1: token1Info.decimals
+              },
+              timestamp: balancerResult.timestamp
+            };
+            const meanReserves = this.calculateGeometricMean(balancerReserves.reserves, { token0: token0Info.decimals, token1: token1Info.decimals });
+            // console.log(`Balancer ${poolAddress} meanReserves:`, meanReserves.toString());
+            results.push({
+              result: balancerReserves,
+              meanReserves: meanReserves
+            });
+          }
+        } catch (error) {
+          console.log(`Balancer ${poolAddress} reserves fetch failed:`, error);
+        }
+      }
+    } else {
+      console.log('Balancer pool filter not initialized - skipping Balancer pools');
     }
 
     if (results.length === 0) {

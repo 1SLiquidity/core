@@ -1,10 +1,12 @@
 import { ethers } from 'ethers';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createProvider } from '../utils/provider';
 
-// Load environment variables for local execution
+// Load environment variables from keeper/.env
 try {
-  require('dotenv').config();
+  const envPath = path.join(__dirname, '../.env');
+  require('dotenv').config({ path: envPath });
 } catch (e) {
   // dotenv not available, continue without it
 }
@@ -75,7 +77,7 @@ async function fetchWithRetry<T>(
 }
 
 async function fetchAllCurvePools(): Promise<CurvePoolInfo[]> {
-  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+  const provider = createProvider();
   const registry = new ethers.Contract(CURVE_REGISTRY, REGISTRY_ABI, provider);
   
   console.log('Fetching Curve pools from registry...');

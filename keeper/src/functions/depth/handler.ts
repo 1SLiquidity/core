@@ -1,11 +1,11 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
-import { ethers } from 'ethers'
 import { DepthAggregator } from '../../services/depth-aggregator'
 import { DepthConfig } from '../../types/depth'
 import { CONTRACT_ADDRESSES } from '../../config/dex'
 import { getCache, setCache, generateCacheKey } from '../../utils/redis'
+import { createProvider } from '../../utils/provider'
 
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL)
+const provider = createProvider()
 const depthAggregator = new DepthAggregator(provider)
 
 // Cache TTL in seconds
