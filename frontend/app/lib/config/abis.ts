@@ -439,6 +439,49 @@ export const UniswapV3QuoterABI = [
   },
 ]
 
+// Curve Pool ABI - Essential functions for calculation
+export const CurvePoolABI = [
+  {
+    name: 'get_dy',
+    outputs: [{ type: 'uint256', name: '' }],
+    inputs: [
+      { type: 'int128', name: 'i' },
+      { type: 'int128', name: 'j' },
+      { type: 'uint256', name: 'dx' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'balances',
+    outputs: [{ type: 'uint256', name: '' }],
+    inputs: [{ type: 'uint256', name: 'arg0' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'coins',
+    outputs: [{ type: 'address', name: '' }],
+    inputs: [{ type: 'uint256', name: 'i' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'A',
+    outputs: [{ type: 'uint256', name: '' }],
+    inputs: [],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'fee',
+    outputs: [{ type: 'uint256', name: '' }],
+    inputs: [],
+    stateMutability: 'view',
+    type: 'function',
+  },
+]
+
 // SushiSwap Router ABI
 export const SushiSwapRouterABI = [
   {
