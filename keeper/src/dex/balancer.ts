@@ -102,15 +102,15 @@ export class BalancerService {
       }
 
       console.log('Balancer reserves:', {
-        token0: poolInfo.balances[tokenAIndex],
-        token1: poolInfo.balances[tokenBIndex]
+        token0: poolInfo.balances[tokenAIndex].toString(),
+        token1: poolInfo.balances[tokenBIndex].toString()
       })
 
       // Return reserves in the order they appear in the pool
       return {
         reserves: {
-          token0: poolInfo.balances[tokenAIndex],
-          token1: poolInfo.balances[tokenBIndex]
+          token0: poolInfo.balances[tokenAIndex].toString(),
+          token1: poolInfo.balances[tokenBIndex].toString()
         },
         dex: `balancer-${this.poolAddress}`,
         pairAddress: this.poolAddress,

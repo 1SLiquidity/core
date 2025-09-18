@@ -1,10 +1,16 @@
+import * as dotenv from 'dotenv'
+import * as path from 'path'
+
+// Load environment variables from keeper/.env
+const envPath = path.join(__dirname, '../../.env')
+dotenv.config({ path: envPath })
+
 import { createProvider } from '../utils/provider'
 import { ReservesAggregator } from '../services/reserves-aggregator'
 import { TokenService } from '../services/token-service'
 // import DatabaseService from '../services/database-service'
 import * as XLSX from 'xlsx'
 import * as fs from 'fs'
-import * as path from 'path'
 import { CONTRACT_ABIS, CONTRACT_ADDRESSES, CURVE_POOL_METADATA, BALANCER_POOL_METADATA } from '../config/dex'
 import { ethers } from 'ethers'
 
@@ -676,7 +682,7 @@ async function getAllReservesForPair(
     // { name: 'uniswap-v3-500', fee: 500 },
     // { name: 'uniswap-v3-3000', fee: 3000 },
     // { name: 'uniswap-v3-10000', fee: 10000 },
-    { name: 'uniswapV2', fee: null },
+    { name: 'uniswap-v2', fee: null },
     { name: 'sushiswap', fee: null },
     { name: 'curve', fee: null },
     { name: 'balancer', fee: null },
@@ -690,7 +696,7 @@ async function getAllReservesForPair(
         reserves = await reservesAggregator.getReservesFromDex(
           tokenA,
           tokenB,
-          `uniswapV3_${dex.fee}` as any
+          `uniswap-v3-${dex.fee}` as any
         )
       } else {
         // Uniswap V2, SushiSwap, Curve, or Balancer
@@ -759,8 +765,15 @@ async function saveTokenToJson(
     existingData.push(tokenResult)
   }
 
-  // Save updated data
-  fs.writeFileSync(jsonFilepath, JSON.stringify(existingData, null, 2))
+  // Save updated data with BigInt serialization support
+  const jsonString = JSON.stringify(existingData, (key, value) => {
+    // Convert BigInt to string for JSON serialization
+    if (typeof value === 'bigint') {
+      return value.toString()
+    }
+    return value
+  }, 2)
+  fs.writeFileSync(jsonFilepath, jsonString)
   console.log(`  💾 Saved ${tokenResult.tokenSymbol} data to JSON`)
 }
 
@@ -845,7 +858,7 @@ async function transformToColumnFormat(
           tokenBAddress: pair.tokenAddress, // tokenB = result token (LINK, WBTC, etc.)
           tokenBSymbol: pair.tokenSymbol, // tokenB symbol
           tokenBDecimals: pair.decimals.token1, // Assuming token1 is the result token (tokenB)
-          marketCap: BigInt(tokenSummary.marketCap),
+          marketCap: tokenSummary.marketCap,
           // Initialize all DEX reserves as null
           reservesAUniswapV2: null,
           reservesBUniswapV2: null,
@@ -868,7 +881,7 @@ async function transformToColumnFormat(
 
       // Map DEX names to column names and set the reserves
       switch (pair.dex) {
-        case 'uniswapV2':
+        case 'uniswap-v2':
           record.reservesAUniswapV2 = pair.reserves.token0
           record.reservesBUniswapV2 = pair.reserves.token1
           break
@@ -1063,6 +1076,8 @@ function calculateSweetSpot(
   // V = trade volume
   // alpha = reserveA/reserveB^2 (or reserveB/reserveA^2 depending on the magnitude of the reserves)
 
+  console.log('==========Calculating Sweet Spot==========')
+
   // Convert all values to ETH format (not wei)
   const scaledReserveA = Number(reserveA) / 10 ** decimalsA
   const scaledReserveB = Number(reserveB) / 10 ** decimalsB
@@ -1125,7 +1140,7 @@ export async function calculateSlippageSavings(
   sweetSpot: number
 ): Promise<{ slippageSavings: number; percentageSavings: number }> {
   try {
-    console.log('========================================')
+    console.log('==========Calculating Slippage Savings==========')
     console.log('tradeVolume', tradeVolume)
     console.log('dex', dex)
     console.log('feeTier', feeTier)
@@ -1169,7 +1184,7 @@ export async function calculateSlippageSavings(
       console.log('amountOut =====>', amountOut)
       console.log('amountOutInETH =====>', amountOutInETH)
       console.log(
-        'tradeVolume / BigInt(sweetSpot) =====>',
+        'tradeVolume / sweetSpot =====>',
         tradeVolume / BigInt(sweetSpot)
       )
 
@@ -1724,6 +1739,8 @@ export async function analyzeTokenPairLiquidityComprehensive(
       }
     }
 
+    
+
     // Get token information
     const [tokenAInfo, tokenBInfo] = await Promise.all([
       tokenService.getTokenInfo(tokenAAddress),
@@ -1810,7 +1827,7 @@ export async function analyzeTokenPairLiquidityComprehensive(
       feeTier = 0 // Balancer pools don't use fee tiers like Uniswap V3
     } else if (bestDex.name.startsWith('curve-') || bestDex.name === 'curve') {
       feeTier = 0 // Curve pools don't use fee tiers
-    } else if (bestDex.name === 'uniswapV2' || bestDex.name === 'sushiswap') {
+    } else if (bestDex.name === 'uniswap-v2' || bestDex.name === 'sushiswap') {
       feeTier = 3000 // Use 0.3% fee for V2-style AMMs
     }
 
@@ -1904,26 +1921,6 @@ export async function analyzeTokenPairLiquidityComprehensive(
 // Helper function to validate token addresses
 export function validateTokenAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address)
-}
-
-// Example usage function
-export async function exampleUsage() {
-  console.log('🚀 Example: Analyzing USDC/WETH liquidity...')
-  
-  const result = await analyzeTokenPairLiquidityComprehensive(
-    '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', // USDC
-    '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2' // WETH
-  )
-  
-  if (result.success) {
-    console.log('✅ Analysis completed successfully!')
-    console.log(`Found ${result.data!.dexes.length} DEXes with liquidity`)
-    console.log(`Sweet spot: ${result.data!.sweetSpot} streams`)
-    console.log(`Best DEX: ${result.data!.summary.bestDex}`)
-    console.log(`Slippage savings: ${result.data!.slippageAnalysis.percentageSavings.toFixed(3)}%`)
-  } else {
-    console.log('❌ Analysis failed:', result.error)
-  }
 }
 
 export { runLiquidityAnalysis, runLiquidityAnalysisFromJson }

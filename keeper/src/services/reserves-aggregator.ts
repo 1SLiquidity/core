@@ -7,7 +7,7 @@ import { CONTRACT_ADDRESSES } from '../config/dex'
 import { CurvePoolFilter, createCurvePoolFilter } from './curve-pool-filter'
 import { BalancerPoolFilter, createBalancerPoolFilter } from './balancer-pool-filter'
 
-export type DexType = 'uniswapV2' | 'uniswapV3_500' | 'uniswapV3_3000' | 'uniswapV3_10000' | 'sushiswap' | 'curve' | 'balancer'
+export type DexType = 'uniswap-v2' | 'uniswap-v3-500' | 'uniswap-v3-3000' | 'uniswap-v3-10000' | 'sushiswap' | 'curve' | 'balancer'
 
 export class ReservesAggregator {
   private uniswapV2: UniswapV2Service
@@ -143,25 +143,25 @@ export class ReservesAggregator {
     let reserves: ReserveResult | null = null
 
     switch (dex) {
-      case 'uniswapV2':
+      case 'uniswap-v2':
         reserves = await this.fetchWithRetry(
           () => this.uniswapV2.getReserves(tokenA, tokenB),
           'Uniswap V2'
         )
         break
-      case 'uniswapV3_500':
+      case 'uniswap-v3-500':
         reserves = await this.fetchWithRetry(
           () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
           'Uniswap V3 (500)'
         )
         break
-      case 'uniswapV3_3000':
+      case 'uniswap-v3-3000':
         reserves = await this.fetchWithRetry(
           () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
           'Uniswap V3 (3000)'
         )
         break
-      case 'uniswapV3_10000':
+      case 'uniswap-v3-10000':
         reserves = await this.fetchWithRetry(
           () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
           'Uniswap V3 (10000)'
