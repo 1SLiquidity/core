@@ -15,8 +15,35 @@ export function createProvider(): ethers.JsonRpcProvider {
   // Start with the primary RPC from env vars
   const primaryRpcUrl = process.env.RPC_URL
 
+  console.log('🔍 createProvider() called')
+  console.log('RPC_URL from env:', primaryRpcUrl ? 'Set' : 'Not set')
+  if (primaryRpcUrl) {
+    console.log('RPC_URL value:', primaryRpcUrl.substring(0, 20) + '...')
+  }
+
   if (!primaryRpcUrl) {
-    throw new Error('RPC_URL environment variable is not set')
+    console.warn('RPC_URL environment variable is not set, using fallback RPC')
+    // Use the first fallback RPC as primary
+    const fallbackRpc = FALLBACK_RPCS[0]
+    console.log(`Using fallback RPC: ${fallbackRpc}`)
+    
+    const provider = new ethers.JsonRpcProvider(
+      fallbackRpc,
+      undefined,
+      {
+        polling: true,
+        staticNetwork: true,
+        batchStallTime: 100,
+        batchMaxSize: 3,
+        cacheTimeout: 2000,
+      }
+    )
+    
+    provider.on('error', (error) => {
+      console.error('Provider error:', error)
+    })
+    
+    return provider
   }
 
   // Provider options to optimize for rate limiting and timeouts
@@ -34,6 +61,8 @@ export function createProvider(): ethers.JsonRpcProvider {
     undefined,
     providerOptions
   )
+
+  console.log('✅ Using primary RPC URL:', primaryRpcUrl.substring(0, 20) + '...')
 
   // Add error handling that could switch to fallback RPCs in the future
   provider.on('error', (error) => {

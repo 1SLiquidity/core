@@ -2,15 +2,11 @@ import { createProvider } from '../utils/provider'
 import { ReservesAggregator } from '../services/reserves-aggregator'
 import { TokenService } from '../services/token-service'
 import DatabaseService from '../services/database-service'
-import * as dotenv from 'dotenv'
 import * as XLSX from 'xlsx'
 import * as fs from 'fs'
 import * as path from 'path'
 import { CONTRACT_ABIS, CONTRACT_ADDRESSES } from '../config/dex'
 import { ethers } from 'ethers'
-
-// Load environment variables
-dotenv.config()
 
 // Create provider
 const provider = createProvider()

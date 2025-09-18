@@ -3,7 +3,7 @@ import { ReservesAggregator, DexType } from '../../services/reserves-aggregator'
 import { getCache, setCache, generateCacheKey } from '../../utils/redis'
 import { createProvider } from '../../utils/provider'
 import { initializeCurveFiltering } from '../../services/curve-initializer'
-import { CURVE_POOL_METADATA } from '../../../data/curve-config'
+import { CURVE_POOL_METADATA, BALANCER_POOL_METADATA } from '../../config/dex'
 
 // Create provider with better throttling and retry settings
 const provider = createProvider()
@@ -16,12 +16,12 @@ const BACKGROUND_REFRESH_THRESHOLD = 240 // 4 minutes - start background refresh
 
 // Initialize Curve smart filtering (only reserves aggregator needed)
 reservesService.initializeCurvePoolFilter(CURVE_POOL_METADATA)
+reservesService.initializeBalancerPoolFilter(BALANCER_POOL_METADATA)
 
 interface ReserveRequest {
   tokenA: string
   tokenB: string
   dex?: DexType // Optional: specify which DEX to query
-  poolAddress?: string // Optional: specify pool address for Curve DEX
 }
 
 function validateTokenAddress(address: string): boolean {
@@ -133,14 +133,12 @@ export const main = async (
     let tokenA: string | undefined
     let tokenB: string | undefined
     let dex: DexType | undefined
-    let poolAddress: string | undefined
 
     // Handle both GET and POST requests
     if (event.httpMethod === 'GET') {
       tokenA = event.queryStringParameters?.tokenA
       tokenB = event.queryStringParameters?.tokenB
       dex = event.queryStringParameters?.dex as DexType | undefined
-      poolAddress = event.queryStringParameters?.poolAddress
     } else if (event.httpMethod === 'POST') {
       const body = parseRequestBody(event)
       if (!body) {
@@ -156,7 +154,6 @@ export const main = async (
       tokenA = body.tokenA
       tokenB = body.tokenB
       dex = body.dex
-      poolAddress = body.poolAddress
     }
 
     if (!tokenA || !tokenB) {
@@ -229,7 +226,11 @@ export const main = async (
     }
 
     // No cache or cache too old - need fresh data
-    console.log(`🔍 No cache for ${tokenA}-${tokenB}, fetching fresh data`)
+    console.log(
+      `Cache miss for reserves of ${tokenA}-${tokenB}${
+        dex ? ` from ${dex}` : ''
+      }, fetching from API...`
+    )
 
     try {
       // If not in cache, fetch from API
@@ -239,8 +240,7 @@ export const main = async (
           reservesData = await reservesService.getReservesFromDex(
             tokenA,
             tokenB,
-            dex,
-            poolAddress
+            dex
           )
         } else {
           reservesData = await reservesService.getAllReserves(tokenA, tokenB)
@@ -253,9 +253,7 @@ export const main = async (
             body: JSON.stringify({
               error: 'No reserves',
               // message: 'No liquidity found for the token pair',
-              message: `No reserves found for ${tokenA}-${tokenB} on ${dex}${
-                poolAddress ? ` (${poolAddress})` : ''
-              }`,
+              message: `No reserves found for ${tokenA}-${tokenB} on ${dex}`,
             }),
           }
         }
