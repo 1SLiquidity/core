@@ -482,6 +482,20 @@ export const CurvePoolABI = [
   },
 ]
 
+// Balancer ABIs - Essential functions for calculation
+export const BalancerVaultABI = [
+  'function getPoolTokens(bytes32 poolId) external view returns (address[] memory tokens, uint256[] memory balances, uint256 lastChangeBlock)',
+  'function getPool(bytes32 poolId) external view returns (address, uint8)',
+]
+
+export const BalancerPoolABI = [
+  'function getPoolId() external view returns (bytes32)',
+  'function getSwapFeePercentage() external view returns (uint256)',
+  'function getPoolType() external view returns (uint256)',
+  'function getNormalizedWeights() external view returns (uint256[] memory)',
+  'function getTotalSupply() external view returns (uint256)',
+]
+
 // SushiSwap Router ABI
 export const SushiSwapRouterABI = [
   {
