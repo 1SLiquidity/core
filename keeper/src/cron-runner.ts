@@ -1,4 +1,4 @@
-import CronScheduler from './services/cron-scheduler'
+import CronScheduler, { CronJobConfig } from './services/cron-scheduler'
 import * as dotenv from 'dotenv'
 
 // Load environment variables
@@ -24,7 +24,22 @@ class CronRunner {
           name: 'liquidity-analysis',
           schedule: process.env.CRON_SCHEDULE || '0 8,20 * * *',
           description: '2 times daily at 8 AM and 8 PM',
-          enabled: process.env.CRON_ENABLED === 'true', // Default enabled
+          enabled: process.env.CRON_ENABLED === 'true',
+          type: 'liquidity-analysis',
+        },
+        {
+          name: 'fetch-balancer-pools',
+          schedule: process.env.BALANCER_CRON_SCHEDULE || '0 6,18 * * *',
+          description: '2 times daily at 6 AM and 6 PM',
+          enabled: process.env.BALANCER_CRON_ENABLED === 'true',
+          type: 'fetch-balancer-pools',
+        },
+        {
+          name: 'fetch-curve-pools',
+          schedule: process.env.CURVE_CRON_SCHEDULE || '0 6,18 * * *',
+          description: '2 times daily at 6 AM and 6 PM',
+          enabled: process.env.CURVE_CRON_ENABLED === 'true',
+          type: 'fetch-curve-pools',
         },
       ],
     })
@@ -160,10 +175,26 @@ async function main() {
         '  CRON_LOG_RETENTION_DAYS - Log retention in days (default: 30)'
       )
       console.log(
-        '  CRON_SCHEDULE           - Cron schedule (default: 0 8,20 * * *)'
+        '  CRON_SCHEDULE           - Cron schedule for liquidity analysis (default: 0 8,20 * * *)'
       )
-      console.log('  CRON_ENABLED            - Enable cron job (default: true)')
+      console.log(
+        '  CRON_ENABLED            - Enable liquidity analysis cron job (default: false)'
+      )
+      console.log(
+        '  BALANCER_CRON_SCHEDULE  - Cron schedule for Balancer pools (default: 0 8,20 * * *)'
+      )
+      console.log(
+        '  BALANCER_CRON_ENABLED   - Enable Balancer pools cron job (default: false)'
+      )
+      console.log(
+        '  CURVE_CRON_SCHEDULE     - Cron schedule for Curve pools (default: 0 8,20 * * *)'
+      )
+      console.log(
+        '  CURVE_CRON_ENABLED      - Enable Curve pools cron job (default: false)'
+      )
       console.log('  DATABASE_URL            - PostgreSQL connection string')
+      console.log('  BALANCER_SUBGRAPH       - Balancer subgraph URL')
+      console.log('  RPC_URL                 - Ethereum RPC URL')
       process.exit(0)
   }
 }

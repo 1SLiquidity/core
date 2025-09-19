@@ -1,5 +1,5 @@
 // Auto-generated Curve pools configuration
-// Generated on: 2025-09-16T03:16:51.203Z
+// Generated on: 2025-09-19T11:40:33.822Z
 // Total pools: 49 (28 regular, 21 meta)
 
 export const CURVE_POOL_METADATA = {
@@ -351,7 +351,7 @@ export const CURVE_POOL_METADATA = {
     tokens: ['0xdAC17F958D2ee523a2206206994597C13D831ec7', '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     underlyingTokens: ['0xdAC17F958D2ee523a2206206994597C13D831ec7', '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'],
     A: '3645',
-    fee: '24480563',
+    fee: '23430583',
     adminFee: '0'
   },
   '0x618788357D0EBd8A37e763ADab3bc575D54c2C7d': {
