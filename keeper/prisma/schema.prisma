@@ -51,6 +51,14 @@ model LiquidityData {
   reservesAUniswapV3_10000 String?
   reservesBUniswapV3_10000 String?
 
+  // Balancer reserves
+  reservesABalancer String?
+  reservesBBalancer String?
+
+  // Curve reserves
+  reservesACurve String?
+  reservesBCurve String?
+
   // Total depth fields for Token A (wei format)
   reserveAtotaldepthWei String? // Sum of all Token A reserves across DEXes in wei
   reserveAtotaldepth    Float?  // Sum of all Token A reserves in normal decimal format

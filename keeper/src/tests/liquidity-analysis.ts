@@ -8,7 +8,7 @@ dotenv.config({ path: envPath })
 import { createProvider } from '../utils/provider'
 import { ReservesAggregator } from '../services/reserves-aggregator'
 import { TokenService } from '../services/token-service'
-// import DatabaseService from '../services/database-service'
+import DatabaseService from '../services/database-service'
 import * as XLSX from 'xlsx'
 import * as fs from 'fs'
 import {
@@ -787,58 +787,58 @@ async function saveTokenToJson(
 }
 
 // Database saving function - transforms row-based data to column-based format with upsert functionality
-// async function saveToDatabase(
-//   results: TokenLiquiditySummary[],
-//   timestamp: string
-// ): Promise<void> {
-//   console.log('\nSaving liquidity data to database...')
+async function saveToDatabase(
+  results: TokenLiquiditySummary[],
+  timestamp: string
+): Promise<void> {
+  console.log('\nSaving liquidity data to database...')
 
-//   const dbService = DatabaseService.getInstance()
+  const dbService = DatabaseService.getInstance()
 
-//   try {
-//     await dbService.connect()
+  try {
+    await dbService.connect()
 
-//     // Transform data from row-based (one row per DEX) to column-based (one row per token pair)
-//     const transformedData = await transformToColumnFormat(results, timestamp)
+    // Transform data from row-based (one row per DEX) to column-based (one row per token pair)
+    const transformedData = await transformToColumnFormat(results, timestamp)
 
-//     console.log('transformedData =====>', transformedData)
-//     console.log(
-//       `📊 Transformed ${results.length} token summaries into ${transformedData.length} database records`
-//     )
+    console.log('transformedData =====>', transformedData)
+    console.log(
+      `📊 Transformed ${results.length} token summaries into ${transformedData.length} database records`
+    )
 
-//     // Save data in batches with upsert functionality
-//     const batchSize = 50
-//     let saved = 0
+    // Save data in batches with upsert functionality
+    const batchSize = 50
+    let saved = 0
 
-//     for (let i = 0; i < transformedData.length; i += batchSize) {
-//       const batch = transformedData.slice(i, i + batchSize)
+    for (let i = 0; i < transformedData.length; i += batchSize) {
+      const batch = transformedData.slice(i, i + batchSize)
 
-//       console.log(
-//         `💾 Saving batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(
-//           transformedData.length / batchSize
-//         )} (${batch.length} records)`
-//       )
+      console.log(
+        `💾 Saving batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(
+          transformedData.length / batchSize
+        )} (${batch.length} records)`
+      )
 
-//       // Use upsert functionality to update existing records or create new ones
-//       await dbService.upsertBatchLiquidityData(batch)
-//       saved += batch.length
+      // Use upsert functionality to update existing records or create new ones
+      await dbService.upsertBatchLiquidityData(batch)
+      saved += batch.length
 
-//       // Small delay between batches
-//       if (i + batchSize < transformedData.length) {
-//         await new Promise((resolve) => setTimeout(resolve, 100))
-//       }
-//     }
+      // Small delay between batches
+      if (i + batchSize < transformedData.length) {
+        await new Promise((resolve) => setTimeout(resolve, 100))
+      }
+    }
 
-//     console.log(
-//       `✅ Successfully upserted ${saved} liquidity records to database`
-//     )
-//   } catch (error) {
-//     console.error('❌ Error saving to database:', error)
-//     throw error
-//   } finally {
-//     await dbService.disconnect()
-//   }
-// }
+    console.log(
+      `✅ Successfully upserted ${saved} liquidity records to database`
+    )
+  } catch (error) {
+    console.error('❌ Error saving to database:', error)
+    throw error
+  } finally {
+    await dbService.disconnect()
+  }
+}
 
 // Transform the liquidity data from row-based format to column-based format for database
 async function transformToColumnFormat(
@@ -1425,19 +1425,19 @@ async function runLiquidityAnalysisFromJson(
     )
 
     // Save data to database
-    // if (process.env.DATABASE_URL) {
-    //   try {
-    //     await saveToDatabase(existingData, timestamp)
-    //   } catch (error) {
-    //     console.error(
-    //       '⚠️  Failed to save to database, but analysis completed:',
-    //       error
-    //     )
-    //     // Don't throw error to avoid failing the entire analysis
-    //   }
-    // } else {
-    //   console.log('💡 DATABASE_URL not configured, skipping database save')
-    // }
+    if (process.env.DATABASE_URL) {
+      try {
+        await saveToDatabase(existingData, timestamp)
+      } catch (error) {
+        console.error(
+          '⚠️  Failed to save to database, but analysis completed:',
+          error
+        )
+        // Don't throw error to avoid failing the entire analysis
+      }
+    } else {
+      console.log('💡 DATABASE_URL not configured, skipping database save')
+    }
 
     // Print summary
     console.log('\n=== SUMMARY ===')
