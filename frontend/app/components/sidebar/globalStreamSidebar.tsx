@@ -56,15 +56,10 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
     skip: 0,
   })
 
-  console.log('ivan: Trades data:', trades, error)
-
-  // Filter trades based on active tab
   const filteredTrades = trades.filter((trade) => {
     if (activeTab.title === 'My Trades') {
-      // Show only trades from the connected wallet
       return address && trade.user?.toLowerCase() === address.toLowerCase()
     }
-    // Show all trades for "Global Trades"
     return true
   })
 
