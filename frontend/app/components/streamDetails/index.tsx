@@ -171,8 +171,18 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             tokenOutObj: tokenOut,
             tokenIn: selectedStream.tokenIn || '',
             tokenOut: selectedStream.tokenOut || '',
-            amountIn: selectedStream.amountIn.toString(),
-            minAmountOut: selectedStream.minAmountOut.toString(),
+            amountIn: Number(
+              formatUnits(
+                BigInt(selectedStream.amountIn),
+                tokenIn?.decimals || 18
+              )
+            ).toString(),
+            minAmountOut: Number(
+              formatUnits(
+                BigInt(selectedStream.minAmountOut),
+                tokenOut?.decimals || 18
+              )
+            ).toString(),
             isInstasettlable: true,
             usePriceBased: false,
             signer: signer,
@@ -192,6 +202,11 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
       }
     }
   }
+
+  console.log(
+    'selectedStream.cancellations ===>',
+    selectedStream.cancellations.some((cancellation) => !!cancellation.id)
+  )
 
   return (
     <>
@@ -500,11 +515,13 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
             amountReceived={`$${amountOutUsd.toFixed(2)}`}
             fee="$190.54"
             isEnabled={selectedStream.isInstasettlable}
+            // isEnabled={true}
             isUser={isUser}
             isLoading={isLoading || loading}
             selectedStream={selectedStream}
             handleInstasettleClick={handleInstasettleClick}
             handleCancelClick={handleCancelClick}
+            isCancellable={selectedStream.cancellations.length === 0}
           />
         </div>
 

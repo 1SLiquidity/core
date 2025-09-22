@@ -7,6 +7,11 @@ export interface Execution {
   realisedAmountOut: string
 }
 
+export interface Cancellation {
+  id: string
+  timestamp: string
+}
+
 export interface Trade {
   amountIn: string
   amountRemaining: string
@@ -30,6 +35,7 @@ export interface Trade {
   amountInUsd?: number
   tokenInDetails?: any // Using any for now since we don't have the token type here
   tokenOutDetails?: any // Using any for now since we don't have the token type here
+  cancellations: Cancellation[]
 }
 
 export interface TradesResponse {

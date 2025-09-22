@@ -239,10 +239,10 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
             onBack={() => setIsStreamDetailsOpen(false)}
             selectedStream={selectedStream}
             walletAddress={address}
-            // isUser={
-            //   selectedStream?.user?.toLowerCase() === address?.toLowerCase()
-            // }
-            isUser={true}
+            isUser={
+              selectedStream?.user?.toLowerCase() === address?.toLowerCase()
+            }
+            // isUser={true}
             onClose={() => {
               setIsStreamDetailsOpen(false)
               setSelectedStream(null)
