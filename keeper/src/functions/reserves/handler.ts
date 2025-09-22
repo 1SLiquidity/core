@@ -2,6 +2,8 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda'
 import { ReservesAggregator, DexType } from '../../services/reserves-aggregator'
 import { getCache, setCache, generateCacheKey } from '../../utils/redis'
 import { createProvider } from '../../utils/provider'
+import { initializeCurveFiltering } from '../../services/curve-initializer'
+import { CURVE_POOL_METADATA, BALANCER_POOL_METADATA } from '../../config/dex'
 
 // Create provider with better throttling and retry settings
 const provider = createProvider()
@@ -11,6 +13,10 @@ const reservesService = new ReservesAggregator(provider)
 const CACHE_TTL = 300 // 5 minutes fresh cache
 const STALE_CACHE_TTL = 900 // 15 minutes stale cache (still usable)
 const BACKGROUND_REFRESH_THRESHOLD = 240 // 4 minutes - start background refresh
+
+// Initialize Curve smart filtering (only reserves aggregator needed)
+reservesService.initializeCurvePoolFilter(CURVE_POOL_METADATA)
+reservesService.initializeBalancerPoolFilter(BALANCER_POOL_METADATA)
 
 interface ReserveRequest {
   tokenA: string
@@ -220,7 +226,11 @@ export const main = async (
     }
 
     // No cache or cache too old - need fresh data
-    console.log(`🔍 No cache for ${tokenA}-${tokenB}, fetching fresh data`)
+    console.log(
+      `Cache miss for reserves of ${tokenA}-${tokenB}${
+        dex ? ` from ${dex}` : ''
+      }, fetching from API...`
+    )
 
     try {
       // If not in cache, fetch from API
@@ -241,8 +251,9 @@ export const main = async (
             statusCode: 404,
             headers,
             body: JSON.stringify({
-              error: 'No liquidity',
-              message: 'No liquidity found for the token pair',
+              error: 'No reserves',
+              // message: 'No liquidity found for the token pair',
+              message: `No reserves found for ${tokenA}-${tokenB} on ${dex}`,
             }),
           }
         }

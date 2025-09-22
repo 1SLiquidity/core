@@ -59,11 +59,31 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
     if (!trades || trades.length === 0 || !tokens || tokens.length === 0)
       return 0
 
-    return trades.reduce((total, trade) => {
-      const tokenIn = tokens.find(
+    const findTokenForTrade = (address: string) => {
+      const ethWethAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
+      if (address?.toLowerCase() === ethWethAddress) {
+        // For streams, prefer WETH over ETH since most DeFi protocols use WETH
+        return (
+          tokens.find(
+            (t: TOKENS_TYPE) =>
+              t.token_address?.toLowerCase() === address?.toLowerCase() &&
+              t.symbol.toLowerCase() === 'weth'
+          ) ||
+          tokens.find(
+            (t: TOKENS_TYPE) =>
+              t.token_address?.toLowerCase() === address?.toLowerCase()
+          )
+        )
+      }
+      // For all other cases, use normal address matching
+      return tokens.find(
         (t: TOKENS_TYPE) =>
-          t.token_address.toLowerCase() === trade.tokenIn.toLowerCase()
+          t.token_address?.toLowerCase() === address?.toLowerCase()
       )
+    }
+
+    return trades.reduce((total, trade) => {
+      const tokenIn = findTokenForTrade(trade.tokenIn)
 
       if (!tokenIn) return total
 

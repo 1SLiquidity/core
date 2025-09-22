@@ -1,10 +1,15 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { ethers } from 'ethers';
 import { PriceAggregator, DexType } from '../../services/price-aggregator';
 import { getCache, setCache, generateCacheKey } from '../../utils/redis';
+import { createProvider } from '../../utils/provider';
+import { CURVE_POOL_METADATA, BALANCER_POOL_METADATA } from '../../config/dex';
 
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+const provider = createProvider();
 const priceAggregator = new PriceAggregator(provider);
+
+// Initialize Curve and Balancer smart filtering
+priceAggregator.initializeCurvePoolFilter(CURVE_POOL_METADATA);
+priceAggregator.initializeBalancerPoolFilter(BALANCER_POOL_METADATA);
 
 // Cache TTL in seconds
 const CACHE_TTL = 10;

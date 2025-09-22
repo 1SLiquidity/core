@@ -1,5 +1,7 @@
 import * as cron from 'node-cron'
 import { runLiquidityAnalysisFromJson } from '../tests/liquidity-analysis'
+import { main as fetchBalancerPools } from '../scripts/fetch-balancer-pools'
+import { main as fetchCurvePools } from '../scripts/fetch-curve-pools'
 import * as dotenv from 'dotenv'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -12,6 +14,7 @@ interface CronJobConfig {
   schedule: string
   description: string
   enabled: boolean
+  type: 'liquidity-analysis' | 'fetch-balancer-pools' | 'fetch-curve-pools'
 }
 
 interface CronSchedulerConfig {
@@ -37,6 +40,21 @@ class CronScheduler {
           schedule: process.env.CRON_SCHEDULE || '0 8,20 * * *', // 8 AM, 8 PM
           description: '2 times daily at 8 AM and 8 PM',
           enabled: process.env.CRON_ENABLED === 'true',
+          type: 'liquidity-analysis',
+        },
+        {
+          name: 'fetch-balancer-pools',
+          schedule: process.env.BALANCER_CRON_SCHEDULE || '0 8,20 * * *', // 8 AM, 8 PM
+          description: '2 times daily at 8 AM and 8 PM',
+          enabled: process.env.BALANCER_CRON_ENABLED === 'true',
+          type: 'fetch-balancer-pools',
+        },
+        {
+          name: 'fetch-curve-pools',
+          schedule: process.env.CURVE_CRON_SCHEDULE || '0 8,20 * * *', // 8 AM, 8 PM
+          description: '2 times daily at 8 AM and 8 PM',
+          enabled: process.env.CURVE_CRON_ENABLED === 'true',
+          type: 'fetch-curve-pools',
         },
       ],
       timezone: 'UTC',
@@ -79,36 +97,55 @@ class CronScheduler {
     }
   }
 
-  private async executeLiquidityAnalysis(jobName: string): Promise<void> {
+  private async executeJob(jobConfig: CronJobConfig): Promise<void> {
     const startTime = Date.now()
-    this.log('INFO', 'Starting liquidity analysis job', jobName)
+    this.log('INFO', `Starting ${jobConfig.type} job`, jobConfig.name)
 
     try {
-      await runLiquidityAnalysisFromJson(
-        'src/tests/tokens-list-04-09-2025.json'
-      )
+      switch (jobConfig.type) {
+        case 'liquidity-analysis':
+          await runLiquidityAnalysisFromJson(
+            'src/tests/tokens-list-04-09-2025.json'
+          )
+          break
+
+        case 'fetch-balancer-pools':
+          await fetchBalancerPools()
+          break
+
+        case 'fetch-curve-pools':
+          await fetchCurvePools()
+          break
+
+        default:
+          throw new Error(`Unknown job type: ${jobConfig.type}`)
+      }
+
       const duration = Date.now() - startTime
       this.log(
         'INFO',
-        `Liquidity analysis completed successfully in ${duration}ms`,
-        jobName
+        `${jobConfig.type} completed successfully in ${duration}ms`,
+        jobConfig.name
       )
     } catch (error) {
       const duration = Date.now() - startTime
       this.log(
         'ERROR',
-        `Liquidity analysis failed after ${duration}ms: ${
+        `${jobConfig.type} failed after ${duration}ms: ${
           error instanceof Error ? error.message : String(error)
         }`,
-        jobName
+        jobConfig.name
       )
 
-      // You can add additional error handling here, such as:
-      // - Sending notifications
-      // - Updating metrics
-      // - Triggering alerts
+      throw error
+    }
+  }
 
-      throw error // Re-throw to maintain error visibility
+  private async executeLiquidityAnalysis(jobName: string): Promise<void> {
+    // Keep this method for backward compatibility
+    const jobConfig = this.config.jobs.find((j) => j.name === jobName)
+    if (jobConfig) {
+      await this.executeJob(jobConfig)
     }
   }
 
@@ -142,10 +179,9 @@ class CronScheduler {
       jobConfig.schedule,
       async () => {
         try {
-          await this.executeLiquidityAnalysis(jobConfig.name)
+          await this.executeJob(jobConfig)
         } catch (error) {
-          // Error is already logged in executeLiquidityAnalysis
-          // Additional error handling can be added here if needed
+          // Error is already logged in executeJob
         }
       },
       {
@@ -250,7 +286,7 @@ class CronScheduler {
     }
 
     this.log('INFO', `Running job manually`, jobName)
-    await this.executeLiquidityAnalysis(jobName)
+    await this.executeJob(job)
   }
 
   public getJobStatus(): Array<{

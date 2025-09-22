@@ -90,6 +90,10 @@ export default class DatabaseService {
           reservesBUniswapV3_3000: data.reservesBUniswapV3_3000,
           reservesAUniswapV3_10000: data.reservesAUniswapV3_10000,
           reservesBUniswapV3_10000: data.reservesBUniswapV3_10000,
+          reservesABalancer: data.reservesABalancer,
+          reservesBBalancer: data.reservesBBalancer,
+          reservesACurve: data.reservesACurve,
+          reservesBCurve: data.reservesBCurve,
 
           // Total depth fields
           reserveAtotaldepthWei: data.reserveAtotaldepthWei,
@@ -121,6 +125,10 @@ export default class DatabaseService {
           reservesBUniswapV3_3000: data.reservesBUniswapV3_3000,
           reservesAUniswapV3_10000: data.reservesAUniswapV3_10000,
           reservesBUniswapV3_10000: data.reservesBUniswapV3_10000,
+          reservesABalancer: data.reservesABalancer,
+          reservesBBalancer: data.reservesBBalancer,
+          reservesACurve: data.reservesACurve,
+          reservesBCurve: data.reservesBCurve,
 
           // Total depth fields
           reserveAtotaldepthWei: data.reserveAtotaldepthWei,
@@ -183,6 +191,10 @@ export default class DatabaseService {
                 reservesBUniswapV3_3000: data.reservesBUniswapV3_3000,
                 reservesAUniswapV3_10000: data.reservesAUniswapV3_10000,
                 reservesBUniswapV3_10000: data.reservesBUniswapV3_10000,
+                reservesABalancer: data.reservesABalancer,
+                reservesBBalancer: data.reservesBBalancer,
+                reservesACurve: data.reservesACurve,
+                reservesBCurve: data.reservesBCurve,
 
                 // Total depth fields
                 reserveAtotaldepthWei: data.reserveAtotaldepthWei,
@@ -221,6 +233,10 @@ export default class DatabaseService {
                 reservesBUniswapV3_3000: data.reservesBUniswapV3_3000,
                 reservesAUniswapV3_10000: data.reservesAUniswapV3_10000,
                 reservesBUniswapV3_10000: data.reservesBUniswapV3_10000,
+                reservesABalancer: data.reservesABalancer,
+                reservesBBalancer: data.reservesBBalancer,
+                reservesACurve: data.reservesACurve,
+                reservesBCurve: data.reservesBCurve,
 
                 // Total depth fields
                 reserveAtotaldepthWei: data.reserveAtotaldepthWei,

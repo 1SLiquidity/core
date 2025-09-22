@@ -4,7 +4,22 @@ import {
   UniswapV2RouterABI,
   UniswapV3QuoterABI,
   SushiSwapRouterABI,
+  CurvePoolABI,
+  BalancerVaultABI,
+  BalancerPoolABI,
 } from '../config/abis'
+import {
+  extractPoolAddressFromDexType as extractCurvePoolAddress,
+  isCurveDex,
+} from '../config/curve-config'
+import {
+  extractPoolAddressFromDexType as extractBalancerPoolAddress,
+  isBalancerDex,
+  getBalancerVaultAddress,
+  getBalancerPoolMetadata,
+} from '../config/balancer-config'
+
+// import { ReserveData } from '@/app/types'
 
 // Singleton provider instance to avoid rate limits
 // let sharedAlchemyProvider: ethers.providers.JsonRpcProvider | null = null
@@ -1355,6 +1370,615 @@ export class UniswapV3Calculator extends BaseDexCalculator {
   }
 }
 
+// Curve implementation
+export class CurveCalculator extends BaseDexCalculator {
+  private pool: ethers.Contract
+  private poolAddress: string
+
+  constructor(poolAddress: string, chainId: string = '1') {
+    super(chainId)
+    this.poolAddress = poolAddress
+    this.pool = new ethers.Contract(poolAddress, CurvePoolABI, this.provider)
+  }
+
+  // Curve fees vary by pool but typically 0.04% (4 basis points)
+  getExchangeFee(): number {
+    return 0.04
+  }
+
+  async calculateOutputAmount(
+    amountIn: string,
+    reserveData: ReserveData
+  ): Promise<string> {
+    if (!reserveData || !reserveData.reserves) return '0'
+
+    try {
+      // Get token indices in the pool
+      const [tokenAIndex, tokenBIndex] = await this.getTokenIndices(
+        reserveData.token0Address!,
+        reserveData.token1Address!
+      )
+
+      if (tokenAIndex === -1 || tokenBIndex === -1) {
+        console.log('One or both tokens not found in Curve pool')
+        return '0'
+      }
+
+      // Get token decimals from reserveData
+      const token0Decimals = reserveData.decimals.token0
+      const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
+
+      console.log('Curve calculation input:', {
+        amountIn,
+        amountInBN: amountInBN.toString(),
+        tokenAIndex,
+        tokenBIndex,
+        poolAddress: this.poolAddress,
+      })
+
+      // Use Curve's get_dy function to calculate output
+      const amountOut = await this.pool.get_dy(
+        tokenAIndex,
+        tokenBIndex,
+        amountInBN
+      )
+
+      console.log('Curve raw output amount:', amountOut.toString())
+
+      // Format the result using token1 decimals
+      const token1Decimals = reserveData.decimals.token1
+      const result = this.formatOutput(amountOut, token1Decimals)
+
+      console.log('Curve final calculation result:', {
+        amountIn,
+        amountOut: amountOut.toString(),
+        formattedResult: result,
+        token0Decimals,
+        token1Decimals,
+      })
+
+      return result
+    } catch (error) {
+      console.error('Error calculating Curve output amount:', error)
+      return '0'
+    }
+  }
+
+  async calculateInputAmount(
+    amountOut: string,
+    reserveData: ReserveData
+  ): Promise<string> {
+    if (!reserveData || !reserveData.reserves) return '0'
+
+    // Curve doesn't have a direct get_dx function in all pools
+    // For now, we'll use an approximation or fallback
+    // This could be improved with iterative calculation
+    console.warn(
+      'Curve input amount calculation not implemented - using approximation'
+    )
+
+    try {
+      // Simple approximation: use the inverse calculation
+      // This is not precise but gives a rough estimate
+      const outputAmount = await this.calculateOutputAmount('1', reserveData)
+      if (outputAmount === '0') return '0'
+
+      const rate = parseFloat(outputAmount)
+      if (rate === 0) return '0'
+
+      const approximateInput = parseFloat(amountOut) / rate
+      return approximateInput.toFixed(8)
+    } catch (error) {
+      console.error('Error calculating Curve input amount:', error)
+      return '0'
+    }
+  }
+
+  async calculateOutputAmountDirect(
+    amountIn: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      console.log('Curve - calculateOutputAmountDirect called with:', {
+        amountIn,
+        tokenIn,
+        tokenOut,
+        decimalsIn,
+        decimalsOut,
+        poolAddress: this.poolAddress,
+      })
+
+      // Get token indices in the pool
+      const [tokenAIndex, tokenBIndex] = await this.getTokenIndices(
+        tokenIn,
+        tokenOut
+      )
+
+      if (tokenAIndex === -1 || tokenBIndex === -1) {
+        console.log('One or both tokens not found in Curve pool')
+        return '0'
+      }
+
+      const amountInBN = ethers.utils.parseUnits(amountIn, decimalsIn)
+
+      // Use Curve's get_dy function
+      const amountOut = await this.pool.get_dy(
+        tokenAIndex,
+        tokenBIndex,
+        amountInBN
+      )
+
+      // Format the result
+      const result = this.formatOutput(amountOut, decimalsOut)
+      console.log('Curve direct calculation result:', result)
+
+      return result
+    } catch (error) {
+      console.error('Error in Curve calculateOutputAmountDirect:', error)
+      return '0'
+    }
+  }
+
+  async calculateInputAmountDirect(
+    amountOut: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    // Similar limitation as calculateInputAmount
+    console.warn('Curve direct input amount calculation not implemented')
+    return '0'
+  }
+
+  /**
+   * Get token indices in the Curve pool
+   * Returns [tokenAIndex, tokenBIndex] or [-1, -1] if not found
+   */
+  private async getTokenIndices(
+    tokenA: string,
+    tokenB: string
+  ): Promise<[number, number]> {
+    try {
+      // Get all coins in the pool (up to 8 tokens for Curve)
+      const coins: string[] = []
+      for (let i = 0; i < 8; i++) {
+        try {
+          const coin = await this.pool.coins(i)
+          if (coin === ethers.constants.AddressZero) break
+          coins.push(coin.toLowerCase())
+        } catch (error) {
+          // Reached end of coins or error occurred
+          break
+        }
+      }
+
+      console.log('Curve pool coins:', coins)
+
+      const tokenAIndex = coins.findIndex(
+        (coin) => coin === tokenA.toLowerCase()
+      )
+      const tokenBIndex = coins.findIndex(
+        (coin) => coin === tokenB.toLowerCase()
+      )
+
+      console.log('Token indices:', { tokenAIndex, tokenBIndex })
+
+      return [tokenAIndex, tokenBIndex]
+    } catch (error) {
+      console.error('Error getting Curve token indices:', error)
+      return [-1, -1]
+    }
+  }
+}
+
+// Balancer implementation
+export class BalancerCalculator extends BaseDexCalculator {
+  private vault: ethers.Contract
+  private pool: ethers.Contract
+  private poolAddress: string
+  private vaultAddress: string
+
+  constructor(poolAddress: string, chainId: string = '1') {
+    super(chainId)
+    this.poolAddress = poolAddress
+    this.vaultAddress = getBalancerVaultAddress()
+    this.vault = new ethers.Contract(
+      this.vaultAddress,
+      BalancerVaultABI,
+      this.provider
+    )
+    this.pool = new ethers.Contract(poolAddress, BalancerPoolABI, this.provider)
+  }
+
+  // Balancer fees vary by pool but typically around 0.1-1%
+  getExchangeFee(): number {
+    return 0.25 // Default 0.25%, will be dynamic in real implementation
+  }
+
+  async calculateOutputAmount(
+    amountIn: string,
+    reserveData: ReserveData
+  ): Promise<string> {
+    if (!reserveData || !reserveData.reserves) return '0'
+
+    try {
+      console.log('Balancer calculation:', {
+        amountIn,
+        poolAddress: this.poolAddress,
+        reserves: reserveData.reserves,
+      })
+
+      // Get token decimals from reserveData
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
+
+      // Convert input amount to BigNumber with proper decimals
+      const amountInBN = ethers.utils.parseUnits(amountIn, token0Decimals)
+
+      // Use default Balancer fee of 0.25%
+      const swapFee = 0.25
+
+      console.log('Balancer pool info:', {
+        swapFee,
+        poolAddress: this.poolAddress,
+      })
+
+      // For Balancer pools, we'll use a simplified constant product formula
+      // Real Balancer pools use weighted math, but for basic functionality this works
+      // Formula: amountOut = (amountIn * (1 - fee) * reserveOut) / (reserveIn + amountIn * (1 - fee))
+
+      const reserveIn = ethers.BigNumber.from(reserveData.reserves.token0)
+      const reserveOut = ethers.BigNumber.from(reserveData.reserves.token1)
+
+      if (reserveIn.isZero() || reserveOut.isZero()) {
+        console.log('Zero reserves in Balancer pool')
+        return '0'
+      }
+
+      // Apply fee (convert percentage to decimal and apply)
+      const feeMultiplier = 10000 - Math.floor(swapFee * 100) // e.g., 0.25% -> 9975
+      const amountInAfterFee = amountInBN.mul(feeMultiplier).div(10000)
+
+      // Calculate output using constant product formula
+      const numerator = amountInAfterFee.mul(reserveOut)
+      const denominator = reserveIn.add(amountInAfterFee)
+
+      if (denominator.isZero()) {
+        console.log('Division by zero in Balancer calculation')
+        return '0'
+      }
+
+      const amountOut = numerator.div(denominator)
+
+      console.log('Balancer calculation details:', {
+        amountInBN: amountInBN.toString(),
+        amountInAfterFee: amountInAfterFee.toString(),
+        numerator: numerator.toString(),
+        denominator: denominator.toString(),
+        amountOut: amountOut.toString(),
+        feeMultiplier,
+        swapFee,
+      })
+
+      // Format the result using token1 decimals
+      const result = this.formatOutput(amountOut, token1Decimals)
+
+      console.log('Balancer final calculation result:', {
+        amountIn,
+        amountOut: amountOut.toString(),
+        formattedResult: result,
+        token0Decimals,
+        token1Decimals,
+      })
+
+      return result
+    } catch (error) {
+      console.error('Error calculating Balancer output amount:', error)
+      return '0'
+    }
+  }
+
+  async calculateInputAmount(
+    amountOut: string,
+    reserveData: ReserveData
+  ): Promise<string> {
+    if (!reserveData || !reserveData.reserves) return '0'
+
+    try {
+      console.log('Balancer input calculation:', {
+        amountOut,
+        poolAddress: this.poolAddress,
+        reserves: reserveData.reserves,
+      })
+
+      // Get token decimals from reserveData
+      const token0Decimals = reserveData.decimals.token0
+      const token1Decimals = reserveData.decimals.token1
+
+      // Convert output amount to BigNumber with proper decimals
+      const amountOutBN = ethers.utils.parseUnits(amountOut, token1Decimals)
+
+      // Use default Balancer fee of 0.25%
+      const swapFee = 0.25
+
+      // For Balancer pools, reverse the constant product formula
+      // Formula: amountIn = (reserveIn * amountOut) / ((reserveOut - amountOut) * (1 - fee))
+
+      const reserveIn = ethers.BigNumber.from(reserveData.reserves.token0)
+      const reserveOut = ethers.BigNumber.from(reserveData.reserves.token1)
+
+      if (reserveIn.isZero() || reserveOut.isZero()) {
+        console.log('Zero reserves in Balancer pool')
+        return '0'
+      }
+
+      // Check if we have enough liquidity
+      if (amountOutBN.gte(reserveOut)) {
+        console.log('Insufficient liquidity in Balancer pool')
+        return 'Insufficient liquidity'
+      }
+
+      // Apply fee calculation
+      const feeMultiplier = 10000 - Math.floor(swapFee * 100) // e.g., 0.25% -> 9975
+
+      // Calculate input using reverse constant product formula
+      const numerator = reserveIn.mul(amountOutBN).mul(10000)
+      const denominator = reserveOut.sub(amountOutBN).mul(feeMultiplier)
+
+      if (denominator.isZero()) {
+        console.log('Division by zero in Balancer input calculation')
+        return '0'
+      }
+
+      const amountIn = numerator.div(denominator)
+
+      console.log('Balancer input calculation details:', {
+        amountOutBN: amountOutBN.toString(),
+        numerator: numerator.toString(),
+        denominator: denominator.toString(),
+        amountIn: amountIn.toString(),
+        feeMultiplier,
+        swapFee,
+      })
+
+      // Format the result using token0 decimals
+      const result = this.formatOutput(amountIn, token0Decimals)
+
+      console.log('Balancer final input calculation result:', {
+        amountOut,
+        amountIn: amountIn.toString(),
+        formattedResult: result,
+        token0Decimals,
+        token1Decimals,
+      })
+
+      return result
+    } catch (error) {
+      console.error('Error calculating Balancer input amount:', error)
+      return '0'
+    }
+  }
+
+  async calculateOutputAmountDirect(
+    amountIn: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      console.log('Balancer - calculateOutputAmountDirect called with:', {
+        amountIn,
+        tokenIn,
+        tokenOut,
+        decimalsIn,
+        decimalsOut,
+        poolAddress: this.poolAddress,
+      })
+
+      // Get token indices in the pool
+      const [tokenAIndex, tokenBIndex] = await this.getTokenIndices(
+        tokenIn,
+        tokenOut
+      )
+
+      if (tokenAIndex === -1 || tokenBIndex === -1) {
+        console.log('One or both tokens not found in Balancer pool')
+        return '0'
+      }
+
+      // Get pool information to get current balances
+      const poolInfo = await this.getPoolInfo()
+      if (!poolInfo) {
+        console.log('Failed to get Balancer pool info')
+        return '0'
+      }
+
+      // Convert input amount to BigNumber with proper decimals
+      const amountInBN = ethers.utils.parseUnits(amountIn, decimalsIn)
+
+      // Use default Balancer fee of 0.25%
+      const swapFee = 0.25
+
+      // Get reserves for the specific tokens
+      const reserveIn = ethers.BigNumber.from(poolInfo.balances[tokenAIndex])
+      const reserveOut = ethers.BigNumber.from(poolInfo.balances[tokenBIndex])
+
+      if (reserveIn.isZero() || reserveOut.isZero()) {
+        console.log('Zero balances in Balancer pool')
+        return '0'
+      }
+
+      // Apply fee calculation
+      const feeMultiplier = 10000 - Math.floor(swapFee * 100) // e.g., 0.25% -> 9975
+      const amountInAfterFee = amountInBN.mul(feeMultiplier).div(10000)
+
+      // Calculate output using constant product formula
+      const numerator = amountInAfterFee.mul(reserveOut)
+      const denominator = reserveIn.add(amountInAfterFee)
+
+      if (denominator.isZero()) {
+        console.log('Division by zero in Balancer direct calculation')
+        return '0'
+      }
+
+      const amountOut = numerator.div(denominator)
+
+      // Format the result with output token decimals
+      const result = this.formatOutput(amountOut, decimalsOut)
+      console.log('Balancer direct calculation result:', result)
+
+      return result
+    } catch (error) {
+      console.error('Error in Balancer calculateOutputAmountDirect:', error)
+      return '0'
+    }
+  }
+
+  async calculateInputAmountDirect(
+    amountOut: string,
+    tokenIn: string,
+    tokenOut: string,
+    decimalsIn: number,
+    decimalsOut: number
+  ): Promise<string> {
+    try {
+      console.log('Balancer - calculateInputAmountDirect called with:', {
+        amountOut,
+        tokenIn,
+        tokenOut,
+        decimalsIn,
+        decimalsOut,
+        poolAddress: this.poolAddress,
+      })
+
+      // Get token indices in the pool
+      const [tokenAIndex, tokenBIndex] = await this.getTokenIndices(
+        tokenIn,
+        tokenOut
+      )
+
+      if (tokenAIndex === -1 || tokenBIndex === -1) {
+        console.log('One or both tokens not found in Balancer pool')
+        return '0'
+      }
+
+      // Get pool information to get current balances
+      const poolInfo = await this.getPoolInfo()
+      if (!poolInfo) {
+        console.log('Failed to get Balancer pool info')
+        return '0'
+      }
+
+      // Convert output amount to BigNumber with proper decimals
+      const amountOutBN = ethers.utils.parseUnits(amountOut, decimalsOut)
+
+      // Use default Balancer fee of 0.25%
+      const swapFee = 0.25
+
+      // Get reserves for the specific tokens
+      const reserveIn = ethers.BigNumber.from(poolInfo.balances[tokenAIndex])
+      const reserveOut = ethers.BigNumber.from(poolInfo.balances[tokenBIndex])
+
+      if (reserveIn.isZero() || reserveOut.isZero()) {
+        console.log('Zero balances in Balancer pool')
+        return '0'
+      }
+
+      // Check if we have enough liquidity
+      if (amountOutBN.gte(reserveOut)) {
+        console.log('Insufficient liquidity in Balancer pool')
+        return 'Insufficient liquidity'
+      }
+
+      // Apply fee calculation
+      const feeMultiplier = 10000 - Math.floor(swapFee * 100) // e.g., 0.25% -> 9975
+
+      // Calculate input using reverse constant product formula
+      const numerator = reserveIn.mul(amountOutBN).mul(10000)
+      const denominator = reserveOut.sub(amountOutBN).mul(feeMultiplier)
+
+      if (denominator.isZero()) {
+        console.log('Division by zero in Balancer direct input calculation')
+        return '0'
+      }
+
+      const amountIn = numerator.div(denominator)
+
+      // Format the result with input token decimals
+      const result = this.formatOutput(amountIn, decimalsIn)
+      console.log('Balancer direct input calculation result:', result)
+
+      return result
+    } catch (error) {
+      console.error('Error in Balancer calculateInputAmountDirect:', error)
+      return '0'
+    }
+  }
+
+  /**
+   * Get token indices in the Balancer pool
+   * Returns [tokenAIndex, tokenBIndex] or [-1, -1] if not found
+   */
+  private async getTokenIndices(
+    tokenA: string,
+    tokenB: string
+  ): Promise<[number, number]> {
+    try {
+      const poolMetadata = getBalancerPoolMetadata(this.poolAddress)
+      if (!poolMetadata) {
+        console.log('Pool metadata not found')
+        return [-1, -1]
+      }
+
+      const tokens = poolMetadata.tokens.map((t) => t.toLowerCase())
+
+      const tokenAIndex = tokens.findIndex(
+        (token) => token === tokenA.toLowerCase()
+      )
+      const tokenBIndex = tokens.findIndex(
+        (token) => token === tokenB.toLowerCase()
+      )
+
+      console.log('Balancer token indices:', {
+        tokenAIndex,
+        tokenBIndex,
+        tokens,
+      })
+
+      return [tokenAIndex, tokenBIndex]
+    } catch (error) {
+      console.error('Error getting Balancer token indices:', error)
+      return [-1, -1]
+    }
+  }
+
+  /**
+   * Get pool information from Balancer Vault
+   */
+  async getPoolInfo() {
+    try {
+      const poolId = await this.pool.getPoolId()
+      const [tokens, balances, lastChangeBlock] =
+        await this.vault.getPoolTokens(poolId)
+
+      return {
+        poolId,
+        tokens,
+        balances,
+        lastChangeBlock,
+      }
+    } catch (error) {
+      console.error('Error getting Balancer pool info:', error)
+      return null
+    }
+  }
+}
+
 // Factory to create the appropriate calculator based on DEX type
 export class DexCalculatorFactory {
   private static calculatorInstances: Record<string, DexCalculator> = {}
@@ -1383,6 +2007,34 @@ export class DexCalculatorFactory {
         calculator = new SushiSwapCalculator(chainId)
         break
       default:
+        // Check if it's a Curve pool
+        if (isCurveDex(dexType)) {
+          const poolAddress = extractCurvePoolAddress(dexType)
+          if (poolAddress) {
+            console.log(`Creating Curve calculator for pool: ${poolAddress}`)
+            calculator = new CurveCalculator(poolAddress, chainId)
+            break
+          } else {
+            console.error(
+              `Failed to extract pool address from DEX type: ${dexType}`
+            )
+          }
+        }
+
+        // Check if it's a Balancer pool
+        if (isBalancerDex(dexType)) {
+          const poolAddress = extractBalancerPoolAddress(dexType)
+          if (poolAddress) {
+            console.log(`Creating Balancer calculator for pool: ${poolAddress}`)
+            calculator = new BalancerCalculator(poolAddress, chainId)
+            break
+          } else {
+            console.error(
+              `Failed to extract pool address from DEX type: ${dexType}`
+            )
+          }
+        }
+
         // Check if it's a Uniswap V3 pool with fee tier
         if (dexType.startsWith('uniswap-v3')) {
           const feeTier = extractFeeTier(dexType)

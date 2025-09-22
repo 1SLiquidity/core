@@ -491,7 +491,25 @@ const getTokenAddressForPlatform = (
 
 // Add more essential tokens to our default list
 const topTokens: EssentialToken[] = [
-  // Removing ETH as it's not an ERC20 token
+  // ETH first, then WETH - this order matters for find() operations
+  {
+    id: 'eth',
+    symbol: 'eth',
+    name: 'Ethereum',
+    platforms: {
+      ethereum: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    },
+    image: '/tokens/eth-blue.png',
+    current_price: 0,
+    price_change_percentage_24h: 0,
+    market_cap_rank: 1,
+    detail_platforms: {
+      ethereum: {
+        decimal_place: 18,
+        contract_address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+      },
+    },
+  },
   {
     id: 'weth',
     symbol: 'weth',
@@ -512,24 +530,6 @@ const topTokens: EssentialToken[] = [
       'arbitrum-one': {
         decimal_place: 18,
         contract_address: '0x82af49447d8a07e3bd95bd0d56f35241523fbab1',
-      },
-    },
-  },
-  {
-    id: 'eth',
-    symbol: 'eth',
-    name: 'Ethereum',
-    platforms: {
-      ethereum: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-    },
-    image: '/tokens/eth-blue.png',
-    current_price: 0,
-    price_change_percentage_24h: 0,
-    market_cap_rank: 1,
-    detail_platforms: {
-      ethereum: {
-        decimal_place: 18,
-        contract_address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
       },
     },
   },

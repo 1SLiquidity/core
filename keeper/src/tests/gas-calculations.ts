@@ -1,14 +1,10 @@
 import { ethers } from 'ethers';
 import { createProvider } from '../utils/provider';
 import { DecimalUtils } from '../utils/decimals';
-import * as dotenv from 'dotenv';
 import axios from 'axios';
 import {
   CONTRACT_ADDRESSES, CONTRACT_ABIS
 } from '../config/dex'
-
-// Load environment variables
-dotenv.config();
 
 // Create provider with better throttling and retry settings
 const provider = createProvider();

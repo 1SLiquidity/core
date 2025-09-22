@@ -10,6 +10,24 @@ import {
   BigInt,
 } from "@graphprotocol/graph-ts";
 
+export class DataError extends ethereum.Event {
+  get params(): DataError__Params {
+    return new DataError__Params(this);
+  }
+}
+
+export class DataError__Params {
+  _event: DataError;
+
+  constructor(event: DataError) {
+    this._event = event;
+  }
+
+  get error(): Bytes {
+    return this._event.parameters[0].value.toBytes();
+  }
+}
+
 export class FeeRatesUpdated extends ethereum.Event {
   get params(): FeeRatesUpdated__Params {
     return new FeeRatesUpdated__Params(this);
@@ -93,6 +111,24 @@ export class InstasettleFeeTaken__Params {
 
   get protocolFee(): BigInt {
     return this._event.parameters[3].value.toBigInt();
+  }
+}
+
+export class LowLevelError extends ethereum.Event {
+  get params(): LowLevelError__Params {
+    return new LowLevelError__Params(this);
+  }
+}
+
+export class LowLevelError__Params {
+  _event: LowLevelError;
+
+  constructor(event: LowLevelError) {
+    this._event = event;
+  }
+
+  get error(): string {
+    return this._event.parameters[0].value.toString();
   }
 }
 
@@ -304,61 +340,7 @@ export class TradeStreamExecuted__Params {
   }
 }
 
-export class Core___executeStreamResultUpdatedTradeStruct extends ethereum.Tuple {
-  get owner(): Address {
-    return this[0].toAddress();
-  }
-
-  get attempts(): i32 {
-    return this[1].toI32();
-  }
-
-  get tokenIn(): Address {
-    return this[2].toAddress();
-  }
-
-  get tokenOut(): Address {
-    return this[3].toAddress();
-  }
-
-  get amountIn(): BigInt {
-    return this[4].toBigInt();
-  }
-
-  get amountRemaining(): BigInt {
-    return this[5].toBigInt();
-  }
-
-  get targetAmountOut(): BigInt {
-    return this[6].toBigInt();
-  }
-
-  get realisedAmountOut(): BigInt {
-    return this[7].toBigInt();
-  }
-
-  get tradeId(): BigInt {
-    return this[8].toBigInt();
-  }
-
-  get instasettleBps(): BigInt {
-    return this[9].toBigInt();
-  }
-
-  get lastSweetSpot(): BigInt {
-    return this[10].toBigInt();
-  }
-
-  get isInstasettlable(): boolean {
-    return this[11].toBoolean();
-  }
-
-  get usePriceBased(): boolean {
-    return this[12].toBoolean();
-  }
-}
-
-export class Core___executeStreamInputTradeStruct extends ethereum.Tuple {
+export class Core__executeStreamResultUpdatedTradeStruct extends ethereum.Tuple {
   get owner(): Address {
     return this[0].toAddress();
   }
@@ -628,16 +610,16 @@ export class Core extends ethereum.SmartContract {
     return ethereum.CallResult.fromValue(value[0].toI32());
   }
 
-  _cancelTrade(tradeId: BigInt): boolean {
-    let result = super.call("_cancelTrade", "_cancelTrade(uint256):(bool)", [
+  cancelTrade(tradeId: BigInt): boolean {
+    let result = super.call("cancelTrade", "cancelTrade(uint256):(bool)", [
       ethereum.Value.fromUnsignedBigInt(tradeId),
     ]);
 
     return result[0].toBoolean();
   }
 
-  try__cancelTrade(tradeId: BigInt): ethereum.CallResult<boolean> {
-    let result = super.tryCall("_cancelTrade", "_cancelTrade(uint256):(bool)", [
+  try_cancelTrade(tradeId: BigInt): ethereum.CallResult<boolean> {
+    let result = super.tryCall("cancelTrade", "cancelTrade(uint256):(bool)", [
       ethereum.Value.fromUnsignedBigInt(tradeId),
     ]);
     if (result.reverted) {
@@ -645,39 +627,6 @@ export class Core extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBoolean());
-  }
-
-  _executeStream(
-    trade: Core___executeStreamInputTradeStruct,
-  ): Core___executeStreamResultUpdatedTradeStruct {
-    let result = super.call(
-      "_executeStream",
-      "_executeStream((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool)):((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool))",
-      [ethereum.Value.fromTuple(trade)],
-    );
-
-    return changetype<Core___executeStreamResultUpdatedTradeStruct>(
-      result[0].toTuple(),
-    );
-  }
-
-  try__executeStream(
-    trade: Core___executeStreamInputTradeStruct,
-  ): ethereum.CallResult<Core___executeStreamResultUpdatedTradeStruct> {
-    let result = super.tryCall(
-      "_executeStream",
-      "_executeStream((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool)):((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool))",
-      [ethereum.Value.fromTuple(trade)],
-    );
-    if (result.reverted) {
-      return new ethereum.CallResult();
-    }
-    let value = result.value;
-    return ethereum.CallResult.fromValue(
-      changetype<Core___executeStreamResultUpdatedTradeStruct>(
-        value[0].toTuple(),
-      ),
-    );
   }
 
   eoaTokenBalance(param0: Address, param1: Address): BigInt {
@@ -704,6 +653,37 @@ export class Core extends ethereum.SmartContract {
     }
     let value = result.value;
     return ethereum.CallResult.fromValue(value[0].toBigInt());
+  }
+
+  executeStream(tradeId: BigInt): Core__executeStreamResultUpdatedTradeStruct {
+    let result = super.call(
+      "executeStream",
+      "executeStream(uint256):((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool))",
+      [ethereum.Value.fromUnsignedBigInt(tradeId)],
+    );
+
+    return changetype<Core__executeStreamResultUpdatedTradeStruct>(
+      result[0].toTuple(),
+    );
+  }
+
+  try_executeStream(
+    tradeId: BigInt,
+  ): ethereum.CallResult<Core__executeStreamResultUpdatedTradeStruct> {
+    let result = super.tryCall(
+      "executeStream",
+      "executeStream(uint256):((address,uint8,address,address,uint256,uint256,uint256,uint256,uint256,uint256,uint256,bool,bool))",
+      [ethereum.Value.fromUnsignedBigInt(tradeId)],
+    );
+    if (result.reverted) {
+      return new ethereum.CallResult();
+    }
+    let value = result.value;
+    return ethereum.CallResult.fromValue(
+      changetype<Core__executeStreamResultUpdatedTradeStruct>(
+        value[0].toTuple(),
+      ),
+    );
   }
 
   executor(): Address {
@@ -1068,20 +1048,20 @@ export class ConstructorCall__Outputs {
   }
 }
 
-export class _cancelTradeCall extends ethereum.Call {
-  get inputs(): _cancelTradeCall__Inputs {
-    return new _cancelTradeCall__Inputs(this);
+export class CancelTradeCall extends ethereum.Call {
+  get inputs(): CancelTradeCall__Inputs {
+    return new CancelTradeCall__Inputs(this);
   }
 
-  get outputs(): _cancelTradeCall__Outputs {
-    return new _cancelTradeCall__Outputs(this);
+  get outputs(): CancelTradeCall__Outputs {
+    return new CancelTradeCall__Outputs(this);
   }
 }
 
-export class _cancelTradeCall__Inputs {
-  _call: _cancelTradeCall;
+export class CancelTradeCall__Inputs {
+  _call: CancelTradeCall;
 
-  constructor(call: _cancelTradeCall) {
+  constructor(call: CancelTradeCall) {
     this._call = call;
   }
 
@@ -1090,161 +1070,15 @@ export class _cancelTradeCall__Inputs {
   }
 }
 
-export class _cancelTradeCall__Outputs {
-  _call: _cancelTradeCall;
+export class CancelTradeCall__Outputs {
+  _call: CancelTradeCall;
 
-  constructor(call: _cancelTradeCall) {
+  constructor(call: CancelTradeCall) {
     this._call = call;
   }
 
   get value0(): boolean {
     return this._call.outputValues[0].value.toBoolean();
-  }
-}
-
-export class _executeStreamCall extends ethereum.Call {
-  get inputs(): _executeStreamCall__Inputs {
-    return new _executeStreamCall__Inputs(this);
-  }
-
-  get outputs(): _executeStreamCall__Outputs {
-    return new _executeStreamCall__Outputs(this);
-  }
-}
-
-export class _executeStreamCall__Inputs {
-  _call: _executeStreamCall;
-
-  constructor(call: _executeStreamCall) {
-    this._call = call;
-  }
-
-  get trade(): _executeStreamCallTradeStruct {
-    return changetype<_executeStreamCallTradeStruct>(
-      this._call.inputValues[0].value.toTuple(),
-    );
-  }
-}
-
-export class _executeStreamCall__Outputs {
-  _call: _executeStreamCall;
-
-  constructor(call: _executeStreamCall) {
-    this._call = call;
-  }
-
-  get updatedTrade(): _executeStreamCallUpdatedTradeStruct {
-    return changetype<_executeStreamCallUpdatedTradeStruct>(
-      this._call.outputValues[0].value.toTuple(),
-    );
-  }
-}
-
-export class _executeStreamCallTradeStruct extends ethereum.Tuple {
-  get owner(): Address {
-    return this[0].toAddress();
-  }
-
-  get attempts(): i32 {
-    return this[1].toI32();
-  }
-
-  get tokenIn(): Address {
-    return this[2].toAddress();
-  }
-
-  get tokenOut(): Address {
-    return this[3].toAddress();
-  }
-
-  get amountIn(): BigInt {
-    return this[4].toBigInt();
-  }
-
-  get amountRemaining(): BigInt {
-    return this[5].toBigInt();
-  }
-
-  get targetAmountOut(): BigInt {
-    return this[6].toBigInt();
-  }
-
-  get realisedAmountOut(): BigInt {
-    return this[7].toBigInt();
-  }
-
-  get tradeId(): BigInt {
-    return this[8].toBigInt();
-  }
-
-  get instasettleBps(): BigInt {
-    return this[9].toBigInt();
-  }
-
-  get lastSweetSpot(): BigInt {
-    return this[10].toBigInt();
-  }
-
-  get isInstasettlable(): boolean {
-    return this[11].toBoolean();
-  }
-
-  get usePriceBased(): boolean {
-    return this[12].toBoolean();
-  }
-}
-
-export class _executeStreamCallUpdatedTradeStruct extends ethereum.Tuple {
-  get owner(): Address {
-    return this[0].toAddress();
-  }
-
-  get attempts(): i32 {
-    return this[1].toI32();
-  }
-
-  get tokenIn(): Address {
-    return this[2].toAddress();
-  }
-
-  get tokenOut(): Address {
-    return this[3].toAddress();
-  }
-
-  get amountIn(): BigInt {
-    return this[4].toBigInt();
-  }
-
-  get amountRemaining(): BigInt {
-    return this[5].toBigInt();
-  }
-
-  get targetAmountOut(): BigInt {
-    return this[6].toBigInt();
-  }
-
-  get realisedAmountOut(): BigInt {
-    return this[7].toBigInt();
-  }
-
-  get tradeId(): BigInt {
-    return this[8].toBigInt();
-  }
-
-  get instasettleBps(): BigInt {
-    return this[9].toBigInt();
-  }
-
-  get lastSweetSpot(): BigInt {
-    return this[10].toBigInt();
-  }
-
-  get isInstasettlable(): boolean {
-    return this[11].toBoolean();
-  }
-
-  get usePriceBased(): boolean {
-    return this[12].toBoolean();
   }
 }
 
@@ -1275,6 +1109,96 @@ export class ClaimProtocolFeesCall__Outputs {
 
   constructor(call: ClaimProtocolFeesCall) {
     this._call = call;
+  }
+}
+
+export class ExecuteStreamCall extends ethereum.Call {
+  get inputs(): ExecuteStreamCall__Inputs {
+    return new ExecuteStreamCall__Inputs(this);
+  }
+
+  get outputs(): ExecuteStreamCall__Outputs {
+    return new ExecuteStreamCall__Outputs(this);
+  }
+}
+
+export class ExecuteStreamCall__Inputs {
+  _call: ExecuteStreamCall;
+
+  constructor(call: ExecuteStreamCall) {
+    this._call = call;
+  }
+
+  get tradeId(): BigInt {
+    return this._call.inputValues[0].value.toBigInt();
+  }
+}
+
+export class ExecuteStreamCall__Outputs {
+  _call: ExecuteStreamCall;
+
+  constructor(call: ExecuteStreamCall) {
+    this._call = call;
+  }
+
+  get updatedTrade(): ExecuteStreamCallUpdatedTradeStruct {
+    return changetype<ExecuteStreamCallUpdatedTradeStruct>(
+      this._call.outputValues[0].value.toTuple(),
+    );
+  }
+}
+
+export class ExecuteStreamCallUpdatedTradeStruct extends ethereum.Tuple {
+  get owner(): Address {
+    return this[0].toAddress();
+  }
+
+  get attempts(): i32 {
+    return this[1].toI32();
+  }
+
+  get tokenIn(): Address {
+    return this[2].toAddress();
+  }
+
+  get tokenOut(): Address {
+    return this[3].toAddress();
+  }
+
+  get amountIn(): BigInt {
+    return this[4].toBigInt();
+  }
+
+  get amountRemaining(): BigInt {
+    return this[5].toBigInt();
+  }
+
+  get targetAmountOut(): BigInt {
+    return this[6].toBigInt();
+  }
+
+  get realisedAmountOut(): BigInt {
+    return this[7].toBigInt();
+  }
+
+  get tradeId(): BigInt {
+    return this[8].toBigInt();
+  }
+
+  get instasettleBps(): BigInt {
+    return this[9].toBigInt();
+  }
+
+  get lastSweetSpot(): BigInt {
+    return this[10].toBigInt();
+  }
+
+  get isInstasettlable(): boolean {
+    return this[11].toBoolean();
+  }
+
+  get usePriceBased(): boolean {
+    return this[12].toBoolean();
   }
 }
 

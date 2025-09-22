@@ -29,11 +29,12 @@ export class TokenService {
       CONTRACT_ABIS.UNISWAP_V2.ERC20,
       this.provider
     );
+
     const [decimals, symbol] = await Promise.all([
       token.decimals(),
       token.symbol()
     ]);
-
+  
     const tokenInfo: TokenInfo = {
       address,
       decimals: Number(decimals),

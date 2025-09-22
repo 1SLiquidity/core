@@ -439,6 +439,63 @@ export const UniswapV3QuoterABI = [
   },
 ]
 
+// Curve Pool ABI - Essential functions for calculation
+export const CurvePoolABI = [
+  {
+    name: 'get_dy',
+    outputs: [{ type: 'uint256', name: '' }],
+    inputs: [
+      { type: 'int128', name: 'i' },
+      { type: 'int128', name: 'j' },
+      { type: 'uint256', name: 'dx' },
+    ],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'balances',
+    outputs: [{ type: 'uint256', name: '' }],
+    inputs: [{ type: 'uint256', name: 'arg0' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'coins',
+    outputs: [{ type: 'address', name: '' }],
+    inputs: [{ type: 'uint256', name: 'i' }],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'A',
+    outputs: [{ type: 'uint256', name: '' }],
+    inputs: [],
+    stateMutability: 'view',
+    type: 'function',
+  },
+  {
+    name: 'fee',
+    outputs: [{ type: 'uint256', name: '' }],
+    inputs: [],
+    stateMutability: 'view',
+    type: 'function',
+  },
+]
+
+// Balancer ABIs - Essential functions for calculation
+export const BalancerVaultABI = [
+  'function getPoolTokens(bytes32 poolId) external view returns (address[] memory tokens, uint256[] memory balances, uint256 lastChangeBlock)',
+  'function getPool(bytes32 poolId) external view returns (address, uint8)',
+]
+
+export const BalancerPoolABI = [
+  'function getPoolId() external view returns (bytes32)',
+  'function getSwapFeePercentage() external view returns (uint256)',
+  'function getPoolType() external view returns (uint256)',
+  'function getNormalizedWeights() external view returns (uint256[] memory)',
+  'function getTotalSupply() external view returns (uint256)',
+]
+
 // SushiSwap Router ABI
 export const SushiSwapRouterABI = [
   {

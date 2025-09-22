@@ -119,7 +119,7 @@ export default function TradesChart({
         //   (t: TOKENS_TYPE) =>
         //     t.token_address?.toLowerCase() === trade.tokenOut?.toLowerCase()
 
-        // Special case for ETH/WETH: if ETH is selected, prioritize ETH over WETH
+        // Special case for ETH/WETH: return the selected token if it matches the address
         const findTokenForTrade = (
           address: string,
           selectedToken: TOKENS_TYPE | null
@@ -127,9 +127,11 @@ export default function TradesChart({
           const ethWethAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
           if (
             address?.toLowerCase() === ethWethAddress &&
-            selectedToken?.symbol.toLowerCase() === 'eth'
+            selectedToken &&
+            (selectedToken.symbol.toLowerCase() === 'eth' ||
+              selectedToken.symbol.toLowerCase() === 'weth')
           ) {
-            return selectedToken // Return the selected ETH token directly
+            return selectedToken // Return the selected token (ETH or WETH) directly
           }
           // For all other cases, use normal address matching
           return tokenList.find(
