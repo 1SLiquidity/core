@@ -21,17 +21,16 @@ const CoinBuySection: React.FC<Props> = ({
   disabled,
   isLoading, // Destructure isLoading
 }) => {
-  const [active, setActive] = useState(false)
+  const [active, setActive] = useState(true)
   const sectionRef = useRef<HTMLDivElement>(null)
   const { selectedTokenTo } = useModal()
 
-  useOnClickOutside(sectionRef, () => {
-    setActive(false)
-  })
+  const isInActiveState =
+    amount > 0 && !inValidAmount && active && selectedTokenTo && !isLoading
 
   return (
     <div ref={sectionRef} className="w-full h-full relative">
-      {amount > 0 && !inValidAmount && active && selectedTokenTo && (
+      {isInActiveState && (
         <Image
           src="/assets/valid-amount-succes.svg"
           alt="valid"
@@ -44,7 +43,7 @@ const CoinBuySection: React.FC<Props> = ({
       )}
       <div
         className={`w-full min-h-[163px] md:min-h-[171px] rounded-[15px] p-[2px] relative ${
-          amount > 0 && !inValidAmount && active && selectedTokenTo
+          isInActiveState
             ? 'bg-primary'
             : inValidAmount
             ? 'bg-primaryRed'
@@ -53,16 +52,10 @@ const CoinBuySection: React.FC<Props> = ({
       >
         <div
           className={`w-full h-full z-20 sticky left-0 top-0 px-5 sm:px-7 py-5 rounded-[13px] ${
-            amount > 0 && !inValidAmount && active && selectedTokenTo
+            isInActiveState
               ? 'bg-gradient-to-r from-[#071310] to-[#062118]'
               : 'bg-[#0D0D0D]'
-          } ${
-            amount > 0 &&
-            !inValidAmount &&
-            active &&
-            selectedTokenTo &&
-            'dotsbg'
-          }`}
+          } ${isInActiveState}`}
         >
           {/* Title */}
           <p className="uppercase text-white text-[18px]">BUY</p>

@@ -229,7 +229,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
         {/* <div className="text-white52 leading-none">Stream ID</div> */}
 
         <div className="flex items-center gap-2">
-          <p className="text-white52">Stream ID:</p>
+          <p className="text-white52">Trade ID:</p>
           <p className="underline text-primary">
             {isLoading ? (
               <Skeleton className="h-4 w-24" />
