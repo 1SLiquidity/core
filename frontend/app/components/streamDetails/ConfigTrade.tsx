@@ -23,6 +23,7 @@ type Props = {
   isEnabled: boolean
   isUser: boolean
   isLoading?: boolean
+  walletAddress?: string
   selectedStream: any
   handleInstasettleClick: (selectedStream: any) => void
   handleCancelClick: (selectedStream: any) => void
@@ -35,6 +36,7 @@ const ConfigTrade: React.FC<Props> = ({
   isEnabled,
   isUser,
   isLoading = false,
+  walletAddress,
   selectedStream,
   handleInstasettleClick,
   handleCancelClick,
@@ -73,7 +75,8 @@ const ConfigTrade: React.FC<Props> = ({
             : 'max-h-0'
         }`}
       >
-        {isUser ? (
+        {selectedStream?.user?.toLowerCase() !==
+        walletAddress?.toLowerCase() ? (
           <div className="w-full flex flex-col gap-2 py-4 border-b border-borderBottom border-white12">
             {/* <AmountTag
               title="Instasettleable"
@@ -130,7 +133,7 @@ const ConfigTrade: React.FC<Props> = ({
             </div>
             <div className="mt-0">
               <Button
-                text="ENABLE INSTASETTLE"
+                text="EXECUTE INSTASETTLE"
                 className="h-[2.25rem]"
                 disabled={isLoading}
                 loading={isLoading}
@@ -164,7 +167,7 @@ const ConfigTrade: React.FC<Props> = ({
         <div className="mt-0">
           {isUser ? (
             <Button
-              text="CANCEL SWAP"
+              text="CANCEL TRADE"
               theme="destructive"
               className="h-[2.25rem]"
               disabled={isLoading || !isCancellable}

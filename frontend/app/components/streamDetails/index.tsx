@@ -38,6 +38,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
   isLoading = false,
   onClose,
   showBackIcon = true,
+  walletAddress,
 }) => {
   const { tokens, isLoading: isLoadingTokens } = useTokenList()
   const { placeTrade, loading, instasettle, cancelTrade } = useCoreTrading()
@@ -554,13 +555,20 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
           <ConfigTrade
             amountReceived={`$${amountOutUsd.toFixed(2)}`}
             fee="$190.54"
-            isEnabled={selectedStream.isInstasettlable}
+            isEnabled={
+              (selectedStream.isInstasettlable &&
+                selectedStream.user?.toLowerCase() !==
+                  walletAddress?.toLowerCase()) ||
+              selectedStream.user?.toLowerCase() ===
+                walletAddress?.toLowerCase()
+            }
             // isEnabled={true}
             isUser={isUser}
             isLoading={isLoading || loading}
             selectedStream={selectedStream}
             handleInstasettleClick={handleInstasettleClick}
             handleCancelClick={handleCancelClick}
+            walletAddress={walletAddress}
             isCancellable={selectedStream.cancellations.length === 0}
           />
         </div>
