@@ -177,8 +177,8 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   // console.log('displayTokens', displayTokens)
 
   // Get streams for this wallet
-  const ongoingStreams = getOngoingStreams()
-  const completedStreams = getCompletedStreams()
+  // const ongoingStreams = getOngoingStreams()
+  // const completedStreams = getCompletedStreams()
 
   // console.log('selectedStream ===>', selectedStream)
 
