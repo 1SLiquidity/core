@@ -82,6 +82,7 @@
     "maintenance:update:registry": "forge script maintenance/UpdateRegistry.s.sol --rpc-url $MAINNET_RPC_URL --broadcast --account deployKey --sender 0x538e5e9797fa86ee25e97289439b6a3aba0165b0 -vvvv",
     "maintenance:update:executor": "forge script maintenance/UpdateExecutor.s.sol --rpc-url $MAINNET_RPC_URL --broadcast --account deployKey --sender 0x538e5e9797fa86ee25e97289439b6a3aba0165b0 -vvvv",
     "maintenance:update:core": "forge script maintenance/UpdateCore.s.sol --rpc-url $MAINNET_RPC_URL --broadcast --account deployKey --sender 0x538e5e9797fa86ee25e97289439b6a3aba0165b0 -vvvv",
+    "execute:trades": "source .env && forge script alpha/ExecuteTrades.s.sol --rpc-url https://mainnet.infura.io/v3/$INFURA_KEY --broadcast --account deployKey --sender 0x538e5e9797fa86ee25e97289439b6a3aba0165b0 -vvvv",
     "maintenance:dry-run:uniswapv2-fetcher": "forge script maintenance/fetchers/UpdateUniswapV2Fetcher.s.sol --fork-url $MAINNET_RPC_URL -vvvv",
     "maintenance:dry-run:sushiswap-fetcher": "forge script maintenance/fetchers/UpdateSushiswapFetcher.s.sol --fork-url $MAINNET_RPC_URL -vvvv",
     "maintenance:dry-run:streamdaemon": "forge script maintenance/UpdateStreamDaemon.s.sol --fork-url $MAINNET_RPC_URL -vvvv",

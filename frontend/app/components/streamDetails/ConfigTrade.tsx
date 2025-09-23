@@ -26,6 +26,7 @@ type Props = {
   selectedStream: any
   handleInstasettleClick: (selectedStream: any) => void
   handleCancelClick: (selectedStream: any) => void
+  isCancellable: boolean
 }
 
 const ConfigTrade: React.FC<Props> = ({
@@ -37,6 +38,7 @@ const ConfigTrade: React.FC<Props> = ({
   selectedStream,
   handleInstasettleClick,
   handleCancelClick,
+  isCancellable,
 }) => {
   const [showDetails, setShowDetails] = useState(false)
   const toggleDetails = () => setShowDetails(!showDetails)
@@ -164,7 +166,7 @@ const ConfigTrade: React.FC<Props> = ({
               text="CANCEL SWAP"
               theme="destructive"
               className="h-[2.25rem]"
-              disabled={isLoading}
+              disabled={isLoading || !isCancellable}
               onClick={() => handleCancelClick(selectedStream)}
             />
           ) : (

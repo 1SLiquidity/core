@@ -23,6 +23,10 @@ export const GET_TRADES = gql`
         timestamp
         realisedAmountOut
       }
+      cancellations {
+        id
+        timestamp
+      }
     }
   }
 `
