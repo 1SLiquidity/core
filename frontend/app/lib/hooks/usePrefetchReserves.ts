@@ -134,7 +134,7 @@ export const usePrefetchReserves = ({
         CACHE_CONFIG.REQUEST_TIMEOUT
       )
 
-      console.log(`Prefetching reserves for ${fromSymbol}-${toSymbol}`)
+      // console.log(`Prefetching reserves for ${fromSymbol}-${toSymbol}`)
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`,
@@ -175,7 +175,7 @@ export const usePrefetchReserves = ({
         chainId
       )
 
-      console.log(`Successfully prefetched ${fromSymbol}-${toSymbol}`)
+      // console.log(`Successfully prefetched ${fromSymbol}-${toSymbol}`)
 
       return {
         reserveData: reserveDataWithDecimals,

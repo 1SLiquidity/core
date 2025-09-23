@@ -37,24 +37,24 @@ export const useDynamicReserveCache = ({
     if (!tokenA?.token_address || !tokenB?.token_address) return null
     // Keep the exact order to maintain direction
     const key = `${tokenA.token_address}_${tokenB.token_address}`
-    console.log('Dynamic - Creating cache key:', {
-      fromSymbol: tokenA.symbol,
-      toSymbol: tokenB.symbol,
-      fromAddress: tokenA.token_address,
-      toAddress: tokenB.token_address,
-      key,
-    })
+    // console.log('Dynamic - Creating cache key:', {
+    //   fromSymbol: tokenA.symbol,
+    //   toSymbol: tokenB.symbol,
+    //   fromAddress: tokenA.token_address,
+    //   toAddress: tokenB.token_address,
+    //   key,
+    // })
     return key
   }
 
   // Function to fetch reserves for a token pair
   const fetchReserves = async (tokenA: Token, tokenB: Token) => {
-    console.log('Dynamic - Fetching reserves:', {
-      fromSymbol: tokenA.symbol,
-      toSymbol: tokenB.symbol,
-      fromAddress: tokenA.token_address,
-      toAddress: tokenB.token_address,
-    })
+    // console.log('Dynamic - Fetching reserves:', {
+    //   fromSymbol: tokenA.symbol,
+    //   toSymbol: tokenB.symbol,
+    //   fromAddress: tokenA.token_address,
+    //   toAddress: tokenB.token_address,
+    // })
 
     try {
       if (!tokenA.token_address || !tokenB.token_address) {
