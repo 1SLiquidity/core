@@ -103,7 +103,7 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
                       LIVE
                     </div> */}
                   </div>
-                  <p className="text-white text-[20px]">Global Stream</p>
+                  <p className="text-white text-[20px]">Global Trades</p>
                 </div>
               </>
             </div>
@@ -135,7 +135,7 @@ const GlobalStreamModal: React.FC<GlobalStreamModalProps> = ({
               </div>
 
               <div className="mt-7">
-                <p className="text-[20px] pb-3.5">Global Streams</p>
+                <p className="text-[20px] pb-3.5">Global Trades</p>
 
                 <div className="flex flex-col gap-2">
                   {!isLoadingTrades && trades.length === 0 ? (

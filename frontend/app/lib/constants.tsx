@@ -7,7 +7,7 @@ export const NAV_LINKS: NAV_LINKS[] = [
     icon: '/icons/home.svg',
   },
   {
-    title: 'Streams',
+    title: 'Stream',
     href: '/swaps',
     icon: '/icons/swaps.svg',
   },

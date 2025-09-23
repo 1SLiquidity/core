@@ -153,7 +153,7 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                       )}
                     />
                   )}
-                  {link.title === 'Streams' && (
+                  {link.title === 'Stream' && (
                     <SwapsIcon
                       className={cn(
                         'w-4.5 h-4.5 text-white',
@@ -205,7 +205,10 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
       </div> */}
 
       {/* live button and connect button */}
-      <div className="flex gap-[10px]">
+      <div className="flex gap-[10px] ">
+        <div className="flex items-center justify-center">
+          <span>Ongoing Trades:</span>
+        </div>
         <div
           onClick={() => {
             showWalletDetailsSidebar(false)

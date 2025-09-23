@@ -1,7 +1,15 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { ChevronRight, Info, ChevronLeft, Zap, Check, X } from 'lucide-react'
+import {
+  ChevronRight,
+  Info,
+  ChevronLeft,
+  Zap,
+  Check,
+  X,
+  InfoIcon,
+} from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Tooltip,
@@ -15,6 +23,7 @@ import { Switch } from '@/components/ui/switch'
 import SettingsIcon from '@/app/shared/icons/Settings'
 import { useScreenSize } from '@/app/lib/hooks/useScreenSize'
 import { cn } from '@/lib/utils'
+import { FireIcon } from './HotPair/fire-icon'
 
 export default function TradingSettings() {
   const [isOpen, setIsOpen] = useState(false)
@@ -138,16 +147,10 @@ export default function TradingSettings() {
             className={cn(
               'absolute z-50 overflow-hidden',
               isXl
-                ? 'origin-left left-full top-0 ml-2'
+                ? 'origin-left left-full top-0 ml-6'
                 : 'origin-top right-0 top-full mt-2'
             )}
           >
-            <div
-              onClick={() => setIsOpen(false)}
-              className="absolute top-1.5 right-2 flex items-center justify-center text-gray-400 group-hover:text-white hover:bg-[#827a7a33] group cursor-pointer group p-[0.15rem] rounded-md transition-all duration-300"
-            >
-              <X className="h-4 w-4 text-[#3F4542] group-hover:text-white transition-all duration-300" />
-            </div>
             <Card className="w-[350px] bg-zinc-900 border-zinc-800 text-white rounded-xl border-2">
               {showTradeOptions ? (
                 <CardContent className="p-6 space-y-5">
@@ -258,6 +261,33 @@ export default function TradingSettings() {
                 </CardContent>
               ) : (
                 <CardContent className="p-6 space-y-6">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
+                        <SettingsIcon className="transition-all duration-300 w-5 h-5 text-[#40F798]" />
+                        <h2 className="text-xl font-medium text-center flex-1">
+                          ADVANCED
+                        </h2>
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <InfoIcon className="h-5 w-5 cursor-help block" />
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-zinc-800 text-white border-zinc-700">
+                            <p>Advanced Trade Options</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+
+                    <div
+                      onClick={() => setIsOpen(false)}
+                      className="flex items-center justify-center text-gray-400 group-hover:text-white hover:bg-[#827a7a33] group cursor-pointer group p-[0.15rem] rounded-md transition-all duration-300"
+                    >
+                      <X className="h-4 w-4 text-[#3F4542] group-hover:text-white transition-all duration-300" />
+                    </div>
+                  </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-lg font-medium">

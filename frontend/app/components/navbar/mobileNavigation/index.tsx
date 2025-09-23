@@ -118,7 +118,7 @@ const MobileNavigation: React.FC<MobileNavigationProps> = ({
                       )}
                     />
                   )}
-                  {link.title === 'Streams' && (
+                  {link.title === 'Stream' && (
                     <SwapsIcon
                       className={cn(
                         'w-4.5 h-4.5 text-white',

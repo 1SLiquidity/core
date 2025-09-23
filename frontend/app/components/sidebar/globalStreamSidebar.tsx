@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { useTrades } from '@/app/lib/hooks/useTrades'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useTokenList } from '@/app/lib/hooks/useTokenList'
+import Tabs from '../tabs'
 import { formatUnits } from 'viem'
 import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { RefreshIcon, TypewriterIcon } from '@/app/lib/icons'
@@ -24,6 +25,9 @@ type GlobalStreamSidebarProps = {
   showBackIcon?: boolean
 }
 
+// Define the toggle tabs for global vs user trades
+const TRADE_TABS = [{ title: 'Global Trades' }, { title: 'My Trades' }]
+
 const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   isOpen,
   onClose,
@@ -35,6 +39,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   const [selectedStream, setSelectedStream] = useState<any>(
     initialStream || null
   )
+  const [activeTab, setActiveTab] = useState(TRADE_TABS[0])
   const { address } = useAppKitAccount()
 
   // Reset to default state when sidebar opens
@@ -51,12 +56,24 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
     skip: 0,
   })
 
+  const filteredTrades = trades.filter((trade) => {
+    if (activeTab.title === 'My Trades') {
+      return address && trade.user?.toLowerCase() === address.toLowerCase()
+    }
+    return true
+  })
+
   // Fetch token list for price data
   const { tokens, isLoading: isLoadingTokens } = useTokenList()
 
-  // Calculate total USD value of trades
+  // Calculate total USD value of trades (using filtered trades)
   const calculateTotalTradesValue = () => {
-    if (!trades || trades.length === 0 || !tokens || tokens.length === 0)
+    if (
+      !filteredTrades ||
+      filteredTrades.length === 0 ||
+      !tokens ||
+      tokens.length === 0
+    )
       return 0
 
     const findTokenForTrade = (address: string) => {
@@ -82,7 +99,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
       )
     }
 
-    return trades.reduce((total, trade) => {
+    return filteredTrades.reduce((total, trade) => {
       const tokenIn = findTokenForTrade(trade.tokenIn)
 
       if (!tokenIn) return total
@@ -180,7 +197,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                     </div> */}
                   </div>
                   <div className="flex items-center gap-2">
-                    <p className="text-white text-[20px]">Global Stream</p>
+                    <p className="text-white text-[20px]">Global Trades</p>
                     {/* <RefreshIcon
                       className={cn(
                         'w-4 h-4 transition-colors duration-300',
@@ -198,7 +215,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
               <div className="p-4 rounded-[15px] bg-white005">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="flex flex-col leading-tight gap-0.5 items-start">
-                    <p className="text-white text-xl">Streams</p>
+                    <p className="text-white text-xl">Trades</p>
                     {isLoading || isLoadingTokens ? (
                       <>
                         <Skeleton className="h-6 w-16 mt-1" />
@@ -206,7 +223,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                     ) : (
                       <>
                         <p className="text-[20px] text-white52">
-                          {trades.length}
+                          {filteredTrades.length}
                         </p>
                       </>
                     )}
@@ -233,24 +250,40 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
               </div>
 
               <div className="mt-7">
-                <p className="text-[20px] pb-3.5">Ongoing Streams</p>
+                {/* Toggle tabs */}
+                <div className="mb-4">
+                  <Tabs
+                    tabs={TRADE_TABS}
+                    activeTab={activeTab}
+                    setActiveTab={setActiveTab}
+                    tabHeight={32}
+                    theme="secondary"
+                  />
+                </div>
+
+                <p className="text-[20px] pb-3.5">Ongoing Trades</p>
 
                 <div className="flex flex-col gap-2">
-                  {!isLoading && trades.length === 0 ? (
+                  {!isLoading && filteredTrades.length === 0 ? (
                     <div className="text-white52 text-center py-8">
-                      No trades found
+                      {activeTab.title === 'My Trades' && !address
+                        ? 'Connect wallet to view your trades'
+                        : activeTab.title === 'My Trades'
+                        ? 'No trades found for your wallet'
+                        : 'No trades found'}
                     </div>
                   ) : (
                     <>
-                      {trades.map((trade, index) => (
+                      {filteredTrades.map((trade) => (
                         <SwapStream
-                          key={index}
+                          key={trade.id}
                           onClick={() => {
                             setIsStreamSelected(true)
                             setSelectedStream(trade)
                           }}
                           trade={trade}
                           isLoading={isLoading}
+                          isUser={activeTab.title === 'My Trades'}
                         />
                       ))}
                       {isLoading &&
@@ -272,6 +305,7 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                                 executions: [],
                               }}
                               isLoading={true}
+                              isUser={activeTab.title === 'My Trades'}
                             />
                           ))}
                     </>

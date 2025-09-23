@@ -233,7 +233,7 @@ export default function HotPairBox() {
             className={cn(
               'absolute z-50 overflow-hidden',
               isXl
-                ? 'origin-right right-full top-0 mr-2'
+                ? 'origin-right right-full top-0 mr-6'
                 : 'origin-top left-0 top-full mt-2'
             )}
           >

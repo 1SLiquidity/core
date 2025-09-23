@@ -198,7 +198,7 @@ const DetailSection: React.FC<DetailSectionProps> = ({
               isLoading={isCalculating}
             />
           )}
-          <AmountTag
+          {/* <AmountTag
             title="Bot Gas Allowance"
             amount={
               isCalculating
@@ -209,7 +209,7 @@ const DetailSection: React.FC<DetailSectionProps> = ({
             }
             infoDetail="Estimated"
             isLoading={isCalculating}
-          />
+          /> */}
           {/* <AmountTag
             error={inValidAmount}
             title="Estimated Output"
