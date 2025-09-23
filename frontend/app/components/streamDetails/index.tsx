@@ -94,16 +94,19 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     ? Number(formattedMinAmountOut) * (tokenOut.usd_price || 0)
     : 0
 
+  const aggregates = calculateTradeAggregates(selectedStream)
+  console.log('aggregates ===>', aggregates)
+
   // Calculate swapped amount values
   const formattedSwapAmountOut = tokenOut
-    ? formatUnits(BigInt(selectedStream.realisedAmountOut), tokenOut.decimals)
+    ? formatUnits(BigInt(aggregates.realisedAmountOut), tokenOut.decimals)
     : '0'
   const swapAmountOutUsd = tokenOut
     ? Number(formattedSwapAmountOut) * (tokenOut.usd_price || 0)
     : 0
 
   // Calculate trade volume executed percentage
-  const amountRemaining = BigInt(selectedStream.amountRemaining)
+  const amountRemaining = BigInt(aggregates.amountRemaining)
   const amountIn = BigInt(selectedStream.amountIn)
   const volumeExecutedPercentage =
     amountIn > 0
@@ -203,10 +206,49 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     }
   }
 
-  console.log(
-    'selectedStream.cancellations ===>',
-    selectedStream.cancellations.some((cancellation) => !!cancellation.id)
-  )
+  // Recalc function
+  function calculateTradeAggregates(trade: Trade) {
+    const executions = trade.executions ?? []
+
+    // Sum of execution.amountIn as BigInt
+    const totalExecutedAmountIn = executions.reduce(
+      (acc: bigint, e) => acc + BigInt(e.amountIn ?? '0'),
+      BigInt(0)
+    )
+
+    // Sum of execution.realisedAmountOut as BigInt
+    const totalExecRealisedOut = executions.reduce(
+      (acc: bigint, e) => acc + BigInt(e.realisedAmountOut ?? '0'),
+      BigInt(0)
+    )
+
+    // Existing realisedAmountOut reported on trade (if any)
+    const existingRealisedOut = BigInt(trade.realisedAmountOut ?? '0')
+
+    // Final realisedAmountOut = existing + executions sum
+    const finalRealisedAmountOut = existingRealisedOut + totalExecRealisedOut
+
+    // console.log('executions ===>', executions)
+    // console.log('totalExecutedAmountIn ===>', totalExecutedAmountIn)
+    // console.log('totalExecRealisedOut ===>', totalExecRealisedOut)
+    // console.log('existingRealisedOut ===>', existingRealisedOut)
+    // console.log('finalRealisedAmountOut ===>', finalRealisedAmountOut)
+
+    // amountIn (original) and recalculated amountRemaining
+    const amountIn = BigInt(trade.amountIn ?? '0')
+    const recalculatedAmountRemaining = amountIn - totalExecutedAmountIn
+
+    return {
+      amountIn: amountIn.toString(),
+      amountRemaining: recalculatedAmountRemaining.toString(),
+      realisedAmountOut: finalRealisedAmountOut.toString(),
+    }
+  }
+
+  // console.log(
+  //   'selectedStream.cancellations ===>',
+  //   selectedStream.cancellations.some((cancellation) => !!cancellation.id)
+  // )
 
   return (
     <>
