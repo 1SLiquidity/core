@@ -35,8 +35,6 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
   const { tokens, isLoading: isLoadingTokens } = useTokenList()
   const estimatedTime = useStreamTime(Number(trade?.lastSweetSpot) || 0)
 
-  console.log('estimatedTime', estimatedTime)
-
   // Find token information with ETH/WETH handling
   const findTokenForTrade = (address: string) => {
     const ethWethAddress = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2'
@@ -79,8 +77,6 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
       </div>
     )
   }
-
-  console.log('trades ===>', trade)
 
   return (
     <div

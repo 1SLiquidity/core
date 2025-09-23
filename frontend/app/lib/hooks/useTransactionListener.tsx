@@ -155,11 +155,11 @@ export const useTransactionListener = ({
       }
 
       wsRef.current.onerror = (error) => {
-        console.error('❌ WebSocket error:', error)
+        // console.error('❌ WebSocket error:', error)
       }
 
       wsRef.current.onclose = (event) => {
-        console.log('🔌 WebSocket disconnected:', event.code)
+        // console.log('🔌 WebSocket disconnected:', event.code)
 
         // Reconnect if needed
         if (
@@ -170,7 +170,7 @@ export const useTransactionListener = ({
             1000 * Math.pow(2, reconnectAttemptsRef.current),
             10000
           )
-          console.log(`🔄 Reconnecting in ${delay}ms...`)
+          // console.log(`🔄 Reconnecting in ${delay}ms...`)
           reconnectTimeoutRef.current = setTimeout(() => {
             reconnectAttemptsRef.current++
             connect()

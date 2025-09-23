@@ -11,9 +11,9 @@ export function useStreamTime(streamCount: number | undefined) {
 
   useEffect(() => {
     const calculateEstTime = async () => {
-      console.log('Starting calculateEstTime with streamCount:', streamCount)
-      console.log('Wallet address:', address)
-      console.log('Wallet provider:', walletProvider)
+      // console.log('Starting calculateEstTime with streamCount:', streamCount)
+      // console.log('Wallet address:', address)
+      // console.log('Wallet provider:', walletProvider)
 
       if (!streamCount || streamCount <= 0) {
         console.log('Invalid streamCount, setting empty time')
@@ -25,7 +25,6 @@ export function useStreamTime(streamCount: number | undefined) {
         // Use wallet provider if connected (address exists), otherwise fall back to Alchemy provider
         const provider =
           address && walletProvider ? walletProvider : createProvider()
-        console.log('Selected provider:', provider)
 
         const avgBlockTime = await getAverageBlockTime(provider)
         // console.log('Average block time:', avgBlockTime)
@@ -54,7 +53,7 @@ export function useStreamTime(streamCount: number | undefined) {
           }`
         }
 
-        console.log('Setting formatted time:', formatted)
+        // console.log('Setting formatted time:', formatted)
         setEstimatedTime(formatted)
       } catch (error) {
         console.error('Error calculating time:', error)

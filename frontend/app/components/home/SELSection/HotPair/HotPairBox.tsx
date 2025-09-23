@@ -145,10 +145,10 @@ export default function HotPairBox() {
       )
 
       if (tokenA && tokenB) {
-        console.log('Setting default tokens:', {
-          from: tokenA.symbol,
-          to: tokenB.symbol,
-        })
+        // console.log('Setting default tokens:', {
+        //   from: tokenA.symbol,
+        //   to: tokenB.symbol,
+        // })
         setSelectedTokenFrom(tokenA)
         setSelectedTokenTo(tokenB)
       }

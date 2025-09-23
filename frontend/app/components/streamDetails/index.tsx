@@ -155,9 +155,9 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     ? networkFeeInToken * (tokenIn.usd_price || 0)
     : 0
 
-  console.log('selectedStream ===>', selectedStream)
-  console.log('tokenIn ===>', tokenIn)
-  console.log('tokenOut ===>', tokenOut)
+  // console.log('selectedStream ===>', selectedStream)
+  // console.log('tokenIn ===>', tokenIn)
+  // console.log('tokenOut ===>', tokenOut)
 
   const handleInstasettleClick = async (item: any) => {
     if (isConnectedWallet) {

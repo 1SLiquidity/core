@@ -210,7 +210,7 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
   const ongoingStreams = getOngoingStreams()
   const completedStreams = getCompletedStreams()
 
-  console.log('selectedStream ===>', selectedStream)
+  // console.log('selectedStream ===>', selectedStream)
 
   return (
     <Sidebar isOpen={isOpen} onClose={onClose}>

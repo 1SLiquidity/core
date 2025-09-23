@@ -262,17 +262,17 @@ export const getWalletTokens = async (
     const shouldCheckNew = shouldCheckForNewTokens(address, chain)
 
     if (cachedTokens && !shouldCheckNew) {
-      console.log(
-        `🔍 DEBUG: Using cached wallet tokens for ${address} on ${chain}`
-      )
+      // console.log(
+      //   `🔍 DEBUG: Using cached wallet tokens for ${address} on ${chain}`
+      // )
       return cachedTokens
     }
 
-    console.log(
-      `🔍 DEBUG: Fetching fresh wallet tokens for ${address} on ${chain}${
-        cachedTokens ? ' (checking for new tokens)' : ''
-      }`
-    )
+    // console.log(
+    //   `🔍 DEBUG: Fetching fresh wallet tokens for ${address} on ${chain}${
+    //     cachedTokens ? ' (checking for new tokens)' : ''
+    //   }`
+    // )
 
     await initMoralis()
 
@@ -489,11 +489,11 @@ export const getWalletTokens = async (
 
       // STRICT WHITELIST CHECK - Only include tokens that are whitelisted
       if (whitelistedTokens.includes(token.token_address.toLowerCase())) {
-        console.log(
-          '✅ DEBUG: Token whitelisted:',
-          token.symbol,
-          token.token_address
-        )
+        // console.log(
+        //   '✅ DEBUG: Token whitelisted:',
+        //   token.symbol,
+        //   token.token_address
+        // )
         return true
       }
 
