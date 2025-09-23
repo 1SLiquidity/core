@@ -8,6 +8,7 @@
     "test": "jest",
     "build": "tsc",
     "liquidity-analysis": "ts-node src/tests/run-liquidity-analysis.ts",
+    "comprehensive-analysis": "ts-node src/tests/test-comprehensive-analysis.ts",
     "cron:start": "ts-node src/cron-runner.ts start",
     "cron:status": "ts-node src/cron-runner.ts status",
     "cron:run": "ts-node src/cron-runner.ts run",

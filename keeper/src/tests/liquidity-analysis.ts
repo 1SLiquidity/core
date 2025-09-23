@@ -841,6 +841,238 @@ async function saveToDatabase(
 }
 
 // Transform the liquidity data from row-based format to column-based format for database
+// async function transformToColumnFormat(
+//   results: TokenLiquiditySummary[],
+//   timestamp: string
+// ): Promise<any[]> {
+//   const transformedRecords: any[] = []
+
+//   // Group by token pair (tokenA + tokenB combination)
+//   const tokenPairMap = new Map<string, any>()
+
+//   results.forEach((tokenSummary) => {
+//     tokenSummary.liquidityPairs.forEach((pair) => {
+//       // Create a unique key for each token pair
+//       // baseToken-resultToken (tokenA-tokenB)
+//       const pairKey = `${pair.baseToken}-${pair.tokenAddress}`
+
+//       if (!tokenPairMap.has(pairKey)) {
+//         // Initialize the record for this token pair
+//         tokenPairMap.set(pairKey, {
+//           timestamp: new Date(pair.timestamp),
+//           tokenAAddress: pair.baseToken, // tokenA = base token (USDT, USDC, etc.)
+//           tokenASymbol: pair.baseTokenSymbol, // tokenA symbol
+//           tokenAName: pair.baseTokenSymbol, // tokenA name
+//           tokenADecimals: pair.decimals.token0, // Assuming token0 is the base token (tokenA)
+//           tokenBAddress: pair.tokenAddress, // tokenB = result token (LINK, WBTC, etc.)
+//           tokenBSymbol: pair.tokenSymbol, // tokenB symbol
+//           tokenBDecimals: pair.decimals.token1, // Assuming token1 is the result token (tokenB)
+//           marketCap: tokenSummary.marketCap,
+//           // Initialize all DEX reserves as null
+//           reservesAUniswapV2: null,
+//           reservesBUniswapV2: null,
+//           reservesASushiswap: null,
+//           reservesBSushiswap: null,
+//           reservesACurve: null,
+//           reservesBCurve: null,
+//           reservesABalancer: null,
+//           reservesBBalancer: null,
+//           reservesAUniswapV3_500: null,
+//           reservesBUniswapV3_500: null,
+//           reservesAUniswapV3_3000: null,
+//           reservesBUniswapV3_3000: null,
+//           reservesAUniswapV3_10000: null,
+//           reservesBUniswapV3_10000: null,
+//         })
+//       }
+
+//       const record = tokenPairMap.get(pairKey)!
+
+//       // Map DEX names to column names and set the reserves
+//       switch (pair.dex) {
+//         case 'uniswap-v2':
+//           record.reservesAUniswapV2 = pair.reserves.token0
+//           record.reservesBUniswapV2 = pair.reserves.token1
+//           break
+//         case 'sushiswap':
+//           record.reservesASushiswap = pair.reserves.token0
+//           record.reservesBSushiswap = pair.reserves.token1
+//           break
+//         case 'curve':
+//           // Handle generic 'curve' format
+//           record.reservesACurve = pair.reserves.token0
+//           record.reservesBCurve = pair.reserves.token1
+//           break
+//         case 'balancer':
+//           // Handle generic 'balancer' format
+//           record.reservesABalancer = pair.reserves.token0
+//           record.reservesBBalancer = pair.reserves.token1
+//           break
+//         case 'uniswap-v3-500':
+//           record.reservesAUniswapV3_500 = pair.reserves.token0
+//           record.reservesBUniswapV3_500 = pair.reserves.token1
+//           break
+//         case 'uniswap-v3-3000':
+//           record.reservesAUniswapV3_3000 = pair.reserves.token0
+//           record.reservesBUniswapV3_3000 = pair.reserves.token1
+//           break
+//         case 'uniswap-v3-10000':
+//           record.reservesAUniswapV3_10000 = pair.reserves.token0
+//           record.reservesBUniswapV3_10000 = pair.reserves.token1
+//           break
+//         default:
+//           // Handle Curve and Balancer pools with specific addresses
+//           if (pair.dex.startsWith('curve-')) {
+//             record.reservesACurve = pair.reserves.token0
+//             record.reservesBCurve = pair.reserves.token1
+//           } else if (pair.dex.startsWith('balancer-')) {
+//             record.reservesABalancer = pair.reserves.token0
+//             record.reservesBBalancer = pair.reserves.token1
+//           } else {
+//             console.warn(`⚠️  Unknown DEX: ${pair.dex}`)
+//           }
+//       }
+//     })
+//   })
+
+//   // Convert map to array and calculate total depths
+//   for (const record of tokenPairMap.values()) {
+//     // Calculate total depth for token A
+//     const tokenATotals = calculateTotalReserves(
+//       record,
+//       true,
+//       record.tokenADecimals
+//     )
+//     record.reserveAtotaldepthWei = tokenATotals.weiTotal
+//     record.reserveAtotaldepth = tokenATotals.normalTotal
+
+//     // Calculate total depth for token B
+//     const tokenBTotals = calculateTotalReserves(
+//       record,
+//       false,
+//       record.tokenBDecimals
+//     )
+//     record.reserveBtotaldepthWei = tokenBTotals.weiTotal
+//     record.reserveBtotaldepth = tokenBTotals.normalTotal
+
+//     // Find highest liquidity reserves across all supported DEXes
+//     const reservesA = [
+//       { dex: 'uniswap-v2', reserve: record.reservesAUniswapV2 },
+//       { dex: 'sushiswap', reserve: record.reservesASushiswap },
+//       { dex: 'curve', reserve: record.reservesACurve },
+//       { dex: 'balancer', reserve: record.reservesABalancer },
+//       { dex: 'uniswap-v3-500', reserve: record.reservesAUniswapV3_500 },
+//       { dex: 'uniswap-v3-3000', reserve: record.reservesAUniswapV3_3000 },
+//       { dex: 'uniswap-v3-10000', reserve: record.reservesAUniswapV3_10000 },
+//     ].filter((r) => r.reserve !== null)
+
+//     const reservesB = [
+//       { dex: 'uniswap-v2', reserve: record.reservesBUniswapV2 },
+//       { dex: 'sushiswap', reserve: record.reservesBSushiswap },
+//       { dex: 'curve', reserve: record.reservesBCurve },
+//       { dex: 'balancer', reserve: record.reservesBBalancer },
+//       { dex: 'uniswap-v3-500', reserve: record.reservesBUniswapV3_500 },
+//       { dex: 'uniswap-v3-3000', reserve: record.reservesBUniswapV3_3000 },
+//       { dex: 'uniswap-v3-10000', reserve: record.reservesBUniswapV3_10000 },
+//     ].filter((r) => r.reserve !== null)
+
+//     // Compare using BigInt, but don't store as BigInt
+//     const highestA = reservesA.reduce((prev, curr) =>
+//       BigInt(prev.reserve!) > BigInt(curr.reserve!) ? prev : curr
+//     )
+
+//     const highestB = reservesB.reduce((prev, curr) =>
+//       BigInt(prev.reserve!) > BigInt(curr.reserve!) ? prev : curr
+//     )
+
+//     const highestLiquidityAReserve = highestA.reserve
+//     const highestLiquidityADex = highestA.dex
+//     const highestLiquidityBReserve = highestB.reserve
+//     const highestLiquidityBDex = highestB.dex
+
+//     record.highestLiquidityADex = highestLiquidityADex
+
+//     console.log('<=======>')
+//     console.log('record.tokenASymbol =====>', record.tokenASymbol)
+//     console.log('record.tokenBSymbol =====>', record.tokenBSymbol)
+//     console.log(
+//       'record.reserveAtotaldepthWei =====>',
+//       record.reserveAtotaldepthWei
+//     )
+//     console.log('highestA =====>', highestA)
+//     console.log('highestLiquidityADex =====>', highestLiquidityADex)
+//     console.log('highestLiquidityAReserve =====>', highestLiquidityAReserve)
+//     console.log('highestLiquidityBReserve =====>', highestLiquidityBReserve)
+//     console.log('<=======>')
+
+//     // ✅ Calculate sweet spot
+//     // const sweetSpot = calculateSweetSpot(
+//     //   BigInt(record.reserveAtotaldepthWei),
+//     //   highestLiquidityAReserve,
+//     //   highestLiquidityBReserve,
+//     //   record.tokenADecimals,
+//     //   record.tokenBDecimals
+//     // )
+
+//     // TODO: Sweet spot should pass in reserve A and reserve B of dex with highest liquidity instead of total reserves
+//     const sweetSpot = calculateSweetSpot(
+//       BigInt(record.reserveAtotaldepthWei),
+//       highestLiquidityAReserve,
+//       highestLiquidityBReserve,
+//       record.tokenADecimals,
+//       record.tokenBDecimals
+//     )
+
+//     console.log('sweetSpot =====>', sweetSpot)
+
+//     // Parse fee tier if it's uniswap-v3, otherwise fallback
+//     const feeTier = highestLiquidityADex.startsWith('uniswap-v3')
+//       ? parseInt(highestLiquidityADex.split('-')[2])
+//       : 3000
+
+//     console.log('feeTier =====>', feeTier)
+
+//     // ✅ Calculate slippage savings
+//     const { slippageSavings, percentageSavings } = sweetSpot
+//       ? await calculateSlippageSavings(
+//           BigInt(record.reserveAtotaldepthWei),
+//           highestLiquidityADex,
+//           feeTier,
+//           BigInt(record.reserveAtotaldepthWei),
+//           BigInt(record.reserveBtotaldepthWei),
+//           record.tokenADecimals,
+//           record.tokenBDecimals,
+//           record.tokenAAddress,
+//           record.tokenBAddress,
+//           sweetSpot
+//         )
+//       : { slippageSavings: 0, percentageSavings: 0 }
+
+//     console.log('==========')
+//     console.log('slippageSavings =====>', slippageSavings)
+//     console.log('percentageSavings =====>', percentageSavings)
+//     console.log('==========')
+
+//     // record.highestLiquidityADex = highestLiquidityADex
+//     // record.highestLiquidityBDex = highestLiquidityBDex
+//     record.slippageSavings = slippageSavings
+//     record.percentageSavings = percentageSavings
+
+//     transformedRecords.push(record)
+//   }
+
+//   console.log(
+//     `📋 Grouped ${results.reduce(
+//       (sum, r) => sum + r.liquidityPairs.length,
+//       0
+//     )} individual DEX pairs into ${
+//       transformedRecords.length
+//     } token pair records with total depth calculations`
+//   )
+
+//   return transformedRecords
+// }
+
 async function transformToColumnFormat(
   results: TokenLiquiditySummary[],
   timestamp: string
@@ -956,41 +1188,96 @@ async function transformToColumnFormat(
     record.reserveBtotaldepth = tokenBTotals.normalTotal
 
     // Find highest liquidity reserves across all supported DEXes
-    const reservesA = [
-      { dex: 'uniswap-v2', reserve: record.reservesAUniswapV2 },
-      { dex: 'sushiswap', reserve: record.reservesASushiswap },
-      { dex: 'curve', reserve: record.reservesACurve },
-      { dex: 'balancer', reserve: record.reservesABalancer },
-      // { dex: 'uniswap-v3-500', reserve: record.reservesAUniswapV3_500 },
-      // { dex: 'uniswap-v3-3000', reserve: record.reservesAUniswapV3_3000 },
-      // { dex: 'uniswap-v3-10000', reserve: record.reservesAUniswapV3_10000 },
-    ].filter((r) => r.reserve !== null)
+    // const reservesA = [
+    //   { dex: 'uniswap-v2', reserve: record.reservesAUniswapV2 },
+    //   { dex: 'sushiswap', reserve: record.reservesASushiswap },
+    //   { dex: 'curve', reserve: record.reservesACurve },
+    //   { dex: 'balancer', reserve: record.reservesABalancer },
+    //   // { dex: 'uniswap-v3-500', reserve: record.reservesAUniswapV3_500 },
+    //   // { dex: 'uniswap-v3-3000', reserve: record.reservesAUniswapV3_3000 },
+    //   // { dex: 'uniswap-v3-10000', reserve: record.reservesAUniswapV3_10000 },
+    // ].filter((r) => r.reserve !== null)
 
-    const reservesB = [
-      { dex: 'uniswap-v2', reserve: record.reservesBUniswapV2 },
-      { dex: 'sushiswap', reserve: record.reservesBSushiswap },
-      { dex: 'curve', reserve: record.reservesBCurve },
-      { dex: 'balancer', reserve: record.reservesBBalancer },
-      // { dex: 'uniswap-v3-500', reserve: record.reservesBUniswapV3_500 },
-      // { dex: 'uniswap-v3-3000', reserve: record.reservesBUniswapV3_3000 },
-      // { dex: 'uniswap-v3-10000', reserve: record.reservesBUniswapV3_10000 },
-    ].filter((r) => r.reserve !== null)
+    // const reservesB = [
+    //   { dex: 'uniswap-v2', reserve: record.reservesBUniswapV2 },
+    //   { dex: 'sushiswap', reserve: record.reservesBSushiswap },
+    //   { dex: 'curve', reserve: record.reservesBCurve },
+    //   { dex: 'balancer', reserve: record.reservesBBalancer },
+    //   // { dex: 'uniswap-v3-500', reserve: record.reservesBUniswapV3_500 },
+    //   // { dex: 'uniswap-v3-3000', reserve: record.reservesBUniswapV3_3000 },
+    //   // { dex: 'uniswap-v3-10000', reserve: record.reservesBUniswapV3_10000 },
+    // ].filter((r) => r.reserve !== null)
 
-    // Compare using BigInt, but don't store as BigInt
-    const highestA = reservesA.reduce((prev, curr) =>
-      BigInt(prev.reserve!) > BigInt(curr.reserve!) ? prev : curr
+    // // Compare using BigInt, but don't store as BigInt
+    // const highestA = reservesA.reduce((prev, curr) =>
+    //   BigInt(prev.reserve!) > BigInt(curr.reserve!) ? prev : curr
+    // )
+
+    // const highestB = reservesB.reduce((prev, curr) =>
+    //   BigInt(prev.reserve!) > BigInt(curr.reserve!) ? prev : curr
+    // )
+
+    // const highestLiquidityAReserve = highestA.reserve
+    // const highestLiquidityADex = highestA.dex
+    // const highestLiquidityBReserve = highestB.reserve
+    // const highestLiquidityBDex = highestB.dex
+
+    // record.highestLiquidityADex = highestLiquidityADex
+
+    const dexPairs = [
+      {
+        dex: 'uniswap-v2',
+        reserveA: record.reservesAUniswapV2,
+        reserveB: record.reservesBUniswapV2,
+      },
+      {
+        dex: 'sushiswap',
+        reserveA: record.reservesASushiswap,
+        reserveB: record.reservesBSushiswap,
+      },
+      {
+        dex: 'curve',
+        reserveA: record.reservesACurve,
+        reserveB: record.reservesBCurve,
+      },
+      {
+        dex: 'balancer',
+        reserveA: record.reservesABalancer,
+        reserveB: record.reservesBBalancer,
+      },
+      // {
+      //   dex: 'uniswap-v3-500',
+      //   reserveA: record.reservesAUniswapV3_500,
+      //   reserveB: record.reservesBUniswapV3_500,
+      // },
+      // {
+      //   dex: 'uniswap-v3-3000',
+      //   reserveA: record.reservesAUniswapV3_3000,
+      //   reserveB: record.reservesBUniswapV3_3000,
+      // },
+      // {
+      //   dex: 'uniswap-v3-10000',
+      //   reserveA: record.reservesAUniswapV3_10000,
+      //   reserveB: record.reservesBUniswapV3_10000,
+      // },
+    ].filter((pair) => pair.reserveA !== null && pair.reserveB !== null)
+
+    // Calculate total liquidity for each DEX (sum of both token reserves in normal units)
+    const dexWithLiquidity = dexPairs.map((pair) => ({
+      ...pair,
+      totalLiquidity:
+        weiToNormal(pair.reserveA!, record.tokenADecimals) +
+        weiToNormal(pair.reserveB!, record.tokenBDecimals),
+    }))
+
+    // Find best DEX with highest total liquidity
+    const bestDex = dexWithLiquidity.reduce((prev, curr) =>
+      curr.totalLiquidity > prev.totalLiquidity ? curr : prev
     )
 
-    const highestB = reservesB.reduce((prev, curr) =>
-      BigInt(prev.reserve!) > BigInt(curr.reserve!) ? prev : curr
-    )
-
-    const highestLiquidityAReserve = highestA.reserve
-    const highestLiquidityADex = highestA.dex
-    const highestLiquidityBReserve = highestB.reserve
-    const highestLiquidityBDex = highestB.dex
-
-    record.highestLiquidityADex = highestLiquidityADex
+    const highestLiquidityADex = bestDex.dex
+    const highestLiquidityAReserve = bestDex.reserveA // Individual DEX reserve A
+    const highestLiquidityBReserve = bestDex.reserveB // Individual DEX reserve B
 
     console.log('<=======>')
     console.log('record.tokenASymbol =====>', record.tokenASymbol)
@@ -999,7 +1286,7 @@ async function transformToColumnFormat(
       'record.reserveAtotaldepthWei =====>',
       record.reserveAtotaldepthWei
     )
-    console.log('highestA =====>', highestA)
+    console.log('bestDex =====>', bestDex)
     console.log('highestLiquidityADex =====>', highestLiquidityADex)
     console.log('highestLiquidityAReserve =====>', highestLiquidityAReserve)
     console.log('highestLiquidityBReserve =====>', highestLiquidityBReserve)
@@ -1014,31 +1301,61 @@ async function transformToColumnFormat(
     //   record.tokenBDecimals
     // )
 
+    // const sweetSpot = calculateSweetSpot(
+    //   BigInt(record.reserveAtotaldepthWei),
+    //   highestLiquidityAReserve,
+    //   highestLiquidityBReserve,
+    //   record.tokenADecimals,
+    //   record.tokenBDecimals
+    // )
+
     const sweetSpot = calculateSweetSpot(
-      BigInt(record.reserveAtotaldepthWei),
-      highestLiquidityAReserve,
-      highestLiquidityBReserve,
-      record.tokenADecimals,
-      record.tokenBDecimals
+      BigInt(record.reserveAtotaldepthWei), // Total reserves A ✓
+      BigInt(highestLiquidityAReserve), // BEST DEX reserves A ✓ FIXED!
+      BigInt(highestLiquidityBReserve), // BEST DEX reserves B ✓ FIXED!
+      record.tokenADecimals, // TokenA decimals ✓
+      record.tokenBDecimals // TokenB decimals ✓
     )
 
     console.log('sweetSpot =====>', sweetSpot)
 
     // Parse fee tier if it's uniswap-v3, otherwise fallback
-    const feeTier = highestLiquidityADex.startsWith('uniswap-v3')
-      ? parseInt(highestLiquidityADex.split('-')[2])
-      : 3000
+    // const feeTier = highestLiquidityADex.startsWith('uniswap-v3')
+    //   ? parseInt(highestLiquidityADex.split('-')[2])
+    //   : 3000
+
+    let feeTier = 3000 // Default fee tier
+    if (highestLiquidityADex.startsWith('uniswap-v3')) {
+      feeTier = parseInt(highestLiquidityADex.split('-')[2])
+    } else if (
+      highestLiquidityADex.startsWith('balancer-') ||
+      highestLiquidityADex === 'balancer'
+    ) {
+      feeTier = 0 // Balancer pools don't use fee tiers like Uniswap V3
+    } else if (
+      highestLiquidityADex.startsWith('curve-') ||
+      highestLiquidityADex === 'curve'
+    ) {
+      feeTier = 0 // Curve pools don't use fee tiers
+    } else if (
+      highestLiquidityADex === 'uniswap-v2' ||
+      highestLiquidityADex === 'sushiswap'
+    ) {
+      feeTier = 3000 // Use 0.3% fee for V2-style AMMs
+    }
 
     console.log('feeTier =====>', feeTier)
 
-    // ✅ Calculate slippage savings
+    record.highestLiquidityADex = highestLiquidityADex
+
+    // Then fix the calculateSlippageSavings call:
     const { slippageSavings, percentageSavings } = sweetSpot
       ? await calculateSlippageSavings(
-          BigInt(record.reserveAtotaldepthWei),
-          highestLiquidityADex,
-          feeTier,
-          BigInt(record.reserveAtotaldepthWei),
-          BigInt(record.reserveBtotaldepthWei),
+          BigInt(record.reserveAtotaldepthWei), // Total reserves A
+          highestLiquidityADex, // Best DEX name
+          feeTier, // Fee tier
+          BigInt(highestLiquidityAReserve), // BEST DEX reserves A (FIXED!)
+          BigInt(highestLiquidityBReserve), // BEST DEX reserves B (FIXED!)
           record.tokenADecimals,
           record.tokenBDecimals,
           record.tokenAAddress,
@@ -1046,6 +1363,22 @@ async function transformToColumnFormat(
           sweetSpot
         )
       : { slippageSavings: 0, percentageSavings: 0 }
+
+    // ✅ Calculate slippage savings
+    // const { slippageSavings, percentageSavings } = sweetSpot
+    //   ? await calculateSlippageSavings(
+    //       BigInt(record.reserveAtotaldepthWei),
+    //       highestLiquidityADex,
+    //       feeTier,
+    //       BigInt(record.reserveAtotaldepthWei),
+    //       BigInt(record.reserveBtotaldepthWei),
+    //       record.tokenADecimals,
+    //       record.tokenBDecimals,
+    //       record.tokenAAddress,
+    //       record.tokenBAddress,
+    //       sweetSpot
+    //     )
+    //   : { slippageSavings: 0, percentageSavings: 0 }
 
     console.log('==========')
     console.log('slippageSavings =====>', slippageSavings)
@@ -1112,6 +1445,9 @@ function calculateSweetSpot(
   // Check if reserve ratio is less than 0.001
   const reserveRatio = (scaledReserveB / scaledReserveA) * 100
   console.log('reserveRatio', reserveRatio)
+
+  // TODO: review reserve ratio selection logic later
+
   if (reserveRatio < 0.001) {
     // Calculate N = sqrt(alpha * V^2)
     streamCount = Math.sqrt(alpha * volumeSquared)
@@ -1183,6 +1519,7 @@ export async function calculateSlippageSavings(
       // )
 
       // Get quote for full amount
+      //tradeVolumeOutNODECA
       const amountOut = await router.getAmountOut(
         tradeVolume,
         reserveA,
@@ -1191,11 +1528,18 @@ export async function calculateSlippageSavings(
       const amountOutInETH = Number(amountOut) / 10 ** decimalsB
 
       console.log('amountOut =====>', amountOut)
-      console.log('amountOutInETH =====>', amountOutInETH)
+      console.log(
+        'amountOutInETH (tradeVolumeOutNODECA) =====>',
+        amountOutInETH
+      )
       console.log(
         'tradeVolume / sweetSpot =====>',
         tradeVolume / BigInt(sweetSpot)
       )
+
+      // Get effective price by dividing amountOutinEth by tradeVolume
+      const effectivePrice = amountOutInETH / Number(tradeVolume)
+      console.log('effectivePriceNODECA =====>', effectivePrice)
 
       // Get quote for (tradeVolume / sweetSpot)
       const sweetSpotAmountOut = await router.getAmountOut(
@@ -1211,23 +1555,23 @@ export async function calculateSlippageSavings(
       console.log('sweetSpotAmountOutInETH =====>', sweetSpotAmountOutInETH)
 
       // Scale up the sweet spot quote
+      //tradeVolumeOutDECA
       const scaledSweetSpotAmountOutInETH = sweetSpotAmountOutInETH * sweetSpot
 
       console.log(
-        'scaledSweetSpotAmountOutInETH =====>',
+        'scaledSweetSpotAmountOutInETH (tradeVolumeOutDECA) =====>',
         scaledSweetSpotAmountOutInETH
       )
 
-      const slippageSavings = scaledSweetSpotAmountOutInETH - amountOutInETH
-      // let percentageSavings = (slippageSavings / amountOutInETH) * 100
-      // percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
-      // // Format to 3 decimals
-      // percentageSavings = Number(percentageSavings.toFixed(3))
+      // Get effective price by dividing scaledSweetSpotAmountOutInETH by tradeVolume
+      const effectivePrice2 =
+        scaledSweetSpotAmountOutInETH / Number(tradeVolume)
+      console.log('effectivePriceDECA =====>', effectivePrice2)
 
-      let raw = slippageSavings / amountOutInETH
-      // Instead of raw * 100, do (1 - raw) * 100
+      const slippageSavings = scaledSweetSpotAmountOutInETH - amountOutInETH
+
+      let raw = amountOutInETH / scaledSweetSpotAmountOutInETH
       let percentageSavings = (1 - raw) * 100
-      // Clamp between 0–100
       percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
       percentageSavings = Number(percentageSavings.toFixed(3))
 
@@ -1237,68 +1581,208 @@ export async function calculateSlippageSavings(
       return { slippageSavings, percentageSavings }
     }
 
-    // if (dex.startsWith('uniswap-v3')) {
-    //   // Calculate getAmountsOut from UniswapV3Quoter
-    //   const quoter = new ethers.Contract(
-    //     CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
-    //     CONTRACT_ABIS.UNISWAP_V3.QUOTER,
-    //     provider
-    //   )
+    if (dex.startsWith('uniswap-v3')) {
+      // Calculate getAmountsOut from UniswapV3Quoter
+      const quoter = new ethers.Contract(
+        CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+        CONTRACT_ABIS.UNISWAP_V3.QUOTER,
+        provider
+      )
 
-    //   // Get quote for full amount
-    //   const data = quoter.interface.encodeFunctionData(
-    //     'quoteExactInputSingle',
-    //     [tokenIn, tokenOut, feeTier, tradeVolume, 0]
-    //   )
+      // Get quote for full amount
+      const data = quoter.interface.encodeFunctionData(
+        'quoteExactInputSingle',
+        [tokenIn, tokenOut, feeTier, tradeVolume, 0]
+      )
 
-    //   const result = await provider.call({
-    //     to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
-    //     data,
-    //   })
+      const result = await provider.call({
+        to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+        data,
+      })
 
-    //   const dexQuoteAmountOut = quoter.interface.decodeFunctionResult(
-    //     'quoteExactInputSingle',
-    //     result
-    //   )[0]
+      const dexQuoteAmountOut = quoter.interface.decodeFunctionResult(
+        'quoteExactInputSingle',
+        result
+      )[0]
 
-    //   const dexQuoteAmountOutInETH = Number(dexQuoteAmountOut) / 10 ** decimalsB
+      const dexQuoteAmountOutInETH = Number(dexQuoteAmountOut) / 10 ** decimalsB
 
-    //   // Get quote for (tradeVolume / sweetSpot)
-    //   const sweetSpotQuote = quoter.interface.encodeFunctionData(
-    //     'quoteExactInputSingle',
-    //     [tokenIn, tokenOut, feeTier, tradeVolume / BigInt(sweetSpot), 0]
-    //   )
+      // Get quote for (tradeVolume / sweetSpot)
+      const sweetSpotQuote = quoter.interface.encodeFunctionData(
+        'quoteExactInputSingle',
+        [tokenIn, tokenOut, feeTier, tradeVolume / BigInt(sweetSpot), 0]
+      )
 
-    //   const sweetSpotQuoteResult = await provider.call({
-    //     to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
-    //     data: sweetSpotQuote,
-    //   })
+      const sweetSpotQuoteResult = await provider.call({
+        to: CONTRACT_ADDRESSES.UNISWAP_V3.QUOTER,
+        data: sweetSpotQuote,
+      })
 
-    //   const sweetSpotQuoteAmountOut = quoter.interface.decodeFunctionResult(
-    //     'quoteExactInputSingle',
-    //     sweetSpotQuoteResult
-    //   )[0]
+      const sweetSpotQuoteAmountOut = quoter.interface.decodeFunctionResult(
+        'quoteExactInputSingle',
+        sweetSpotQuoteResult
+      )[0]
 
-    //   const sweetSpotQuoteAmountOutInETH =
-    //     Number(sweetSpotQuoteAmountOut) / 10 ** decimalsB
-    //   const scaledSweetSpotQuoteAmountOutInETH =
-    //     sweetSpotQuoteAmountOutInETH * sweetSpot
+      const sweetSpotQuoteAmountOutInETH =
+        Number(sweetSpotQuoteAmountOut) / 10 ** decimalsB
+      const scaledSweetSpotQuoteAmountOutInETH =
+        sweetSpotQuoteAmountOutInETH * sweetSpot
 
-    //   const slippageSavings =
-    //     scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
-    //   // const percentageSavings = (slippageSavings / dexQuoteAmountOutInETH) * 100
+      const slippageSavings =
+        scaledSweetSpotQuoteAmountOutInETH - dexQuoteAmountOutInETH
+      // const percentageSavings = (slippageSavings / dexQuoteAmountOutInETH) * 100
 
-    //   let raw = slippageSavings / dexQuoteAmountOutInETH
-    //   // Instead of raw * 100, do (1 - raw) * 100
-    //   let percentageSavings = (1 - raw) * 100
-    //   percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
-    //   percentageSavings = Number(percentageSavings.toFixed(3))
+      // let raw = amountOutInETH / scaledSweetSpotAmountOutInETH
+      let raw = dexQuoteAmountOutInETH / scaledSweetSpotQuoteAmountOutInETH
+      let percentageSavings = (1 - raw) * 100
+      percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+      percentageSavings = Number(percentageSavings.toFixed(3))
 
-    //   // console.log('slippageSavings =====>', slippageSavings)
-    //   // console.log('percentageSavings =====>', percentageSavings)
+      return { slippageSavings, percentageSavings }
+    }
 
-    //   return { slippageSavings, percentageSavings }
-    // }
+    if (dex.startsWith('balancer-') || dex === 'balancer') {
+      console.log('Calculating slippage for Balancer pool...')
+
+      try {
+        // Balancer uses weighted constant product formula
+        // For simplification, we'll use the constant product approximation
+        // amountOut = reserveB * amountIn / (reserveA + amountIn) * (1 - fee)
+
+        // Balancer typically has 0.3% fee (similar to Uniswap V2)
+        const fee = 0.003 // 0.3%
+
+        // Calculate amount out for full trade using constant product formula
+        const numerator = reserveB * tradeVolume
+        const denominator = reserveA + tradeVolume
+        const amountOutBeforeFee = numerator / denominator
+        const amountOut =
+          (amountOutBeforeFee * BigInt(Math.floor((1 - fee) * 1000000))) /
+          BigInt(1000000)
+
+        const amountOutInETH = Number(amountOut) / 10 ** decimalsB
+
+        console.log('Balancer amountOut =====>', amountOut)
+        console.log('Balancer amountOutInETH =====>', amountOutInETH)
+
+        // Calculate amount out for sweet spot trade
+        const sweetSpotTradeAmount = tradeVolume / BigInt(sweetSpot)
+        const sweetSpotNumerator = reserveB * sweetSpotTradeAmount
+        const sweetSpotDenominator = reserveA + sweetSpotTradeAmount
+        const sweetSpotAmountOutBeforeFee =
+          sweetSpotNumerator / sweetSpotDenominator
+        const sweetSpotAmountOut =
+          (sweetSpotAmountOutBeforeFee *
+            BigInt(Math.floor((1 - fee) * 1000000))) /
+          BigInt(1000000)
+
+        const sweetSpotAmountOutInETH =
+          Number(sweetSpotAmountOut) / 10 ** decimalsB
+        const scaledSweetSpotAmountOutInETH =
+          sweetSpotAmountOutInETH * sweetSpot
+
+        console.log('Balancer sweetSpotAmountOut =====>', sweetSpotAmountOut)
+        console.log(
+          'Balancer scaledSweetSpotAmountOutInETH =====>',
+          scaledSweetSpotAmountOutInETH
+        )
+
+        const slippageSavings = scaledSweetSpotAmountOutInETH - amountOutInETH
+
+        let raw = amountOutInETH / scaledSweetSpotAmountOutInETH
+        let percentageSavings = (1 - raw) * 100
+        percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+        percentageSavings = Number(percentageSavings.toFixed(3))
+
+        console.log('Balancer slippageSavings =====>', slippageSavings)
+        console.log('Balancer percentageSavings =====>', percentageSavings)
+
+        return { slippageSavings, percentageSavings }
+      } catch (error) {
+        console.error('Error in Balancer calculation:', error)
+        return { slippageSavings: 0, percentageSavings: 0 }
+      }
+    }
+
+    if (dex.startsWith('curve-') || dex === 'curve') {
+      console.log('Calculating slippage for Curve pool...')
+
+      try {
+        // Curve uses StableSwap invariant for stablecoin pairs
+        // For simplification, we'll use a modified constant product approach
+        // Curve has very low slippage for similar-valued assets but higher for dissimilar ones
+
+        // Curve typically has 0.04% fee
+        const fee = 0.0004 // 0.04%
+
+        // For Curve, we need to consider the amplification factor (A)
+        // Higher A means lower slippage for similar-priced assets
+        // We'll use a simplified approach assuming moderate amplification
+
+        const A = 100n // Typical amplification factor for Curve pools
+
+        // Simplified StableSwap calculation (approximation)
+        // For small trades, it behaves similarly to constant sum
+        // For large trades, it behaves more like constant product
+
+        const reserveANormal = Number(reserveA) / 10 ** decimalsA
+        const reserveBNormal = Number(reserveB) / 10 ** decimalsB
+        const tradeVolumeNormal = Number(tradeVolume) / 10 ** decimalsA
+
+        // Calculate price impact using a hybrid approach
+        const totalReserves = reserveANormal + reserveBNormal
+        const tradeRatio = tradeVolumeNormal / reserveANormal
+
+        // For Curve, smaller trades have minimal slippage, larger trades have increasing slippage
+        let priceImpact = tradeRatio * tradeRatio * 0.1 // Quadratic price impact
+        priceImpact = Math.min(priceImpact, 0.05) // Cap at 5% impact
+
+        // Calculate amount out with price impact and fees
+        const basePrice = reserveBNormal / reserveANormal
+        const effectivePrice = basePrice * (1 - priceImpact) * (1 - fee)
+        const amountOutInETH = tradeVolumeNormal * effectivePrice
+
+        console.log('Curve basePrice =====>', basePrice)
+        console.log('Curve priceImpact =====>', priceImpact)
+        console.log('Curve amountOutInETH =====>', amountOutInETH)
+
+        // Calculate for sweet spot
+        const sweetSpotTradeVolumeNormal = tradeVolumeNormal / sweetSpot
+        const sweetSpotTradeRatio = sweetSpotTradeVolumeNormal / reserveANormal
+
+        let sweetSpotPriceImpact =
+          sweetSpotTradeRatio * sweetSpotTradeRatio * 0.1
+        sweetSpotPriceImpact = Math.min(sweetSpotPriceImpact, 0.05)
+
+        const sweetSpotEffectivePrice =
+          basePrice * (1 - sweetSpotPriceImpact) * (1 - fee)
+        const sweetSpotAmountOutInETH =
+          sweetSpotTradeVolumeNormal * sweetSpotEffectivePrice
+        const scaledSweetSpotAmountOutInETH =
+          sweetSpotAmountOutInETH * sweetSpot
+
+        console.log('Curve sweetSpotPriceImpact =====>', sweetSpotPriceImpact)
+        console.log(
+          'Curve scaledSweetSpotAmountOutInETH =====>',
+          scaledSweetSpotAmountOutInETH
+        )
+
+        const slippageSavings = scaledSweetSpotAmountOutInETH - amountOutInETH
+
+        let raw = amountOutInETH / scaledSweetSpotAmountOutInETH
+        let percentageSavings = (1 - raw) * 100
+        percentageSavings = Math.max(0, Math.min(percentageSavings, 100))
+        percentageSavings = Number(percentageSavings.toFixed(3))
+
+        console.log('Curve slippageSavings =====>', slippageSavings)
+        console.log('Curve percentageSavings =====>', percentageSavings)
+
+        return { slippageSavings, percentageSavings }
+      } catch (error) {
+        console.error('Error in Curve calculation:', error)
+        return { slippageSavings: 0, percentageSavings: 0 }
+      }
+    }
 
     // if (dex.startsWith('balancer-') || dex === 'balancer') {
     //   // For Balancer pools, use a simplified calculation based on constant product formula
@@ -1819,16 +2303,19 @@ export async function analyzeTokenPairLiquidityComprehensive(
       totalReservesB += BigInt(reserve.reserves.token1)
     })
 
-    // Use existing calculateSweetSpot function
-    const sweetSpot = calculateSweetSpot(
-      totalReservesA,
-      totalReservesA, // Using total reserves as trade volume
-      totalReservesB,
-      tokenAInfo.decimals,
-      tokenBInfo.decimals
+    // Log total reserves in decimal format
+    console.log(
+      `Total reserves A: ${weiToNormal(
+        totalReservesA.toString(),
+        tokenAInfo.decimals
+      ).toFixed(6)} ${tokenAInfo.symbol}`
     )
-
-    console.log(`Sweet spot: ${sweetSpot} streams`)
+    console.log(
+      `Total reserves B: ${weiToNormal(
+        totalReservesB.toString(),
+        tokenBInfo.decimals
+      ).toFixed(6)} ${tokenBInfo.symbol}`
+    )
 
     // Find best DEX and calculate slippage savings using existing logic
     const bestDex = dexResults.reduce((prev, curr) =>
@@ -1850,6 +2337,16 @@ export async function analyzeTokenPairLiquidityComprehensive(
       feeTier = 3000 // Use 0.3% fee for V2-style AMMs
     }
 
+    // Sweet spot should pass in reserve A and reserve B of dex with highest liquidity instead of total reserves
+    const sweetSpot = calculateSweetSpot(
+      totalReservesA,
+      BigInt(bestDex.reserves.tokenA),
+      BigInt(bestDex.reserves.tokenB),
+      tokenAInfo.decimals,
+      tokenBInfo.decimals
+    )
+
+    console.log(`Sweet spot: ${sweetSpot} streams`)
     const { slippageSavings, percentageSavings } =
       await calculateSlippageSavings(
         totalReservesA,
