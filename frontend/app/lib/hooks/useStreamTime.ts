@@ -4,7 +4,10 @@ import { getAverageBlockTime } from '../gas-calculations'
 import type { Provider } from '@reown/appkit/react'
 import { createProvider } from '../dex/calculators'
 
-export function useStreamTime(streamCount: number | undefined) {
+export function useStreamTime(
+  streamCount: number | undefined,
+  blockMultiplier = 2
+) {
   const [estimatedTime, setEstimatedTime] = useState<string>('')
   const { walletProvider } = useAppKitProvider<Provider>('eip155')
   const { address } = useAppKitAccount()
@@ -29,7 +32,9 @@ export function useStreamTime(streamCount: number | undefined) {
         const avgBlockTime = await getAverageBlockTime(provider)
         // console.log('Average block time:', avgBlockTime)
 
-        const totalSeconds = Math.round(avgBlockTime * 2 * streamCount)
+        const totalSeconds = Math.round(
+          avgBlockTime * blockMultiplier * streamCount
+        )
         // console.log('Total seconds calculated:', totalSeconds)
 
         if (totalSeconds <= 0) {

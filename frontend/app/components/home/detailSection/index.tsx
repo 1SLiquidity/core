@@ -4,6 +4,7 @@ import AmountTag from '../../amountTag'
 import { ReserveData } from '@/app/lib/dex/calculators'
 import { formatEther } from 'ethers/lib/utils'
 import { Skeleton } from '@/components/ui/skeleton'
+import DexSummary from './DexSummary'
 
 interface DetailSectionProps {
   sellAmount?: string
@@ -256,6 +257,10 @@ const DetailSection: React.FC<DetailSectionProps> = ({
             amount={'12 mins'}
             infoDetail="Estimated"
           /> */}
+        </div>
+
+        <div className="w-full border-t border-borderBottom">
+          <DexSummary />
         </div>
       </div>
 
