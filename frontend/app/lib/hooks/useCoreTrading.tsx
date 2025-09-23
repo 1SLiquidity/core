@@ -854,6 +854,7 @@ export const useCoreTrading = () => {
         updateToastProgress('Getting trade details...', 25, 2)
         const trade = await contract.getTrade(params.tradeId)
 
+        console.log('trade ===>', trade)
         // Check if the trade is instasettlable
         if (!trade.isInstasettlable) {
           updateToastProgress('Trade is not instasettlable', 0, 1)
@@ -888,10 +889,12 @@ export const useCoreTrading = () => {
 
         console.log('tokenInDecimals ===>', tokenInDecimals)
         console.log('tokenOutDecimals ===>', tokenOutDecimals)
+        console.log('trade.targetAmountIn ===>', trade.targetAmountIn)
+        console.log('remainingAmountOut ===>', remainingAmountOut)
 
         // Format amounts for display
         const amountInFormatted = ethers.utils.formatUnits(
-          trade.targetAmountIn,
+          trade.amountIn,
           tokenInDecimals
         )
         const amountOutFormatted = ethers.utils.formatUnits(
@@ -970,7 +973,7 @@ export const useCoreTrading = () => {
             amountInFormatted,
             amountOutFormatted
           )
-          // Handle token approval without react-hot-toast
+          // Handle token approval
           const tokenContract = new ethers.Contract(
             trade.tokenOut,
             erc20Abi,
@@ -994,10 +997,13 @@ export const useCoreTrading = () => {
           amountOutFormatted
         )
 
+        console.log('==== gasEstimate start ====')
         // Estimate gas
         const gasEstimate = await contract.estimateGas.instasettle(
           params.tradeId
         )
+
+        console.log('==== gasEstimate end ====', gasEstimate)
 
         // Execute instasettle
         updateToastProgress(

@@ -16,7 +16,7 @@ export const GET_TRADES = gql`
       user
       realisedAmountOut
       id
-      executions(first: 10) {
+      executions {
         amountIn
         id
         lastSweetSpot

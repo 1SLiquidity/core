@@ -175,6 +175,9 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                 setSelectedStream(null)
                 onClose()
               }}
+              isUser={
+                selectedStream?.user?.toLowerCase() === address?.toLowerCase()
+              }
               showBackIcon={showBackIcon}
             />
           </>

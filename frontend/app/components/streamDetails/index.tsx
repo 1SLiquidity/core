@@ -95,7 +95,6 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     : 0
 
   const aggregates = calculateTradeAggregates(selectedStream)
-  console.log('aggregates ===>', aggregates)
 
   // Calculate swapped amount values
   const formattedSwapAmountOut = tokenOut
@@ -148,7 +147,6 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     : 0
 
   const NETWORK_FEE_BPS = 5 // 5 basis points
-  console.log('selectedStream.amountIn ===>', selectedStream.amountIn)
 
   const networkFeeInToken = tokenIn
     ? Number(formatUnits(BigInt(selectedStream.amountIn), tokenIn.decimals)) *

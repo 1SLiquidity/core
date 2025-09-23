@@ -133,6 +133,7 @@ const ConfigTrade: React.FC<Props> = ({
                 text="ENABLE INSTASETTLE"
                 className="h-[2.25rem]"
                 disabled={isLoading}
+                loading={isLoading}
                 onClick={() => handleInstasettleClick(selectedStream)}
               />
             </div>
@@ -167,6 +168,7 @@ const ConfigTrade: React.FC<Props> = ({
               theme="destructive"
               className="h-[2.25rem]"
               disabled={isLoading || !isCancellable}
+              loading={isLoading}
               onClick={() => handleCancelClick(selectedStream)}
             />
           ) : (
