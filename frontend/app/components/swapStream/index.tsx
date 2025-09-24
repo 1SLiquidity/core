@@ -33,7 +33,27 @@ type Props = {
 
 const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
   const { tokens, isLoading: isLoadingTokens } = useTokenList()
-  const estimatedTime = useStreamTime(Number(trade?.lastSweetSpot) || 0)
+
+  // Calculate remainingStreams from executions array
+  const calculateRemainingStreams = () => {
+    if (!trade.executions || trade.executions.length === 0) {
+      return Number(trade?.lastSweetSpot) || 0
+    }
+
+    const lastSweetSpots = trade.executions
+      .map((execution) => Number(execution.lastSweetSpot))
+      .filter((spot) => !isNaN(spot))
+
+    if (lastSweetSpots.length === 0) {
+      return Number(trade?.lastSweetSpot) || 0
+    }
+
+    const maxSweetSpot = Math.max(...lastSweetSpots)
+    return maxSweetSpot + 1
+  }
+
+  const remainingStreams = calculateRemainingStreams()
+  const estimatedTime = useStreamTime(remainingStreams, 5)
 
   // Find token information with ETH/WETH handling
   const findTokenForTrade = (address: string) => {
@@ -162,7 +182,7 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
               className="h-[3px] bg-primary absolute top-0 left-0"
               style={{
                 width: `${Math.min(
-                  (trade.executions.length / Number(trade.lastSweetSpot)) * 100,
+                  (trade.executions.length / remainingStreams) * 100,
                   100
                 )}%`,
               }}
@@ -188,7 +208,7 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
             <>
               <p className="">
                 {/* 25/100 completed {/* Hardcoded as requested */}
-                {trade.executions.length} / {trade.lastSweetSpot} completed
+                {trade.executions.length} / {remainingStreams} completed
               </p>
               <div className="flex gap-2">
                 <div className="flex items-center">

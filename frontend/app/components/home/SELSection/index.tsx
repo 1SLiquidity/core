@@ -39,6 +39,12 @@ const SELSection = () => {
   const [isRefresh, setIsRefresh] = useState(false)
   const [forceRefreshKey, setForceRefreshKey] = useState(0) // Add this to force recalculation
 
+  const [tradingSettings, setTradingSettings] = useState({
+    usePriceBased: true,
+    instasettlableValue: null as string | null,
+    isInstasettlable: false,
+  })
+
   const { addToast } = useToast()
   const {
     selectedTokenFrom,
@@ -480,8 +486,8 @@ const SELSection = () => {
             tokenOut: selectedTokenTo?.token_address || '',
             amountIn: sellAmount.toString(),
             minAmountOut: buyAmount.toString(),
-            isInstasettlable: false,
-            usePriceBased: false,
+            isInstasettlable: tradingSettings.isInstasettlable,
+            usePriceBased: tradingSettings.usePriceBased,
           },
           signer
         )
@@ -567,7 +573,16 @@ const SELSection = () => {
                 </div>
               </div>
             )}
-            <TradingSettings />
+            <TradingSettings
+              onSettingsChange={useCallback(
+                (settings: {
+                  usePriceBased: boolean
+                  instasettlableValue: string | null
+                  isInstasettlable: boolean
+                }) => setTradingSettings(settings),
+                []
+              )}
+            />
           </div>
         </div>
 
