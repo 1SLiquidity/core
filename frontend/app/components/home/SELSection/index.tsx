@@ -696,15 +696,7 @@ const SELSection = () => {
           ) : (
             <Button
               text={
-                pathname === '/'
-                  ? isFetchingReserves
-                    ? 'Fetching reserves...'
-                    : calculationError
-                    ? calculationError
-                    : isInsufficientLiquidity
-                    ? 'Insufficient Liquidity'
-                    : 'Get Started'
-                  : isFetchingReserves
+                isFetchingReserves
                   ? 'Fetching reserves...'
                   : calculationError
                   ? calculationError
@@ -750,7 +742,7 @@ const SELSection = () => {
             />
           )}
 
-        {pathname === '/' && (
+        {/* {pathname === '/' && (
           <div className="flex flex-col items-center justify-center z-20">
             <motion.div
               className="flex flex-col items-center cursor-pointer"
@@ -790,7 +782,7 @@ const SELSection = () => {
               />
             </motion.div>
           </div>
-        )}
+        )} */}
       </motion.div>
     </div>
   )
