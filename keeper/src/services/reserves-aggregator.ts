@@ -332,6 +332,7 @@ export class ReservesAggregator {
                 token0: token0Info.decimals,
                 token1: token1Info.decimals,
               },
+              price: 0,
               timestamp: balancerResult.timestamp,
             }
           }
@@ -383,6 +384,258 @@ export class ReservesAggregator {
     })
   }
 
+  // private async _fetchAllReservesOld(
+  //   tokenA: string,
+  //   tokenB: string
+  // ): Promise<ReserveResult | null> {
+  //   const startTime = Date.now()
+  //   console.log(
+  //     `Starting reserves fetch for ${tokenA}-${tokenB} at ${new Date().toISOString()}`
+  //   )
+
+  //   // Get token decimals
+  //   const tokenStartTime = Date.now()
+  //   const [token0Info, token1Info] = await Promise.all([
+  //     this.tokenService.getTokenInfo(tokenA),
+  //     this.tokenService.getTokenInfo(tokenB),
+  //   ])
+  //   const tokenEndTime = Date.now()
+  //   console.log(`Token info fetch took ${tokenEndTime - tokenStartTime}ms`)
+
+  //   const results: { result: ReserveResult; meanReserves: bigint }[] = []
+
+  //   // Fetch from only Uniswap V2 and SushiSwap in parallel
+  //   console.log('Fetching Uniswap V2 and SushiSwap reserves in parallel...')
+  //   const dexFetchStartTime = Date.now()
+
+  //   // const [
+  //   //   uniswapV3_500Reserves,
+  //   //   uniswapV3_3000Reserves,
+  //   //   uniswapV3_10000Reserves,
+  //   //   uniswapV2Reserves,
+  //   //   sushiswapReserves,
+  //   // ] = await Promise.allSettled([
+  //   //   this.fetchWithRetry(
+  //   //     () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
+  //   //     'Uniswap V3 (500)'
+  //   //   ),
+  //   //   this.fetchWithRetry(
+  //   //     () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
+  //   //     'Uniswap V3 (3000)'
+  //   //   ),
+  //   //   this.fetchWithRetry(
+  //   //     () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
+  //   //     'Uniswap V3 (10000)'
+  //   //   ),
+  //   //   this.fetchWithRetry(
+  //   //     () => this.uniswapV2.getReserves(tokenA, tokenB),
+  //   //     'Uniswap V2'
+  //   //   ),
+  //   //   this.fetchWithRetry(
+  //   //     () => this.sushiswap.getReserves(tokenA, tokenB),
+  //   //     'SushiSwap'
+  //   //   ),
+  //   // ])
+
+  //   const [uniswapV2Reserves, sushiswapReserves] = await Promise.allSettled([
+  //     this.fetchWithRetry(
+  //       () => this.uniswapV2.getReserves(tokenA, tokenB),
+  //       'Uniswap V2'
+  //     ),
+  //     this.fetchWithRetry(
+  //       () => this.sushiswap.getReserves(tokenA, tokenB),
+  //       'SushiSwap'
+  //     ),
+  //   ])
+
+  //   const dexFetchEndTime = Date.now()
+  //   console.log(`All DEX fetches took ${dexFetchEndTime - dexFetchStartTime}ms`)
+
+  //   // Process results and calculate totals
+  //   let totalReserveTokenA = 0n
+  //   let totalReserveTokenB = 0n
+
+  //   const processResults = (
+  //     result: PromiseSettledResult<ReserveResult | null>,
+  //     dexName: string
+  //   ) => {
+  //     if (result.status === 'fulfilled' && result.value) {
+  //       const meanReserves = this.calculateGeometricMean(
+  //         result.value.reserves,
+  //         { token0: token0Info.decimals, token1: token1Info.decimals }
+  //       )
+  //       console.log(
+  //         `${dexName} success - Mean reserves: ${meanReserves.toString()}`
+  //       )
+  //       results.push({
+  //         result: result.value,
+  //         meanReserves,
+  //       })
+
+  //       // Add to total reserves
+  //       totalReserveTokenA += BigInt(result.value.reserves.token0)
+  //       totalReserveTokenB += BigInt(result.value.reserves.token1)
+  //     } else {
+  //       console.log(`${dexName} failed or returned null`)
+  //     }
+  //   }
+
+  //   // processResults(uniswapV3_500Reserves, 'Uniswap V3 (500)')
+  //   // processResults(uniswapV3_3000Reserves, 'Uniswap V3 (3000)')
+  //   // processResults(uniswapV3_10000Reserves, 'Uniswap V3 (10000)')
+  //   processResults(uniswapV2Reserves, 'Uniswap V2')
+  //   processResults(sushiswapReserves, 'SushiSwap')
+
+  //   const totalTime = Date.now() - startTime
+  //   console.log(`Total fetch operation took ${totalTime}ms`)
+
+  //   // Add short delay before making more calls to avoid rate limits
+  //   await new Promise((resolve) => setTimeout(resolve, 500))
+
+  //   // Try Curve pools for the token pair with smart filtering
+  //   console.log('Fetching Curve reserves...')
+  //   if (this.curvePoolFilter) {
+  //     // Use smart filtering to find relevant pools
+  //     const candidatePools = this.curvePoolFilter.findBestPools(
+  //       tokenA,
+  //       tokenB,
+  //       5
+  //     )
+  //     console.log(
+  //       `Found ${candidatePools.length} candidate Curve pools for ${tokenA}/${tokenB}`
+  //     )
+
+  //     for (const poolAddress of candidatePools) {
+  //       const curveService = this.curveServices.get(poolAddress)
+  //       if (!curveService) continue
+
+  //       try {
+  //         const curveReserves = await this.fetchWithRetry(
+  //           () => curveService.getReserves(tokenA, tokenB),
+  //           `Curve ${poolAddress}`
+  //         )
+  //         if (curveReserves) {
+  //           const meanReserves = this.calculateGeometricMean(
+  //             curveReserves.reserves,
+  //             { token0: token0Info.decimals, token1: token1Info.decimals }
+  //           )
+  //           console.log(
+  //             `Curve ${poolAddress} meanReserves:`,
+  //             meanReserves.toString()
+  //           )
+  //           // Update the dex name to include pool address
+  //           curveReserves.dex = `curve-${poolAddress}`
+  //           results.push({
+  //             result: curveReserves,
+  //             meanReserves: meanReserves,
+  //           })
+  //         }
+  //       } catch (error) {
+  //         console.log(`Curve ${poolAddress} reserves fetch failed:`, error)
+  //       }
+  //     }
+  //   } else {
+  //     console.log('Curve pool filter not initialized - skipping Curve pools')
+  //   }
+
+  //   // Add short delay before making more calls to avoid rate limits
+  //   await new Promise((resolve) => setTimeout(resolve, 500))
+
+  //   // Try Balancer pools for the token pair with smart filtering
+  //   console.log('Fetching Balancer reserves...')
+  //   if (this.balancerPoolFilter) {
+  //     // Use smart filtering to find relevant pools
+  //     const candidatePools = await this.balancerPoolFilter.findBestPools(
+  //       tokenA,
+  //       tokenB,
+  //       5
+  //     )
+  //     console.log(
+  //       `Found ${candidatePools.length} candidate Balancer pools for ${tokenA}/${tokenB}`
+  //     )
+
+  //     for (const poolAddress of candidatePools) {
+  //       const balancerService = this.balancerServices.get(poolAddress)
+  //       if (!balancerService) continue
+
+  //       try {
+  //         const balancerResult = await balancerService.getReserves(
+  //           tokenA,
+  //           tokenB
+  //         )
+  //         if (balancerResult) {
+  //           const balancerReserves = {
+  //             dex: balancerResult.dex,
+  //             pairAddress: balancerResult.pairAddress,
+  //             reserves: balancerResult.reserves,
+  //             decimals: {
+  //               token0: token0Info.decimals,
+  //               token1: token1Info.decimals,
+  //             },
+  //             timestamp: balancerResult.timestamp,
+  //           }
+  //           const meanReserves = this.calculateGeometricMean(
+  //             balancerReserves.reserves,
+  //             { token0: token0Info.decimals, token1: token1Info.decimals }
+  //           )
+  //           // console.log(`Balancer ${poolAddress} meanReserves:`, meanReserves.toString());
+  //           results.push({
+  //             result: balancerReserves,
+  //             meanReserves: meanReserves,
+  //           })
+  //         }
+  //       } catch (error) {
+  //         console.log(`Balancer ${poolAddress} reserves fetch failed:`, error)
+  //       }
+  //     }
+  //   } else {
+  //     console.log(
+  //       'Balancer pool filter not initialized - skipping Balancer pools'
+  //     )
+  //   }
+
+  //   if (results.length === 0) {
+  //     console.log('No valid reserves found from any DEX')
+  //     return null
+  //   }
+
+  //   // Find the result with highest liquidity
+  //   const deepestPool = results.reduce((prev, current) => {
+  //     return current.meanReserves > prev.meanReserves ? current : prev
+  //   })
+
+  //   console.log('Selected deepest pool with liquidity:', deepestPool.result)
+  //   console.log('Total reserves across all DEXes:', {
+  //     totalReserveTokenA: totalReserveTokenA.toString(),
+  //     totalReserveTokenB: totalReserveTokenB.toString(),
+  //   })
+  //   console.log(
+  //     `Complete reserves fetch for ${tokenA}-${tokenB} took ${totalTime}ms`
+  //   )
+
+  //   return {
+  //     ...deepestPool.result,
+  //     decimals: {
+  //       token0: token0Info.decimals,
+  //       token1: token1Info.decimals,
+  //     },
+  //     totalReserves: {
+  //       // Wei values (original)
+  //       totalReserveTokenAWei: totalReserveTokenA.toString(),
+  //       totalReserveTokenBWei: totalReserveTokenB.toString(),
+  //       // Normal values (converted)
+  //       totalReserveTokenA: this.convertWeiToNormal(
+  //         totalReserveTokenA,
+  //         token0Info.decimals
+  //       ),
+  //       totalReserveTokenB: this.convertWeiToNormal(
+  //         totalReserveTokenB,
+  //         token1Info.decimals
+  //       ),
+  //     },
+  //   }
+  // }
+
   private async _fetchAllReserves(
     tokenA: string,
     tokenB: string
@@ -406,35 +659,6 @@ export class ReservesAggregator {
     // Fetch from only Uniswap V2 and SushiSwap in parallel
     console.log('Fetching Uniswap V2 and SushiSwap reserves in parallel...')
     const dexFetchStartTime = Date.now()
-
-    // const [
-    //   uniswapV3_500Reserves,
-    //   uniswapV3_3000Reserves,
-    //   uniswapV3_10000Reserves,
-    //   uniswapV2Reserves,
-    //   sushiswapReserves,
-    // ] = await Promise.allSettled([
-    //   this.fetchWithRetry(
-    //     () => this.uniswapV3_500.getReserves(tokenA, tokenB, 500),
-    //     'Uniswap V3 (500)'
-    //   ),
-    //   this.fetchWithRetry(
-    //     () => this.uniswapV3_3000.getReserves(tokenA, tokenB, 3000),
-    //     'Uniswap V3 (3000)'
-    //   ),
-    //   this.fetchWithRetry(
-    //     () => this.uniswapV3_10000.getReserves(tokenA, tokenB, 10000),
-    //     'Uniswap V3 (10000)'
-    //   ),
-    //   this.fetchWithRetry(
-    //     () => this.uniswapV2.getReserves(tokenA, tokenB),
-    //     'Uniswap V2'
-    //   ),
-    //   this.fetchWithRetry(
-    //     () => this.sushiswap.getReserves(tokenA, tokenB),
-    //     'SushiSwap'
-    //   ),
-    // ])
 
     const [uniswapV2Reserves, sushiswapReserves] = await Promise.allSettled([
       this.fetchWithRetry(
@@ -466,8 +690,18 @@ export class ReservesAggregator {
         console.log(
           `${dexName} success - Mean reserves: ${meanReserves.toString()}`
         )
+
+        // Add decimals to the result
+        const resultWithDecimals = {
+          ...result.value,
+          decimals: {
+            token0: token0Info.decimals,
+            token1: token1Info.decimals,
+          },
+        }
+
         results.push({
-          result: result.value,
+          result: resultWithDecimals,
           meanReserves,
         })
 
@@ -479,9 +713,6 @@ export class ReservesAggregator {
       }
     }
 
-    // processResults(uniswapV3_500Reserves, 'Uniswap V3 (500)')
-    // processResults(uniswapV3_3000Reserves, 'Uniswap V3 (3000)')
-    // processResults(uniswapV3_10000Reserves, 'Uniswap V3 (10000)')
     processResults(uniswapV2Reserves, 'Uniswap V2')
     processResults(sushiswapReserves, 'SushiSwap')
 
@@ -524,10 +755,24 @@ export class ReservesAggregator {
             )
             // Update the dex name to include pool address
             curveReserves.dex = `curve-${poolAddress}`
+
+            // Add decimals to the result
+            const resultWithDecimals = {
+              ...curveReserves,
+              decimals: {
+                token0: token0Info.decimals,
+                token1: token1Info.decimals,
+              },
+            }
+
             results.push({
-              result: curveReserves,
+              result: resultWithDecimals,
               meanReserves: meanReserves,
             })
+
+            // Add to total reserves
+            totalReserveTokenA += BigInt(curveReserves.reserves.token0)
+            totalReserveTokenB += BigInt(curveReserves.reserves.token1)
           }
         } catch (error) {
           console.log(`Curve ${poolAddress} reserves fetch failed:`, error)
@@ -571,17 +816,22 @@ export class ReservesAggregator {
                 token0: token0Info.decimals,
                 token1: token1Info.decimals,
               },
+              price: 0,
               timestamp: balancerResult.timestamp,
             }
             const meanReserves = this.calculateGeometricMean(
               balancerReserves.reserves,
               { token0: token0Info.decimals, token1: token1Info.decimals }
             )
-            // console.log(`Balancer ${poolAddress} meanReserves:`, meanReserves.toString());
+
             results.push({
               result: balancerReserves,
               meanReserves: meanReserves,
             })
+
+            // Add to total reserves
+            totalReserveTokenA += BigInt(balancerResult.reserves.token0)
+            totalReserveTokenB += BigInt(balancerResult.reserves.token1)
           }
         } catch (error) {
           console.log(`Balancer ${poolAddress} reserves fetch failed:`, error)
@@ -602,6 +852,15 @@ export class ReservesAggregator {
     const deepestPool = results.reduce((prev, current) => {
       return current.meanReserves > prev.meanReserves ? current : prev
     })
+
+    // Create otherDexes array with all results except the deepest pool
+    const otherDexes = results
+      .filter(
+        (r) =>
+          r.result.dex !== deepestPool.result.dex ||
+          r.result.pairAddress !== deepestPool.result.pairAddress
+      )
+      .map((r) => r.result)
 
     console.log('Selected deepest pool with liquidity:', deepestPool.result)
     console.log('Total reserves across all DEXes:', {
@@ -632,6 +891,7 @@ export class ReservesAggregator {
           token1Info.decimals
         ),
       },
+      otherDexes: otherDexes,
     }
   }
 
