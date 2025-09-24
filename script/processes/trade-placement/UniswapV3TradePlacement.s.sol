@@ -6,10 +6,17 @@ import "../../../src/Utils.sol";
 import "../../../src/adapters/UniswapV3Fetcher.sol";
 
 contract UniswapV3TradePlacement is SingleDexProtocol {
+    address constant UNISWAP_V3_QUOTER_V2 = 0x61fFE014bA17989E743c5F6cB21bF9697530B21e;
+    
     function setUp() public {
         console.log("UniswapV3TradePlacement: Starting setup");
         UniswapV3Fetcher uniswapV3Fetcher = new UniswapV3Fetcher(UNISWAP_V3_FACTORY, UNISWAP_V3_FEE);
         console.log("UniswapV3TradePlacement: Created fetcher at", address(uniswapV3Fetcher));
+        
+        // Set QuoterV2 address for enhanced functionality
+        uniswapV3Fetcher.setQuoterV2(UNISWAP_V3_QUOTER_V2);
+        console.log("UniswapV3TradePlacement: Set QuoterV2 at", UNISWAP_V3_QUOTER_V2);
+        
         setUpSingleDex(address(uniswapV3Fetcher), UNISWAP_V3_ROUTER);
         console.log("UniswapV3TradePlacement: Setup complete");
     }
