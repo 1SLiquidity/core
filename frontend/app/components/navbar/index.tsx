@@ -2,6 +2,7 @@
 
 import { NAV_LINKS } from '@/app/lib/constants'
 import {
+  DocsIcon,
   HomeIcon,
   InstasettleIcon,
   SwapsIcon,
@@ -176,6 +177,14 @@ const Navbar: React.FC<Props> = ({ isBack, onBack }) => {
                         pathname === link.href && 'text-primary'
                       )}
                       isActive={pathname === link.href}
+                    />
+                  )}
+                  {link.title === 'Docs' && (
+                    <DocsIcon
+                      className={cn(
+                        'w-4.5 h-4.5 text-white',
+                        pathname === link.href && 'text-primary'
+                      )}
                     />
                   )}
                   <span>{link.title}</span>
