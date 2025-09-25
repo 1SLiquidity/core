@@ -139,6 +139,28 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
       estimatedTime: formatRelativeTime(execution.timestamp),
     })) || []
 
+  const formattedSettlements =
+    selectedStream.settlements?.map((settlement) => ({
+      sell: {
+        amount: Number(
+          formatUnits(BigInt(settlement.totalAmountIn), tokenIn?.decimals || 18)
+        ),
+        token: tokenIn?.symbol || '',
+      },
+      buy: {
+        amount: Number(
+          formatUnits(
+            BigInt(settlement.totalAmountOut),
+            tokenOut?.decimals || 18
+          )
+        ),
+        token: tokenOut?.symbol || '',
+      },
+      id: settlement.id,
+      timestamp: Number(settlement.timestamp),
+      estimatedTime: formatRelativeTime(settlement.timestamp),
+    })) || []
+
   // Calculate actual swapped input amount (amountIn - amountRemaining)
   const swappedAmountIn = tokenIn
     ? formatUnits(BigInt(amountIn) - BigInt(amountRemaining), tokenIn.decimals)
@@ -191,6 +213,9 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
           },
           signer
         )
+        if (res.success) {
+          onClose()
+        }
       }
     }
   }
@@ -201,6 +226,9 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
 
       if (signer) {
         const res = await cancelTrade(Number(selectedStream.tradeId), signer)
+        if (res.success) {
+          onClose()
+        }
       }
     }
   }
@@ -610,6 +638,24 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               date={new Date(execution.timestamp * 1000)}
               timeRemaining={execution.estimatedTime}
               walletAddress={execution.id.split('-')[0]}
+              isInstasettle={false}
+              isLoading={isLoading}
+            />
+          ))}
+
+          {formattedSettlements.map((settlement, index) => (
+            <StreamCard
+              key={settlement.id}
+              status="completed"
+              stream={[
+                {
+                  sell: settlement.sell,
+                  buy: settlement.buy,
+                },
+              ]}
+              date={new Date(settlement.timestamp * 1000)}
+              timeRemaining={settlement.estimatedTime}
+              walletAddress={settlement.id.split('-')[0]}
               isInstasettle={false}
               isLoading={isLoading}
             />

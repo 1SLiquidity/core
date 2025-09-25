@@ -60,6 +60,11 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
     return trade.executions?.some(
       (execution: any) => execution.lastSweetSpot === '0'
     )
+    // ||
+    //   trade.settlements?.some(
+    //     (settlement: any) =>
+    //       settlement.settler.toLowerCase() === address?.toLowerCase()
+    //   )
   }
 
   const filteredTrades = trades.filter((trade) => {

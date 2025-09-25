@@ -27,6 +27,14 @@ export const GET_TRADES = gql`
         id
         timestamp
       }
+      settlements {
+        id
+        settler
+        totalAmountIn
+        totalAmountOut
+        totalFees
+        timestamp
+      }
     }
   }
 `
