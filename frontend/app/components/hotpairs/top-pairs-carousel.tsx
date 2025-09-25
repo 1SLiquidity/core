@@ -31,7 +31,7 @@ export default function TopPairsCarousel({
     error: topTokensError,
     refetch: refetchTopTokens,
   } = useEnhancedTopTokens({
-    limit: 100,
+    limit: 1000,
     metric: 'slippageSavings', // You can change this based on your needs
     enabled: true,
   })
