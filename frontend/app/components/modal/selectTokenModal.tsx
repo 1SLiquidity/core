@@ -831,7 +831,18 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
                     <div className="flex items-center gap-1">
                       <span className="text-sm text-gray">filtered by</span>
                       <span className="text-sm font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
-                        {selectedBaseToken}
+                        {/* {selectedBaseToken} */}
+                        {(() => {
+                          // Get the original token symbol for display
+                          const otherFieldToken =
+                            currentInputField === 'from'
+                              ? selectedTokenTo
+                              : selectedTokenFrom
+                          return (
+                            otherFieldToken?.symbol.toUpperCase() ||
+                            selectedBaseToken
+                          )
+                        })()}
                       </span>
                       <button
                         onClick={() => setSelectedBaseToken(null)}
