@@ -58,6 +58,13 @@ export default function TopPairsCarousel({
     }
   }, [topTokensData])
 
+  // Auto-select first pair when data loads
+  useEffect(() => {
+    if (sortedPairs.length > 0 && !activeHotPair) {
+      handleSetActiveHotPair(sortedPairs[0])
+    }
+  }, [sortedPairs, activeHotPair])
+
   // Enhanced setActiveHotPair that includes slippageSavingsUsd
   const handleSetActiveHotPair = (pair: any) => {
     const enhancedPair = {
