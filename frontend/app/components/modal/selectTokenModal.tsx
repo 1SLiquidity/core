@@ -220,7 +220,13 @@ const SelectTokenModal: React.FC<SelectTokenModalProps> = ({
       otherFieldToken &&
       BASE_TOKENS.includes(otherFieldToken.symbol.toUpperCase())
     ) {
-      setSelectedBaseToken(otherFieldToken.symbol.toUpperCase())
+      // setSelectedBaseToken(otherFieldToken.symbol.toUpperCase())
+      // Normalize ETH/WETH to use WETH for filtering since they have the same address
+      let baseTokenSymbol = otherFieldToken.symbol.toUpperCase()
+      if (baseTokenSymbol === 'ETH') {
+        baseTokenSymbol = 'WETH'
+      }
+      setSelectedBaseToken(baseTokenSymbol)
     } else {
       // Check if any token from results is selected in the other field
       if (otherFieldToken) {
