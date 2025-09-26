@@ -57,14 +57,16 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
   })
 
   const isTradeCompleted = (trade: any) => {
-    return trade.executions?.some(
-      (execution: any) => execution.lastSweetSpot === '0'
+    return (
+      trade.executions?.some(
+        (execution: any) => execution.lastSweetSpot === '0'
+      ) ||
+      trade.executions?.some(
+        (execution: any) => execution.lastSweetSpot === '0'
+      ) ||
+      trade.settlements.length > 0 ||
+      trade.cancellations.length > 0
     )
-    // ||
-    //   trade.settlements?.some(
-    //     (settlement: any) =>
-    //       settlement.settler.toLowerCase() === address?.toLowerCase()
-    //   )
   }
 
   const filteredTrades = trades.filter((trade) => {
@@ -351,6 +353,8 @@ const GlobalStreamSidebar: React.FC<GlobalStreamSidebarProps> = ({
                                 isInstasettlable: false,
                                 realisedAmountOut: '0',
                                 executions: [],
+                                settlements: [],
+                                cancellations: [],
                               }}
                               isLoading={true}
                               isUser={activeTab.title === 'My Trades'}
