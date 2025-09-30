@@ -165,8 +165,6 @@ const TradesTable = ({
     }
   }
 
-  console.log('All trades ======>', trades)
-
   // Filter and sort trades
   const displayData = useMemo((): ExtendedTrade[] => {
     if (isChartFiltered) {
@@ -267,15 +265,10 @@ const TradesTable = ({
         const realisedAmountOut = trade.realisedAmountOut
         const instasettleBps = trade.instasettleBps
 
-        console.log('targetAmountOut ======>', targetAmountOut)
-        console.log('realisedAmountOut ======>', realisedAmountOut)
-
         const cost = BigInt(targetAmountOut) - BigInt(realisedAmountOut)
         const formatCost = tokenOut
           ? formatUnits(BigInt(cost || '0'), tokenOut.decimals || 18)
           : '0'
-
-        console.log('formatCost ======>', formatCost)
 
         let amountOut: bigint
         try {
@@ -295,20 +288,12 @@ const TradesTable = ({
         // Calculate amountIn
         const amountRemaining = trade.amountRemaining
 
-        console.log('tokenInAmountRemaining ======>', amountRemaining)
-        console.log(
-          'tokenOutAmountRemaining ======>',
-          Number(targetAmountOut) - Number(realisedAmountOut)
-        )
-
         let amountIn: bigint
         // Calculate network fee (15% of amountInUsd)
         // Calculate network fee (15 basis points = 0.15%)
         const NETWORK_FEE_BPS = BigInt(15) // 15 basis points
         const networkFee =
           (BigInt(trade.amountIn) * NETWORK_FEE_BPS) / BigInt(10000)
-
-        console.log('networkFee ======>', networkFee)
 
         try {
           amountIn =
@@ -352,15 +337,6 @@ const TradesTable = ({
           console.error('Error calculating savings:', error)
           savings = 0
         }
-
-        console.log('Trade calculation:', {
-          amountOut: Number(amountOut),
-          amountIn: Number(amountIn),
-          effectivePrice,
-          volume: Number(formattedAmountRemaining),
-          savings,
-          tokenInDecimals: tokenIn?.decimals || 18,
-        })
 
         // Update trade object with calculated values
         return {
@@ -465,9 +441,6 @@ const TradesTable = ({
       }
     }
   }
-
-  console.log('selectedTokenFrom ======>', selectedTokenFrom)
-  console.log('selectedTokenTo ======>', selectedTokenTo)
 
   // Loading skeleton
   if ((isLoading && !displayData.length) || isLoadingTokenList) {
@@ -697,7 +670,6 @@ const TradesTable = ({
                     (item.tokenOutDetails.usd_price || 0)
                   : 0
 
-                console.log('item ===>', item)
                 return (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium text-center">

@@ -179,10 +179,6 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     ? networkFeeInToken * (tokenIn.usd_price || 0)
     : 0
 
-  // console.log('selectedStream ===>', selectedStream)
-  // console.log('tokenIn ===>', tokenIn)
-  // console.log('tokenOut ===>', tokenOut)
-
   const handleInstasettleClick = async (item: any) => {
     if (isConnectedWallet) {
       const signer = getSigner()
@@ -255,12 +251,6 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
     // Final realisedAmountOut = existing + executions sum
     const finalRealisedAmountOut = existingRealisedOut + totalExecRealisedOut
 
-    // console.log('executions ===>', executions)
-    // console.log('totalExecutedAmountIn ===>', totalExecutedAmountIn)
-    // console.log('totalExecRealisedOut ===>', totalExecRealisedOut)
-    // console.log('existingRealisedOut ===>', existingRealisedOut)
-    // console.log('finalRealisedAmountOut ===>', finalRealisedAmountOut)
-
     // amountIn (original) and recalculated amountRemaining
     const amountIn = BigInt(trade.amountIn ?? '0')
     const recalculatedAmountRemaining = amountIn - totalExecutedAmountIn
@@ -271,11 +261,6 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
       realisedAmountOut: finalRealisedAmountOut.toString(),
     }
   }
-
-  // console.log(
-  //   'selectedStream.cancellations ===>',
-  //   selectedStream.cancellations.some((cancellation) => !!cancellation.id)
-  // )
 
   return (
     <>

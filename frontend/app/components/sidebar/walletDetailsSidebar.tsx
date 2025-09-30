@@ -172,16 +172,6 @@ const WalletDetailsSidebar: React.FC<WalletDetailsSidebarProps> = ({
     }
   }
 
-  // console.log('walletTokens', walletTokens)
-  // console.log('rawTokens', rawTokens)
-  // console.log('displayTokens', displayTokens)
-
-  // Get streams for this wallet
-  // const ongoingStreams = getOngoingStreams()
-  // const completedStreams = getCompletedStreams()
-
-  // console.log('selectedStream ===>', selectedStream)
-
   return (
     <Sidebar isOpen={isOpen} onClose={onClose}>
       {/* close icon */}

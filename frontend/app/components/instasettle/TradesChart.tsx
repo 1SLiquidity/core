@@ -316,12 +316,12 @@ export default function TradesChart({
     if (!isChartReady) return
     setSelectedBar(selectedBar === index ? null : index)
     if (selectedBar !== index) {
-      console.log('Selected Bar Details:', {
-        cost: data.cost,
-        volume: data.volume,
-        savings: data.savings,
-        trade: data.trade,
-      })
+      // console.log('Selected Bar Details:', {
+      //   cost: data.cost,
+      //   volume: data.volume,
+      //   savings: data.savings,
+      //   trade: data.trade,
+      // })
     }
   }
 

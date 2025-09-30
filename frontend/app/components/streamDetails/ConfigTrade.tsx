@@ -51,13 +51,6 @@ const ConfigTrade: React.FC<Props> = ({
     </div>
   )
 
-  console.log('selectedStream ===>', selectedStream)
-  console.log('walletAddress ===>', walletAddress)
-  console.log(
-    'selectedStream.user?.toLowerCase() !== walletAddress?.toLowerCase() ===>',
-    selectedStream.user?.toLowerCase() !== walletAddress?.toLowerCase()
-  )
-
   return (
     <div
       className={cn(

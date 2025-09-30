@@ -95,13 +95,11 @@ export const usePrefetchReserves = ({
     // Enable medium priority batch after delay
     const mediumTimer = setTimeout(() => {
       setEnabledQueriesCount(4) // Enable first 4 queries
-      console.log('Enabling medium priority pairs for prefetch')
     }, CACHE_CONFIG.MEDIUM_DELAY)
 
     // Enable low priority batch after longer delay
     const lowTimer = setTimeout(() => {
       setEnabledQueriesCount(PAIRS_TO_PREFETCH.length) // Enable all queries
-      console.log('Enabling low priority pairs for prefetch')
     }, CACHE_CONFIG.LOW_DELAY)
 
     return () => {
@@ -133,8 +131,6 @@ export const usePrefetchReserves = ({
         () => controller.abort(),
         CACHE_CONFIG.REQUEST_TIMEOUT
       )
-
-      // console.log(`Prefetching reserves for ${fromSymbol}-${toSymbol}`)
 
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_BACKEND_URL}/reserves?tokenA=${fromAddress}&tokenB=${toAddress}`,
@@ -174,8 +170,6 @@ export const usePrefetchReserves = ({
         undefined,
         chainId
       )
-
-      // console.log(`Successfully prefetched ${fromSymbol}-${toSymbol}`)
 
       return {
         reserveData: reserveDataWithDecimals,
