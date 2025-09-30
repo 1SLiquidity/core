@@ -544,17 +544,22 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               titleClassName="text-white52"
               isLoading={isLoading}
             />
-            <AmountTag
-              title="Est time"
-              amount={
-                isLoading || selectedStream.settlements.length > 0
-                  ? '...'
-                  : estimatedTime
-              }
-              infoDetail="Info"
-              titleClassName="text-white52"
-              isLoading={isLoading}
-            />
+            {!(
+              selectedStream.settlements.length > 0 ||
+              selectedStream.cancellations.length > 0
+            ) && (
+              <AmountTag
+                title="Est time"
+                amount={
+                  isLoading || selectedStream.settlements.length > 0
+                    ? '...'
+                    : estimatedTime
+                }
+                infoDetail="Info"
+                titleClassName="text-white52"
+                isLoading={isLoading}
+              />
+            )}
             {/* <AmountTag
               title="Output Fee"
               amount="$190.54"
@@ -602,6 +607,8 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               handleCancelClick={handleCancelClick}
               walletAddress={walletAddress}
               isCancellable={selectedStream.cancellations.length === 0}
+              tokenIn={tokenIn}
+              formattedAmountIn={formattedAmountIn}
             />
           )}
         </div>

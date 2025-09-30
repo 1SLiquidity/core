@@ -10,6 +10,7 @@ import { TOKENS_TYPE } from '@/app/lib/hooks/useWalletTokens'
 import { cn } from '@/lib/utils'
 import { useStreamTime } from '@/app/lib/hooks/useStreamTime'
 import ImageFallback from '@/app/shared/ImageFallback'
+import { XIcon } from 'lucide-react'
 
 type Trade = {
   id: string
@@ -231,7 +232,8 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
                 completed
               </p>
               <div className="flex gap-2">
-                {trade.settlements.length > 0 ? (
+                {trade.settlements.length > 0 ||
+                trade.cancellations.length > 0 ? (
                   ''
                 ) : (
                   <div className="flex items-center">
@@ -265,6 +267,15 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
                       {trade.settlements.length > 0
                         ? 'Instasettled'
                         : 'Instasettle'}
+                    </span>
+                  </div>
+                )}
+
+                {trade.cancellations.length > 0 && (
+                  <div className="flex items-center text-sm gap-1 bg-zinc-900 pl-1 pr-1.5 text-red-700 rounded-full leading-none">
+                    <XIcon className="w-3.5 h-3.5" />
+                    <span className="text-xs sm:inline-block hidden">
+                      Cancelled
                     </span>
                   </div>
                 )}
