@@ -766,17 +766,18 @@ export const useCoreTrading = () => {
         const tokenOutBalance = await tokenOutContract.balanceOf(userAddress)
 
         if (tokenOutBalance.lt(totalAmountNeeded)) {
+          const requiredAmount = parseFloat(
+            ethers.utils.formatUnits(totalAmountNeeded, tokenOutDecimals)
+          ).toFixed(4)
+
           updateToastProgress(
-            `Insufficient balance. Required: ${ethers.utils.formatUnits(
-              totalAmountNeeded,
-              tokenOutDecimals
-            )} (includes protocol fee)`,
+            'Insufficient balance',
             0,
             1,
             tokenInObj,
             tokenOutObj,
             amountInFormatted,
-            amountOutFormatted
+            `Required: ${requiredAmount}`
           )
           // Auto-close error toast after 5 seconds
           setTimeout(() => {

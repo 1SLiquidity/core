@@ -163,11 +163,6 @@ export const useDynamicReserveCache = ({
       ]) as DynamicReservesCache[string]
 
       if (!cachedData) {
-        console.log('Dynamic - Cache miss:', {
-          fromSymbol: tokenA?.symbol,
-          toSymbol: tokenB?.symbol,
-          key: pairKey,
-        })
         return null
       }
 

@@ -262,7 +262,9 @@ const SwapStream: React.FC<Props> = ({ trade, onClick, isUser, isLoading }) => {
                       />
                     </svg>
                     <span className="text-xs sm:inline-block hidden">
-                      Instasettle
+                      {trade.settlements.length > 0
+                        ? 'Instasettled'
+                        : 'Instasettle'}
                     </span>
                   </div>
                 )}

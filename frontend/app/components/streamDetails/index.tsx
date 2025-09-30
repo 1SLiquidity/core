@@ -590,9 +590,7 @@ const StreamDetails: React.FC<StreamDetailsProps> = ({
               amountReceived={`$${amountOutUsd.toFixed(2)}`}
               fee="$190.54"
               isEnabled={
-                (selectedStream.isInstasettlable &&
-                  selectedStream.user?.toLowerCase() !==
-                    walletAddress?.toLowerCase()) ||
+                selectedStream.isInstasettlable ||
                 selectedStream.user?.toLowerCase() ===
                   walletAddress?.toLowerCase()
               }
