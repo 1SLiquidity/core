@@ -196,7 +196,11 @@ const ConfigTrade: React.FC<Props> = ({
               <Button
                 text="EXECUTE INSTASETTLE"
                 className="h-[2.25rem]"
-                disabled={isLoading || selectedStream.settlements.length > 0}
+                disabled={
+                  isLoading ||
+                  selectedStream.settlements.length > 0 ||
+                  !walletAddress
+                }
                 loading={isLoading}
                 onClick={() => handleInstasettleClick(selectedStream)}
               />
@@ -283,7 +287,7 @@ const ConfigTrade: React.FC<Props> = ({
               text="CANCEL TRADE"
               theme="destructive"
               className="h-[2.25rem]"
-              disabled={isLoading || !isCancellable}
+              disabled={isLoading || !isCancellable || !walletAddress}
               loading={isLoading}
               onClick={() => handleCancelClick(selectedStream)}
             />
